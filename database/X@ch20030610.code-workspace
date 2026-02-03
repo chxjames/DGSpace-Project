@@ -1,0 +1,14 @@
+{
+	"folders": [
+		{
+			"name": "X@ch20030610",
+			"path": "C:/ProgramData/MySQL/MySQL Server 8.0/Data/X@ch20030610"
+		}
+	],
+	"settings": {
+		"dataworkspace.excludedProjects": [
+			"X@ch20030610.sqlproj",
+			"DGSpace/DGSpace.sqlproj"
+		]
+	}
+}
