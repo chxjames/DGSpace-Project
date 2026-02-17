@@ -11,9 +11,11 @@ class Database:
         try:
             self.connection = mysql.connector.connect(
                 host=Config.DB_HOST,
+                port=Config.DB_PORT,
                 user=Config.DB_USER,
                 password=Config.DB_PASSWORD,
-                database=Config.DB_NAME
+                database=Config.DB_NAME,
+                ssl_disabled=False  # Enable SSL for Aiven
             )
             if self.connection.is_connected():
                 print(f"✅ Connected to MySQL database: {Config.DB_NAME}")
