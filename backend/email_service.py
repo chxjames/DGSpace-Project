@@ -53,7 +53,7 @@ class EmailService:
             mail.send(msg)
             return {'success': True, 'message': 'Verification email sent'}
         except Exception as e:
-            print(f"❌ Error sending email: {e}")
+            print(f"[ERROR] Error sending email: {e}")
             return {'success': False, 'message': str(e)}
     
     @staticmethod
@@ -107,5 +107,5 @@ class EmailService:
             mail.send(msg)
             return {'success': True, 'message': 'Password reset email sent'}
         except Exception as e:
-            print(f"❌ Error sending email: {e}")
+            print(f"[ERROR] Error sending email: {e}")
             return {'success': False, 'message': str(e)}

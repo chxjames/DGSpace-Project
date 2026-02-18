@@ -1,13 +1,72 @@
-<!-- templates/registration/login.html -->
 {% extends "base.html" %}
-
-{% block title %}Donald's Garage Space Portal{% endblock %}
+{% block title %}Log In — DGSpace{% endblock %}
 
 {% block content %}
-<h2>Log In</h2>
-<form method="post">
-  {% csrf_token %}
-  {{ form }}
-  <button type="submit">Log In</button>
-</form>
+<div class="card" style="max-width:420px;margin:0 auto">
+  <h2>Log In to DGSpace</h2>
+
+  <div id="alert-box"></div>
+
+  <div class="form-group">
+    <label>Account Type</label>
+    <select id="user-type">
+      <option value="student">Student</option>
+      <option value="admin">Admin</option>
+    </select>
+  </div>
+  <div class="form-group">
+    <label>Email</label>
+    <input type="email" id="email" placeholder="your@email.com">
+  </div>
+  <div class="form-group">
+    <label>Password</label>
+    <input type="password" id="password" placeholder="••••••••">
+  </div>
+  <button class="btn" onclick="doLogin()">Log In</button>
+
+  <p style="margin-top:16px;text-align:center;font-size:0.9rem">
+    Don't have an account? <a href="/accounts/signup">Sign Up</a>
+  </p>
+</div>
+
+<script>
+function showAlert(msg, type='error') {
+  document.getElementById('alert-box').innerHTML =
+    `<div class="alert alert-${type}">${msg}</div>`;
+}
+
+async function doLogin() {
+  const email     = document.getElementById('email').value.trim();
+  const password  = document.getElementById('password').value;
+  const user_type = document.getElementById('user-type').value;
+
+  if (!email || !password) { showAlert('Please enter your email and password.'); return; }
+
+  const endpoint = user_type === 'admin'
+    ? '/api/admins/login'
+    : '/api/students/login';
+
+  try {
+    const res  = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    });
+    const data = await res.json();
+
+    if (data.success) {
+      saveAuth(data.token, data.user);
+      showAlert('Login successful! Redirecting…', 'success');
+      setTimeout(() => location.href = '/', 800);
+    } else {
+      showAlert(data.message || 'Login failed.');
+    }
+  } catch(e) {
+    showAlert('Cannot reach the backend. Make sure both servers are running.');
+  }
+}
+
+// Press Enter to log in
+document.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+</script>
 {% endblock %}

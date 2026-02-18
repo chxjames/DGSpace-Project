@@ -1,17 +1,136 @@
 <!-- templates/base.html -->
 <!DOCTYPE html>
-<html>
-
+<html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>{% block title %}DG Space Home Page{% endblock %}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}DG Space{% endblock %}</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Arial, sans-serif; background: #f4f6f9; color: #333; }
+
+    /* ── Nav ── */
+    nav {
+      background: #1a1a2e; color: #fff;
+      padding: 0 24px; height: 56px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    nav .brand { font-size: 1.2rem; font-weight: bold; color: #e94560; text-decoration: none; }
+    nav .nav-links { display: flex; gap: 16px; align-items: center; }
+    nav .nav-links a { color: #ccc; text-decoration: none; font-size: 0.9rem; }
+    nav .nav-links a:hover { color: #fff; }
+    nav .nav-links button {
+      background: #e94560; color: #fff; border: none;
+      padding: 6px 14px; border-radius: 4px; cursor: pointer; font-size: 0.9rem;
+    }
+    #nav-username { color: #e94560; font-weight: bold; margin-right: 8px; }
+
+    /* ── Main ── */
+    main { max-width: 960px; margin: 32px auto; padding: 0 16px; }
+
+    /* ── Card ── */
+    .card {
+      background: #fff; border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.1); padding: 32px;
+    }
+    .card h2 { margin-bottom: 20px; color: #1a1a2e; }
+
+    /* ── Form ── */
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; margin-bottom: 6px; font-weight: bold; font-size: 0.9rem; }
+    .form-group input, .form-group select, .form-group textarea {
+      width: 100%; padding: 10px 12px; border: 1px solid #ddd;
+      border-radius: 4px; font-size: 0.95rem;
+    }
+    .form-group textarea { resize: vertical; min-height: 80px; }
+    .btn {
+      display: inline-block; padding: 10px 24px;
+      background: #e94560; color: #fff; border: none;
+      border-radius: 4px; cursor: pointer; font-size: 1rem; width: 100%;
+    }
+    .btn:hover { background: #c73652; }
+    .btn-secondary {
+      background: #6c757d;
+    }
+    .btn-secondary:hover { background: #545b62; }
+
+    /* ── Alert ── */
+    .alert {
+      padding: 12px 16px; border-radius: 4px; margin-bottom: 16px; font-size: 0.9rem;
+    }
+    .alert-error { background: #fdecea; color: #c0392b; border-left: 4px solid #e74c3c; }
+    .alert-success { background: #eafaf1; color: #1e8449; border-left: 4px solid #2ecc71; }
+    .alert-info { background: #eaf4fb; color: #1a6fa0; border-left: 4px solid #3498db; }
+
+    /* ── Table ── */
+    table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+    th, td { padding: 10px 12px; border-bottom: 1px solid #eee; text-align: left; font-size: 0.9rem; }
+    th { background: #f8f9fa; font-weight: bold; color: #555; }
+    .badge {
+      display: inline-block; padding: 2px 10px; border-radius: 12px;
+      font-size: 0.8rem; font-weight: bold;
+    }
+    .badge-pending  { background: #fff3cd; color: #856404; }
+    .badge-approved { background: #d1ecf1; color: #0c5460; }
+    .badge-rejected { background: #f8d7da; color: #721c24; }
+    .badge-in_progress { background: #cce5ff; color: #004085; }
+    .badge-completed   { background: #d4edda; color: #155724; }
+    .badge-cancelled   { background: #e2e3e5; color: #383d41; }
+  </style>
+  <script>
+    /* ── JWT helpers — loaded in <head> so all page scripts can use them ── */
+    const API = '';  // Proxy: Django forwards /api/* to Flask
+
+    function getToken()  { return localStorage.getItem('dg_token'); }
+    function getUser()   { try { return JSON.parse(localStorage.getItem('dg_user')); } catch { return null; } }
+    function saveAuth(token, user) {
+      localStorage.setItem('dg_token', token);
+      localStorage.setItem('dg_user', JSON.stringify(user));
+    }
+    function clearAuth() {
+      localStorage.removeItem('dg_token');
+      localStorage.removeItem('dg_user');
+    }
+    function logout() { clearAuth(); location.href = '/'; }
+
+    async function apiFetch(path, options = {}) {
+      const token = getToken();
+      const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
+      if (token) headers['Authorization'] = 'Bearer ' + token;
+      return fetch(API + path, { ...options, headers });
+    }
+  </script>
 </head>
 
 <body>
-  <main>
-    {% block content %}
-    {% endblock %}
-  </main>
-</body>
+  <nav>
+    <a class="brand" href="/">🖨 DGSpace</a>
+    <div class="nav-links">
+      <span id="nav-username" style="display:none"></span>
+      <a href="/print-requests/" id="nav-print" style="display:none">Print Requests</a>
+      <a href="/accounts/login" id="nav-login">Log In</a>
+      <a href="/accounts/signup" id="nav-signup">Sign Up</a>
+      <button id="nav-logout" style="display:none" onclick="logout()">Log Out</button>
+    </div>
+  </nav>
 
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+
+  <script>
+    /* ── Update nav based on login state ── */
+    (function updateNav() {
+      const user = getUser();
+      if (user) {
+        document.getElementById('nav-username').textContent = user.full_name || user.email;
+        document.getElementById('nav-username').style.display = 'inline';
+        document.getElementById('nav-login').style.display   = 'none';
+        document.getElementById('nav-signup').style.display  = 'none';
+        document.getElementById('nav-logout').style.display  = 'inline-block';
+        document.getElementById('nav-print').style.display   = 'inline';
+      }
+    })();
+  </script>
+</body>
 </html>

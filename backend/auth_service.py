@@ -6,6 +6,15 @@ from datetime import datetime, timedelta
 from database import db
 from config import Config
 
+
+def _check_2fa_active(email: str, user_type: str) -> bool:
+    """检查该用户是否已激活 TOTP 2FA"""
+    row = db.fetch_one(
+        "SELECT is_active FROM totp_secrets WHERE email = %s AND user_type = %s AND is_active = TRUE",
+        (email, user_type),
+    )
+    return row is not None
+
 class AuthService:
     
     @staticmethod

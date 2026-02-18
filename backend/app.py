@@ -5,6 +5,7 @@ from auth_service import AuthService
 from email_service import EmailService, mail
 from config import Config
 from print_service import PrintService
+from totp_service import TotpService
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for frontend requests
@@ -59,12 +60,15 @@ def register_student():
         code_result = AuthService.create_verification_code(data['email'], 'student')
         
         if code_result['success']:
-            # Send verification email
-            EmailService.send_verification_email(
-                to_email=data['email'],
-                verification_code=code_result['code'],
-                full_name=data['full_name']
-            )
+            if Config.DEV_EMAIL_MODE:
+                # Dev mode: print code to terminal instead of sending email
+                print(f"[DEV] Verification code for {data['email']}: {code_result['code']}")
+            else:
+                EmailService.send_verification_email(
+                    to_email=data['email'],
+                    verification_code=code_result['code'],
+                    full_name=data['full_name']
+                )
             return jsonify({
                 'success': True,
                 'message': 'Registration successful! Please check your email for verification code.'
@@ -440,6 +444,119 @@ def admin_get_statistics():
     else:
         return jsonify(result), 400
 
+# ==================== 2FA (TOTP) ENDPOINTS ====================
+
+def _get_auth_payload(require_type=None):
+    """从 Authorization header 解析 JWT payload，可选校验 user_type"""
+    auth_header = request.headers.get('Authorization', '')
+    if not auth_header.startswith('Bearer '):
+        return None
+    token = auth_header.split(' ')[1]
+    payload = AuthService.verify_jwt_token(token)
+    if not payload:
+        return None
+    if require_type and payload.get('user_type') != require_type:
+        return None
+    return payload
+
+
+@app.route('/api/2fa/status', methods=['GET'])
+def get_2fa_status():
+    """查询当前用户的 2FA 启用状态"""
+    payload = _get_auth_payload()
+    if not payload:
+        return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+
+    status = TotpService.get_totp_status(payload['email'], payload['user_type'])
+    return jsonify({'success': True, **status}), 200
+
+
+@app.route('/api/2fa/setup', methods=['POST'])
+def setup_2fa():
+    """
+    生成新的 TOTP 密钥并返回二维码（Base64 PNG）。
+    用户需要用 Google Authenticator / Duo / 任意 TOTP 应用扫码。
+    扫码后调用 /api/2fa/confirm 提交第一个验证码以激活。
+    """
+    payload = _get_auth_payload()
+    if not payload:
+        return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+
+    result = TotpService.setup_totp(payload['email'], payload['user_type'])
+    return jsonify(result), 200 if result['success'] else 500
+
+
+@app.route('/api/2fa/confirm', methods=['POST'])
+def confirm_2fa():
+    """
+    用户扫码后，提交 TOTP 应用显示的 6 位验证码来激活 2FA。
+    Body: { "code": "123456" }
+    """
+    payload = _get_auth_payload()
+    if not payload:
+        return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+
+    data = request.json or {}
+    code = data.get('code', '').strip()
+    if not code:
+        return jsonify({'success': False, 'message': 'code 字段不能为空'}), 400
+
+    result = TotpService.confirm_totp(payload['email'], payload['user_type'], code)
+    return jsonify(result), 200 if result['success'] else 400
+
+
+@app.route('/api/2fa/verify', methods=['POST'])
+def verify_2fa():
+    """
+    登录第二步：密码验证通过后，前端提交 TOTP 验证码获取正式 JWT。
+    Body: { "email": "...", "user_type": "student|admin", "code": "123456" }
+    注意：此端点不需要 Authorization header（用户还未拿到正式 token）。
+    """
+    data = request.json or {}
+    email = data.get('email', '').strip()
+    user_type = data.get('user_type', 'student')
+    code = data.get('code', '').strip()
+
+    if not email or not code:
+        return jsonify({'success': False, 'message': 'email 和 code 均为必填项'}), 400
+
+    result = TotpService.verify_totp(email, user_type, code)
+    if not result['success']:
+        return jsonify(result), 401
+
+    # TOTP 验证通过，颁发正式 JWT
+    token = AuthService.generate_jwt_token(email, user_type)
+    return jsonify({
+        'success': True,
+        'message': '2FA 验证通过',
+        'token': token
+    }), 200
+
+
+@app.route('/api/2fa/disable', methods=['DELETE'])
+def disable_2fa():
+    """
+    关闭 2FA。需要在 body 中提供当前 TOTP 验证码以确认身份。
+    Body: { "code": "123456" }
+    """
+    payload = _get_auth_payload()
+    if not payload:
+        return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+
+    data = request.json or {}
+    code = data.get('code', '').strip()
+    if not code:
+        return jsonify({'success': False, 'message': '请提供当前 TOTP 验证码'}), 400
+
+    # 先验证码正确再删除，防止误操作
+    verify = TotpService.verify_totp(payload['email'], payload['user_type'], code)
+    if not verify['success']:
+        return jsonify({'success': False, 'message': '验证码错误，无法关闭 2FA'}), 400
+
+    result = TotpService.disable_totp(payload['email'], payload['user_type'])
+    return jsonify(result), 200
+
+
 # Error handlers
 @app.errorhandler(404)
 def not_found(error):
@@ -450,9 +567,9 @@ def internal_error(error):
     return jsonify({'success': False, 'message': 'Internal server error'}), 500
 
 if __name__ == '__main__':
-    print("🚀 Starting DGSpace Backend Server...")
-    print(f"📊 Database: {Config.DB_NAME}")
-    print(f"🌐 Server running on: http://localhost:{Config.PORT or 5000}")
+    print("Starting DGSpace Backend Server...")
+    print(f"Database: {Config.DB_NAME}")
+    print(f"Server running on: http://localhost:{Config.PORT or 5000}")
     
     # Connect to database
     db.connect()

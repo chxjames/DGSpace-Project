@@ -18,17 +18,17 @@ class Database:
                 ssl_disabled=False  # Enable SSL for Aiven
             )
             if self.connection.is_connected():
-                print(f"✅ Connected to MySQL database: {Config.DB_NAME}")
+                print(f"[OK] Connected to MySQL database: {Config.DB_NAME}")
                 return self.connection
         except Error as e:
-            print(f"❌ Error connecting to MySQL: {e}")
+            print(f"[ERROR] Error connecting to MySQL: {e}")
             return None
     
     def disconnect(self):
         """Close database connection"""
         if self.connection and self.connection.is_connected():
             self.connection.close()
-            print("✅ Database connection closed")
+            print("[OK] Database connection closed")
     
     def execute_query(self, query, params=None):
         """Execute a query that modifies data (INSERT, UPDATE, DELETE)"""
@@ -41,7 +41,7 @@ class Database:
             self.connection.commit()
             return cursor.lastrowid
         except Error as e:
-            print(f"❌ Error executing query: {e}")
+            print(f"[ERROR] Error executing query: {e}")
             self.connection.rollback()
             return None
         finally:
@@ -58,7 +58,7 @@ class Database:
             result = cursor.fetchone()
             return result
         except Error as e:
-            print(f"❌ Error fetching data: {e}")
+            print(f"[ERROR] Error fetching data: {e}")
             return None
         finally:
             cursor.close()
@@ -74,7 +74,7 @@ class Database:
             results = cursor.fetchall()
             return results
         except Error as e:
-            print(f"❌ Error fetching data: {e}")
+            print(f"[ERROR] Error fetching data: {e}")
             return None
         finally:
             cursor.close()

@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block title %}Print Requests — DGSpace{% endblock %}
+
+{% block content %}
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+  <h2 style="color:#1a1a2e">📋 Print Requests</h2>
+  <a href="/print-requests/new/" id="btn-new"
+     class="btn" style="width:auto;padding:8px 20px">➕ New Request</a>
+</div>
+
+<div id="alert-box"></div>
+
+<div class="card">
+  <div id="loading" style="text-align:center;padding:32px;color:#888">Loading…</div>
+  <table id="req-table" style="display:none">
+    <thead>
+      <tr>
+        <th>#</th><th>Project Name</th><th>Material</th><th>Priority</th><th>Status</th><th>Submitted</th><th>Action</th>
+      </tr>
+    </thead>
+    <tbody id="req-body"></tbody>
+  </table>
+  <p id="no-data" style="display:none;text-align:center;color:#888;padding:32px">
+    No print requests yet. <a href="/print-requests/new/">Submit one now</a>
+  </p>
+</div>
+
+<script>
+(function() {
+  const user = getUser();
+  if (!user) { location.href = '/accounts/login'; return; }
+
+  if (user.user_type === 'admin') {
+    document.getElementById('btn-new').style.display = 'none';
+  }
+
+  loadRequests(user.user_type);
+})();
+
+function statusBadge(s) {
+  const map = {
+    pending:'Pending', approved:'Approved', rejected:'Rejected',
+    in_progress:'In Progress', completed:'Completed', cancelled:'Cancelled'
+  };
+  return `<span class="badge badge-${s}">${map[s] || s}</span>`;
+}
+
+function priorityLabel(p) {
+  return p === 'urgent' ? '🔴 Urgent' : p === 'high' ? '🟠 High' : '🟢 Normal';
+}
+
+async function loadRequests(userType) {
+  try {
+    const endpoint = userType === 'admin'
+      ? '/api/admin/print-requests'
+      : '/api/print-requests/my-requests';
+
+    const res  = await apiFetch(endpoint);
+    if (res.status === 401) { location.href = '/accounts/login'; return; }
+    const data = await res.json();
+    const list = data.requests || [];
+
+    document.getElementById('loading').style.display = 'none';
+
+    if (!list.length) {
+      document.getElementById('no-data').style.display = 'block';
+      return;
+    }
+
+    const tbody = document.getElementById('req-body');
+    tbody.innerHTML = list.map(r => `
+      <tr>
+        <td>${r.id}</td>
+        <td>${r.project_name}</td>
+        <td>${r.material_type || 'PLA'}</td>
+        <td>${priorityLabel(r.priority)}</td>
+        <td>${statusBadge(r.status)}</td>
+        <td>${new Date(r.created_at).toLocaleDateString('en-US')}</td>
+        <td><a href="/print-requests/${r.id}/" style="color:#e94560">Details</a></td>
+      </tr>`).join('');
+
+    document.getElementById('req-table').style.display = 'table';
+  } catch(e) {
+    document.getElementById('loading').innerHTML =
+      '<span style="color:#c0392b">Failed to load. Make sure the backend is running.</span>';
+  }
+}
+</script>
+{% endblock %}

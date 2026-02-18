@@ -69,6 +69,19 @@ CREATE TABLE IF NOT EXISTS password_reset_tokens (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ==========================================
+-- TOTP 2FA Secrets Table
+-- ==========================================
+CREATE TABLE IF NOT EXISTS totp_secrets (
+    email VARCHAR(100) NOT NULL,
+    user_type ENUM('student', 'admin') NOT NULL,
+    secret VARCHAR(64) NOT NULL,
+    is_active BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (email, user_type)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ==========================================
 -- Notes
 -- ==========================================
 -- 1. Remember to create a dedicated database user:

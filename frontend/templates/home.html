@@ -1,19 +1,61 @@
-<!-- templates/home.html -->
 {% extends "base.html" %}
-
-{% block title %}Home Page{% endblock %}
+{% block title %}Home — DGSpace{% endblock %}
 
 {% block content %}
-{% if user.is_authenticated %}
-Hi {{ user.username }}!
-<p><a href="{% url 'password_change' %}">Password Change</a></p>
-<form action="{% url 'logout' %}" method="post">
-  {% csrf_token %}
-  <button type="submit">Log Out</button>
-</form>
-{% else %}
-<p>You are not logged in</p>
-<p><a href="{% url 'password_reset' %}">Password Reset</a></p>
-<a href="{% url 'login' %}">Log In</a>
-{% endif %}
+<!-- Guest -->
+<div id="section-guest" style="display:none;text-align:center;padding:60px 0">
+  <h1 style="font-size:2rem;color:#1a1a2e">Welcome to DGSpace 🖨</h1>
+  <p style="margin:16px 0;color:#666">Donald's Garage 3D Print Request Management Platform</p>
+  <a href="/accounts/login" class="btn" style="width:auto;padding:12px 32px;margin-right:8px">Log In</a>
+  <a href="/accounts/signup" class="btn btn-secondary" style="width:auto;padding:12px 32px">Sign Up</a>
+</div>
+
+<!-- Logged in -->
+<div id="section-user" style="display:none">
+  <div class="card" style="margin-bottom:24px">
+    <h2 id="welcome-msg">Welcome back!</h2>
+    <p style="color:#666;margin-top:8px" id="user-info"></p>
+  </div>
+
+  <!-- Student panel -->
+  <div id="panel-student" style="display:none">
+    <div style="display:flex;gap:16px;margin-bottom:24px">
+      <a href="/print-requests/" class="btn" style="width:auto;flex:1;text-align:center">
+        📋 My Print Requests
+      </a>
+      <a href="/print-requests/new/" class="btn btn-secondary" style="width:auto;flex:1;text-align:center">
+        ➕ Submit New Request
+      </a>
+    </div>
+  </div>
+
+  <!-- Admin panel -->
+  <div id="panel-admin" style="display:none">
+    <div style="display:flex;gap:16px;margin-bottom:24px">
+      <a href="/print-requests/" class="btn" style="width:auto;flex:1;text-align:center">
+        📋 Manage All Print Requests
+      </a>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  const user = getUser();
+  if (!user) {
+    document.getElementById('section-guest').style.display = 'block';
+  } else {
+    document.getElementById('section-user').style.display = 'block';
+    document.getElementById('welcome-msg').textContent = 'Welcome back, ' + (user.full_name || user.email) + '!';
+    document.getElementById('user-info').textContent =
+      user.user_type === 'admin' ? '👤 Admin Account' : '🎓 Student  |  ' + (user.email || '');
+
+    if (user.user_type === 'student') {
+      document.getElementById('panel-student').style.display = 'block';
+    } else {
+      document.getElementById('panel-admin').style.display = 'block';
+    }
+  }
+})();
+</script>
 {% endblock %}

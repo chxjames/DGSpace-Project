@@ -25,3 +25,9 @@ class Config:
 
     # Verification
     VERIFICATION_CODE_EXPIRATION_MINUTES = 15
+
+    # Dev mode: print verification code to terminal instead of sending email
+    DEV_EMAIL_MODE = os.getenv('DEV_EMAIL_MODE', 'False') == 'True'
+
+    # Server
+    PORT = int(os.getenv('PORT', 5000))

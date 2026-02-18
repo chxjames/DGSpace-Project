@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block title %}New Print Request — DGSpace{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width:560px;margin:0 auto">
+  <h2>➕ Submit a 3D Print Request</h2>
+  <p style="color:#666;margin-bottom:20px;font-size:0.9rem">Fill in the details below. An admin will review and follow up on your request.</p>
+
+  <div id="alert-box"></div>
+
+  <div class="form-group">
+    <label>Project Name *</label>
+    <input type="text" id="project_name" placeholder="e.g. Graduation project base">
+  </div>
+  <div class="form-group">
+    <label>Description</label>
+    <textarea id="description" placeholder="Dimensions, purpose, special notes…"></textarea>
+  </div>
+  <div class="form-group">
+    <label>Material</label>
+    <select id="material_type">
+      <option value="PLA">PLA (Recommended, easy to print)</option>
+      <option value="ABS">ABS (Stronger, requires ventilation)</option>
+      <option value="PETG">PETG (Flexible and heat-resistant)</option>
+      <option value="TPU">TPU (Flexible material)</option>
+      <option value="Resin">Resin (High precision)</option>
+    </select>
+  </div>
+  <div class="form-group">
+    <label>Color Preference</label>
+    <input type="text" id="color_preference" placeholder="White, Black, Any…">
+  </div>
+  <div style="display:flex;gap:12px">
+    <div class="form-group" style="flex:1">
+      <label>Est. Weight (g)</label>
+      <input type="number" id="estimated_weight_grams" min="1" placeholder="50">
+    </div>
+    <div class="form-group" style="flex:1">
+      <label>Est. Print Time (h)</label>
+      <input type="number" id="estimated_print_time_hours" min="0.5" step="0.5" placeholder="2">
+    </div>
+  </div>
+  <div class="form-group">
+    <label>Priority</label>
+    <select id="priority">
+      <option value="normal">🟢 Normal</option>
+      <option value="high">🟠 High</option>
+      <option value="urgent">🔴 Urgent</option>
+    </select>
+  </div>
+  <button class="btn" onclick="doSubmit()">Submit Request</button>
+  <a href="/print-requests/" style="display:block;text-align:center;margin-top:12px;font-size:0.9rem">← Back to List</a>
+</div>
+
+<script>
+(function() {
+  const user = getUser();
+  if (!user || user.user_type !== 'student') {
+    location.href = '/accounts/login';
+  }
+})();
+
+function showAlert(msg, type='error') {
+  document.getElementById('alert-box').innerHTML =
+    `<div class="alert alert-${type}">${msg}</div>`;
+}
+
+async function doSubmit() {
+  const project_name = document.getElementById('project_name').value.trim();
+  if (!project_name) { showAlert('Project name is required.'); return; }
+
+  const body = {
+    project_name,
+    description:                document.getElementById('description').value.trim(),
+    material_type:              document.getElementById('material_type').value,
+    color_preference:           document.getElementById('color_preference').value.trim(),
+    estimated_weight_grams:     parseFloat(document.getElementById('estimated_weight_grams').value) || null,
+    estimated_print_time_hours: parseFloat(document.getElementById('estimated_print_time_hours').value) || null,
+    priority:                   document.getElementById('priority').value,
+  };
+
+  try {
+    const res  = await apiFetch('/api/print-requests', { method: 'POST', body: JSON.stringify(body) });
+    const data = await res.json();
+
+    if (data.success) {
+      showAlert('Request submitted successfully!', 'success');
+      setTimeout(() => location.href = '/print-requests/', 1200);
+    } else {
+      showAlert(data.message || 'Submission failed.');
+    }
+  } catch(e) {
+    showAlert('Cannot reach the backend.');
+  }
+}
+</script>
+{% endblock %}
