@@ -1,125 +1,238 @@
-# DGSpace - 3D Printer Management System
+# DGSpace — 3D Print Request Management System
 
-A web application for managing 3D printer requests with student and admin authentication.
+A web application for Donald's Garage that lets students submit 3D print requests and admins review and manage them.
 
-## 🚀 Tech Stack
+## Tech Stack
 
-- **Backend**: Python Flask
-- **Database**: MySQL 8.0
-- **Authentication**: JWT tokens + Email verification
-- **Password Security**: bcrypt hashing
-- **Email**: Flask-Mail (Gmail/SendGrid)
+| Layer | Technology |
+|---|---|
+| Frontend | Django 5.2 (template rendering, port 8000) |
+| Backend API | Python Flask 3.0 (REST API, port 5000) |
+| Database | MySQL 8.0 (local) |
+| Auth | JWT tokens + bcrypt + Email verification |
+| Python env | virtualenv at `.venv/` |
 
-## 📁 Project Structure
+---
+
+## Project Structure
 
 ```
-DGSpace-Project/
-├── backend/              # Python Flask API
-│   ├── app.py           # Main application
-│   ├── auth_service.py  # Authentication logic
-│   ├── database.py      # Database connection
-│   ├── email_service.py # Email verification
-│   ├── config.py        # Configuration
-│   ├── requirements.txt # Python dependencies
-│   └── README.md        # Backend documentation
-├── frontend/            # Website (HTML/CSS/JS)
-└── database/            # SQL schema scripts
-    └── schema.sql       # Database structure
+DGSpace-Project-1/
+├── start.ps1                  # <- Start both servers (run this!)
+├── .venv/                     # Shared Python virtual environment
+├── backend/                   # Flask REST API (port 5000)
+│   ├── app.py                 # All API routes
+│   ├── auth_service.py        # Register / login / JWT logic
+│   ├── email_service.py       # Email verification (Gmail SMTP)
+│   ├── print_service.py       # Print request logic
+│   ├── totp_service.py        # 2FA - dormant, not yet in UI
+│   ├── database.py            # MySQL connection wrapper
+│   ├── config.py              # Loads settings from .env
+│   ├── .env                   # Local secrets (not committed)
+│   └── requirements.txt       # Python dependencies
+├── frontend/                  # Django frontend (port 8000)
+│   ├── manage.py
+│   ├── donaldsgarage/         # Django project settings & URLs
+│   ├── accounts/              # Views, URL routing, API proxy
+│   └── templates/             # HTML pages
+│       ├── base.html          # Layout, CSS, JS helpers
+│       ├── home.html          # Landing / dashboard
+│       ├── print_requests.html
+│       ├── print_request_new.html
+│       └── registration/
+│           ├── login.html
+│           └── signup.html
+└── database/
+    ├── schema.sql             # Full DB schema (7 tables)
+    └── migration_001_print_requests.sql
 ```
 
-## 🔧 Setup Instructions
+---
 
-### 1. Database Setup
+## How to Start
 
-```bash
-# Create database and tables
-mysql -u root -p < database/schema.sql
+### Every session
 
-# Create database user
-mysql -u root -p
-CREATE USER 'dgspace_user'@'localhost' IDENTIFIED BY 'your_password';
-GRANT ALL PRIVILEGES ON DGSpace.* TO 'dgspace_user'@'localhost';
-FLUSH PRIVILEGES;
+**Option A** — right-click `start.ps1` → Run with PowerShell
+
+**Option B** — PowerShell terminal:
+
+```powershell
+# Stop any old Python processes first
+Get-Process python -ErrorAction SilentlyContinue | Stop-Process -Force
+
+# Start both servers
+powershell -ExecutionPolicy Bypass -File e:\DGSpace-Project-1\start.ps1
 ```
 
-### 2. Backend Setup
+This opens **two PowerShell windows**:
 
-```bash
-cd backend
+- Flask backend → `http://localhost:5000` (keep open — shows verification codes)
+- Django frontend → `http://localhost:8000`
 
-# Install dependencies
-pip install -r requirements.txt
+Then open **`http://localhost:8000`** in your browser.
 
-# Configure environment
-cp .env.example .env
-# Edit .env with your settings
+> **Note:** Do NOT use the VS Code Simple Browser — it blocks some requests.
 
-# Run server
-python app.py
+---
+
+## Architecture
+
+```
+Browser
+  |
+  | HTTP to localhost:8000
+  v
+Django (port 8000)
+  |- Serves HTML templates
+  |- /api/* --> proxied to Flask (ApiProxyView, csrf_exempt)
+                    |
+                    v
+                Flask (port 5000)
+                    |- REST API
+                    v
+                 MySQL (DGSpace)
 ```
 
-Server runs on: http://localhost:5000
+All browser JS uses relative URLs (`/api/...`) — everything routes through Django, no CORS issues.
 
-### 3. Frontend Setup
+---
 
-*(To be added by team)*
+## Pages
 
-## 📊 Database Schema
+| URL | Description |
+| --- | --- |
+| `/` | Home / dashboard |
+| `/accounts/login/` | Log in |
+| `/accounts/signup/` | Sign up |
+| `/print-requests/` | My print requests |
+| `/print-requests/new/` | Submit new request |
 
-### Tables:
-- **students** - Student accounts (email as primary key)
-- **admins** - Administrator accounts with roles
-- **email_verification_codes** - Email verification system
-- **password_reset_tokens** - Password reset functionality
+---
 
-## 🔐 API Endpoints
+## API Endpoints
 
-### Student Endpoints
-- `POST /api/students/register` - Register new student
-- `POST /api/students/verify-email` - Verify email with code
-- `POST /api/students/login` - Student login
-- `POST /api/students/resend-verification` - Resend verification code
+### Students
 
-### Admin Endpoints
-- `POST /api/admins/register` - Register new admin
-- `POST /api/admins/verify-email` - Verify admin email
-- `POST /api/admins/login` - Admin login
+| Method | Endpoint | Description |
+| --- | --- | --- |
+| POST | `/api/students/register` | Register (triggers email verification) |
+| POST | `/api/students/verify-email` | Submit 6-digit code |
+| POST | `/api/students/resend-verification` | Resend code |
+| POST | `/api/students/login` | Login, returns JWT |
 
-### Protected Endpoints
-- `GET /api/profile` - Get user profile (requires JWT token)
+### Admins
 
-Full API documentation in `backend/README.md`
+| Method | Endpoint | Description |
+| --- | --- | --- |
+| POST | `/api/admins/register` | Register admin |
+| POST | `/api/admins/verify-email` | Verify admin email |
+| POST | `/api/admins/login` | Login, returns JWT |
 
-## 🔒 Security Features
+### Print Requests
 
-- ✅ Password hashing with bcrypt
-- ✅ JWT token authentication
-- ✅ Email verification (6-digit codes, 15min expiry)
-- ✅ Protected API endpoints
-- ✅ SQL injection prevention (parameterized queries)
+| Method | Endpoint | Description |
+| --- | --- | --- |
+| GET | `/api/print-requests/my-requests` | Student: list own requests |
+| POST | `/api/print-requests` | Student: submit new request |
+| GET | `/api/admin/print-requests` | Admin: list all requests |
 
-## 👥 Team Members
+---
 
-- [Add your team member names here]
+## First-Time Setup
 
-## 📝 License
+### 1. Database
 
-[Add your license here]
+```powershell
+$mysql = "C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe"
+& $mysql -u root -p DGSpace < database/schema.sql
+& $mysql -u root -p DGSpace < database/migration_001_print_requests.sql
+```
 
-## 🤝 Contributing
+Tables: `students`, `admins`, `email_verification_codes`, `password_reset_tokens`, `totp_secrets`, `print_requests`, `print_request_history`
 
-1. Clone the repository
-2. Create a feature branch
-3. Make your changes
-4. Submit a pull request
+### 2. Python environment
 
-## ⚠️ Important Notes
+```powershell
+python -m venv .venv
+.venv\Scripts\pip install -r backend/requirements.txt
+.venv\Scripts\pip install django requests
+```
 
-- Never commit `.env` file (contains passwords!)
-- Update `.env.example` if you add new environment variables
-- Database files are not tracked by Git
-- Each team member should set up their own local database
+### 3. Create `backend/.env`
 
-## 📞 Support
+```properties
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_USER=dgspace_user
+DB_PASSWORD=password
+DB_NAME=DGSpace
 
-For questions or issues, contact [your contact info]
+JWT_SECRET_KEY=dgspace-super-secret-2026-change-in-production
+
+MAIL_SERVER=smtp.gmail.com
+MAIL_PORT=587
+MAIL_USE_TLS=True
+MAIL_USERNAME=your-email@gmail.com
+MAIL_PASSWORD=your-gmail-app-password
+MAIL_DEFAULT_SENDER=your-email@gmail.com
+
+FLASK_ENV=development
+PORT=5000
+
+# Set to True to print verification codes to terminal instead of emailing
+DEV_EMAIL_MODE=True
+```
+
+---
+
+## Email Verification
+
+**Dev mode** (`DEV_EMAIL_MODE=True`):
+
+- No real email is sent
+- Code appears in the **Flask terminal window**:
+
+```
+[DEV] Verification code for user@email.com: 483921
+```
+
+- Or query the database:
+
+```powershell
+& "C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe" -u root "-ppassword" DGSpace -e "SELECT email, verification_code, expires_at FROM email_verification_codes ORDER BY created_at DESC LIMIT 5;"
+```
+
+**Production mode** (`DEV_EMAIL_MODE=False`):
+
+1. Google Account → Security → **App Passwords** → generate 16-char password
+2. Fill in `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_DEFAULT_SENDER` in `.env`
+3. Set `DEV_EMAIL_MODE=False` and restart Flask
+
+---
+
+## Reset a Password (Dev)
+
+Use Python — never use PowerShell mysql with `$` in the value (escaping corrupts bcrypt hashes):
+
+```python
+import bcrypt, mysql.connector
+conn = mysql.connector.connect(host="127.0.0.1", user="root", password="password", database="DGSpace")
+cursor = conn.cursor()
+new_hash = bcrypt.hashpw(b"yournewpassword", bcrypt.gensalt()).decode()
+cursor.execute("UPDATE students SET password_hash=%s WHERE email=%s", (new_hash, "user@email.com"))
+# For admin accounts use: UPDATE admins SET password_hash=...
+conn.commit()
+print("Done")
+```
+
+---
+
+## Security Notes
+
+- Never commit `.env` (add it to `.gitignore`)
+- JWT tokens stored in browser `localStorage` (`dg_token`, `dg_user`)
+- Token expiry: 24 hours
+- Verification codes expire in 15 minutes
+- Passwords hashed with bcrypt (12 rounds)
+- TOTP 2FA is implemented in `totp_service.py` but not yet exposed in the UI
