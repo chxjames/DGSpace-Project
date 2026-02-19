@@ -1,0 +1,264 @@
+{% extends "base.html" %}
+{% block title %}Request Detail — DGSpace{% endblock %}
+
+{% block content %}
+<div style="max-width:860px;margin:0 auto">
+
+  <!-- Back link -->
+  <a href="/print-requests/" style="color:#888;font-size:0.9rem;text-decoration:none">← Back to list</a>
+
+  <div id="loading-detail" style="text-align:center;padding:60px;color:#888">Loading…</div>
+
+  <!-- Main detail card (hidden until data loads) -->
+  <div id="detail-card" style="display:none">
+
+    <!-- Header row -->
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin:16px 0 20px">
+      <div>
+        <h2 id="d-project-name" style="margin:0 0 6px"></h2>
+        <span id="d-status-badge"></span>
+        <span id="d-priority-badge" style="margin-left:6px"></span>
+      </div>
+      <div style="text-align:right;font-size:0.85rem;color:#888">
+        <div>Submitted: <span id="d-created-at"></span></div>
+        <div id="d-reviewed-row" style="display:none">Reviewed: <span id="d-reviewed-at"></span></div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+
+      <!-- Left: details -->
+      <div class="card" style="margin:0">
+        <h3 style="margin:0 0 16px;font-size:1rem;color:#444">Request Details</h3>
+        <table style="width:100%;border-collapse:collapse;font-size:0.9rem">
+          <tr><td style="padding:6px 0;color:#888;width:44%">Material</td>      <td id="d-material"></td></tr>
+          <tr><td style="padding:6px 0;color:#888">Color</td>                   <td id="d-color"></td></tr>
+          <tr><td style="padding:6px 0;color:#888">Est. Weight</td>             <td id="d-weight"></td></tr>
+          <tr><td style="padding:6px 0;color:#888">Est. Print Time</td>         <td id="d-time"></td></tr>
+          <tr><td style="padding:6px 0;color:#888">Submitted by</td>            <td id="d-student"></td></tr>
+        </table>
+
+        <div id="d-description-block" style="margin-top:16px;display:none">
+          <div style="font-size:0.85rem;color:#888;margin-bottom:4px">Description</div>
+          <div id="d-description" style="font-size:0.9rem;color:#333;white-space:pre-wrap"></div>
+        </div>
+
+        <div id="d-admin-notes-block" style="margin-top:16px;padding:12px;background:#f8f9fa;border-radius:6px;display:none">
+          <div style="font-size:0.85rem;color:#888;margin-bottom:4px">Admin Notes</div>
+          <div id="d-admin-notes" style="font-size:0.9rem;color:#333"></div>
+        </div>
+      </div>
+
+      <!-- Right: STL viewer -->
+      <div class="card" style="margin:0;padding:0;overflow:hidden;position:relative">
+        <!-- No STL placeholder -->
+        <div id="stl-placeholder" style="height:320px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#bbb;gap:8px">
+          <svg width="48" height="48" fill="none" stroke="#ddd" stroke-width="1.2" viewBox="0 0 24 24">
+            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+          </svg>
+          <span style="font-size:0.85rem">No STL file attached</span>
+        </div>
+
+        <!-- Three.js canvas container -->
+        <div id="stl-viewer-wrap" style="display:none;position:relative">
+          <canvas id="stl-canvas" style="width:100%;height:320px;display:block"></canvas>
+          <!-- Controls hint -->
+          <div style="position:absolute;bottom:8px;right:10px;font-size:0.72rem;color:#aaa;pointer-events:none">
+            🖱 Drag to rotate · Scroll to zoom
+          </div>
+          <!-- Loading spinner while STL parses -->
+          <div id="stl-loading" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.85);font-size:0.85rem;color:#888">
+            Loading 3D model…
+          </div>
+          <!-- Download link -->
+          <a id="stl-download" href="#" download
+             style="position:absolute;top:8px;right:10px;font-size:0.75rem;color:#007bff;text-decoration:none;background:rgba(255,255,255,0.9);padding:3px 8px;border-radius:4px">
+            ⬇ Download STL
+          </a>
+        </div>
+      </div>
+
+    </div><!-- /grid -->
+  </div><!-- /detail-card -->
+</div>
+
+<!-- Three.js + STLLoader via CDN (importmap) -->
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.165.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.165.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { STLLoader }     from 'three/addons/loaders/STLLoader.js';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+// ── helpers (from base.html, already in window scope) ──────
+const requestId = parseInt(location.pathname.split('/').filter(Boolean).pop());
+
+// ── fetch request data ──────────────────────────────────────
+async function loadDetail() {
+  try {
+    const res  = await window.apiFetch(`/api/print-requests/${requestId}`);
+    if (res.status === 401) { location.href = '/accounts/login'; return; }
+    const data = await res.json();
+
+    if (!data.success) {
+      document.getElementById('loading-detail').textContent = 'Request not found.';
+      return;
+    }
+
+    renderDetail(data.request);
+  } catch(e) {
+    document.getElementById('loading-detail').textContent = 'Failed to load. Is the backend running?';
+  }
+}
+
+function statusBadge(s) {
+  const map = { pending:'Pending', approved:'Approved', rejected:'Rejected',
+                in_progress:'In Progress', completed:'Completed', cancelled:'Cancelled' };
+  return `<span class="badge badge-${s}">${map[s] || s}</span>`;
+}
+function priorityLabel(p) {
+  return p === 'urgent' ? '<span style="color:#dc3545">🔴 Urgent</span>'
+       : p === 'high'   ? '<span style="color:#fd7e14">🟠 High</span>'
+                        : '<span style="color:#28a745">🟢 Normal</span>';
+}
+
+function renderDetail(r) {
+  document.getElementById('loading-detail').style.display = 'none';
+  document.getElementById('detail-card').style.display    = 'block';
+
+  document.getElementById('d-project-name').textContent = r.project_name;
+  document.getElementById('d-status-badge').innerHTML    = statusBadge(r.status);
+  document.getElementById('d-priority-badge').innerHTML  = priorityLabel(r.priority);
+  document.getElementById('d-created-at').textContent    = new Date(r.created_at).toLocaleDateString('en-US');
+  document.getElementById('d-material').textContent      = r.material_type || '—';
+  document.getElementById('d-color').textContent         = r.color_preference || '—';
+  document.getElementById('d-weight').textContent        = r.estimated_weight_grams ? r.estimated_weight_grams + ' g' : '—';
+  document.getElementById('d-time').textContent          = r.estimated_print_time_hours ? r.estimated_print_time_hours + ' h' : '—';
+  document.getElementById('d-student').textContent       = r.student_name || r.student_email || '—';
+
+  if (r.description) {
+    document.getElementById('d-description').textContent = r.description;
+    document.getElementById('d-description-block').style.display = 'block';
+  }
+  if (r.admin_notes) {
+    document.getElementById('d-admin-notes').textContent = r.admin_notes;
+    document.getElementById('d-admin-notes-block').style.display = 'block';
+  }
+  if (r.reviewed_at) {
+    document.getElementById('d-reviewed-at').textContent = new Date(r.reviewed_at).toLocaleDateString('en-US');
+    document.getElementById('d-reviewed-row').style.display = 'block';
+  }
+
+  // STL viewer
+  if (r.stl_file_path) {
+    const stlUrl = `/api/uploads/${r.stl_file_path}`;
+    document.getElementById('stl-placeholder').style.display  = 'none';
+    document.getElementById('stl-viewer-wrap').style.display  = 'block';
+    document.getElementById('stl-download').href              = stlUrl;
+    document.getElementById('stl-download').download          = r.stl_original_name || r.stl_file_path;
+    initViewer(stlUrl);
+  }
+}
+
+// ── Three.js STL viewer ─────────────────────────────────────
+function initViewer(stlUrl) {
+  const canvas = document.getElementById('stl-canvas');
+  const wrap   = document.getElementById('stl-viewer-wrap');
+
+  // Renderer
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+  renderer.setPixelRatio(window.devicePixelRatio);
+  renderer.setClearColor(0xf8f9fa, 1);
+
+  function resize() {
+    const w = wrap.clientWidth;
+    const h = 320;
+    renderer.setSize(w, h, false);
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+  }
+
+  // Camera
+  const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 10000);
+  camera.position.set(0, 0, 200);
+
+  // Scene + lights
+  const scene = new THREE.Scene();
+  const ambient = new THREE.AmbientLight(0xffffff, 0.6);
+  const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
+  dirLight.position.set(1, 2, 3);
+  scene.add(ambient, dirLight);
+
+  // OrbitControls
+  const controls = new OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.08;
+
+  // Load STL
+  const loader = new STLLoader();
+  loader.load(
+    stlUrl,
+    (geometry) => {
+      // Hide loading overlay
+      document.getElementById('stl-loading').style.display = 'none';
+
+      geometry.computeBoundingBox();
+      const box    = geometry.boundingBox;
+      const center = new THREE.Vector3();
+      box.getCenter(center);
+      const size   = new THREE.Vector3();
+      box.getSize(size);
+      const maxDim = Math.max(size.x, size.y, size.z);
+
+      // Center the geometry
+      geometry.translate(-center.x, -center.y, -center.z);
+
+      const material = new THREE.MeshPhongMaterial({
+        color: 0x4a90d9,
+        specular: 0x222222,
+        shininess: 40,
+        side: THREE.DoubleSide,
+      });
+      const mesh = new THREE.Mesh(geometry, material);
+      scene.add(mesh);
+
+      // Fit camera
+      const dist = maxDim * 1.6;
+      camera.position.set(dist * 0.6, dist * 0.4, dist);
+      camera.near = dist * 0.001;
+      camera.far  = dist * 100;
+      camera.updateProjectionMatrix();
+      controls.target.set(0, 0, 0);
+      controls.update();
+
+      resize();
+    },
+    undefined,
+    (err) => {
+      document.getElementById('stl-loading').textContent = 'Failed to load 3D model.';
+      console.error(err);
+    }
+  );
+
+  // Resize observer
+  new ResizeObserver(resize).observe(wrap);
+  resize();
+
+  // Render loop
+  (function animate() {
+    requestAnimationFrame(animate);
+    controls.update();
+    renderer.render(scene, camera);
+  })();
+}
+
+loadDetail();
+</script>
+{% endblock %}

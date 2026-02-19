@@ -48,6 +48,37 @@
       <option value="urgent">🔴 Urgent</option>
     </select>
   </div>
+
+  <div class="form-group">
+    <label>STL File <span style="color:#888;font-weight:400">(optional)</span></label>
+    <div id="stl-drop-zone" style="
+        border: 2px dashed #ccc;
+        border-radius: 8px;
+        padding: 24px;
+        text-align: center;
+        cursor: pointer;
+        transition: border-color 0.2s, background 0.2s;
+      "
+      onclick="document.getElementById('stl-file-input').click()"
+      ondragover="event.preventDefault(); this.style.borderColor='#007bff'; this.style.background='#f0f7ff';"
+      ondragleave="this.style.borderColor='#ccc'; this.style.background='';"
+      ondrop="handleDrop(event)">
+      <div id="stl-drop-label">
+        <svg width="32" height="32" fill="none" stroke="#aaa" stroke-width="1.5" viewBox="0 0 24 24" style="margin-bottom:8px">
+          <path d="M12 16V8m0 0-3 3m3-3 3 3M6 20h12a2 2 0 0 0 2-2V8l-6-6H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2z"/>
+        </svg>
+        <p style="margin:0;color:#888;font-size:0.9rem">Drag &amp; drop your <strong>.stl</strong> file here, or <span style="color:#007bff">click to browse</span></p>
+        <p style="margin:4px 0 0;color:#bbb;font-size:0.8rem">Max 50 MB</p>
+      </div>
+      <div id="stl-file-selected" style="display:none">
+        <p style="margin:0;font-size:0.9rem;color:#333">📎 <span id="stl-filename-display"></span></p>
+        <button type="button" onclick="clearStlFile(event)" style="margin-top:6px;font-size:0.8rem;color:#dc3545;background:none;border:none;cursor:pointer">✕ Remove</button>
+      </div>
+    </div>
+    <input type="file" id="stl-file-input" accept=".stl" style="display:none" onchange="handleFileSelect(this.files[0])">
+    <div id="stl-upload-status" style="margin-top:6px;font-size:0.85rem"></div>
+  </div>
+
   <button class="btn" onclick="doSubmit()">Submit Request</button>
   <a href="/print-requests/" style="display:block;text-align:center;margin-top:12px;font-size:0.9rem">← Back to List</a>
 </div>
@@ -60,6 +91,79 @@
   }
 })();
 
+// ── STL upload state ──────────────────────────────────────
+let uploadedStlFilename = null;   // saved name on server (uuid.stl)
+let uploadedStlOriginalName = null;
+
+function setStlStatus(msg, color) {
+  const el = document.getElementById('stl-upload-status');
+  el.textContent = msg;
+  el.style.color = color || '#555';
+}
+
+function handleDrop(event) {
+  event.preventDefault();
+  const zone = document.getElementById('stl-drop-zone');
+  zone.style.borderColor = '#ccc';
+  zone.style.background = '';
+  const file = event.dataTransfer.files[0];
+  if (file) handleFileSelect(file);
+}
+
+function handleFileSelect(file) {
+  if (!file) return;
+  if (!file.name.toLowerCase().endsWith('.stl')) {
+    setStlStatus('Only .stl files are allowed.', '#dc3545');
+    return;
+  }
+  if (file.size > 50 * 1024 * 1024) {
+    setStlStatus('File exceeds 50 MB limit.', '#dc3545');
+    return;
+  }
+  uploadStlFile(file);
+}
+
+async function uploadStlFile(file) {
+  setStlStatus('Uploading…', '#888');
+
+  const formData = new FormData();
+  formData.append('file', file);
+
+  try {
+    const res = await fetch('/api/print-requests/upload-stl', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + getToken() },
+      body: formData
+    });
+    const data = await res.json();
+
+    if (data.success) {
+      uploadedStlFilename     = data.filename;
+      uploadedStlOriginalName = data.original_name;
+
+      document.getElementById('stl-drop-label').style.display   = 'none';
+      document.getElementById('stl-file-selected').style.display = 'block';
+      document.getElementById('stl-filename-display').textContent = data.original_name;
+      setStlStatus('File uploaded successfully.', '#28a745');
+    } else {
+      setStlStatus(data.message || 'Upload failed.', '#dc3545');
+    }
+  } catch(e) {
+    setStlStatus('Upload failed — cannot reach server.', '#dc3545');
+  }
+}
+
+function clearStlFile(event) {
+  event.stopPropagation();
+  uploadedStlFilename     = null;
+  uploadedStlOriginalName = null;
+  document.getElementById('stl-file-input').value = '';
+  document.getElementById('stl-drop-label').style.display   = 'block';
+  document.getElementById('stl-file-selected').style.display = 'none';
+  setStlStatus('');
+}
+
+// ── Form submit ───────────────────────────────────────────
 function showAlert(msg, type='error') {
   document.getElementById('alert-box').innerHTML =
     `<div class="alert alert-${type}">${msg}</div>`;
@@ -77,6 +181,8 @@ async function doSubmit() {
     estimated_weight_grams:     parseFloat(document.getElementById('estimated_weight_grams').value) || null,
     estimated_print_time_hours: parseFloat(document.getElementById('estimated_print_time_hours').value) || null,
     priority:                   document.getElementById('priority').value,
+    stl_file_path:              uploadedStlFilename    || null,
+    stl_original_name:          uploadedStlOriginalName || null,
   };
 
   try {

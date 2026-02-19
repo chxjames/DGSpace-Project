@@ -21,6 +21,10 @@ class PrintRequestNewView(TemplateView):
     template_name = "print_request_new.html"
 
 
+class PrintRequestDetailView(TemplateView):
+    template_name = "print_request_detail.html"
+
+
 @method_decorator(csrf_exempt, name='dispatch')
 class ApiProxyView(View):
     """Forward every /api/... request to the Flask backend transparently."""
@@ -30,20 +34,41 @@ class ApiProxyView(View):
     def dispatch(self, request, path, *args, **kwargs):
         url = f"{FLASK_BASE}/api/{path}"
 
-        # Forward headers (strip host)
+        # Forward headers (strip host and content-length — requests recalculates it)
         forward_headers = {
             k: v for k, v in request.headers.items()
             if k.lower() not in ("host", "content-length")
         }
 
-        resp = http_requests.request(
-            method=request.method,
-            url=url,
-            headers=forward_headers,
-            data=request.body,
-            params=request.GET,
-            timeout=15,
-        )
+        content_type = request.headers.get("Content-Type", "")
+
+        if "multipart/form-data" in content_type:
+            # File upload: forward files + POST fields separately so requests
+            # rebuilds the multipart body with the correct boundary
+            files = {
+                name: (f.name, f.read(), f.content_type)
+                for name, f in request.FILES.items()
+            }
+            # Strip Content-Type so requests sets its own boundary
+            forward_headers.pop("Content-Type", None)
+            resp = http_requests.request(
+                method=request.method,
+                url=url,
+                headers=forward_headers,
+                files=files,
+                data=request.POST,
+                params=request.GET,
+                timeout=30,
+            )
+        else:
+            resp = http_requests.request(
+                method=request.method,
+                url=url,
+                headers=forward_headers,
+                data=request.body,
+                params=request.GET,
+                timeout=15,
+            )
 
         django_resp = HttpResponse(
             content=resp.content,

@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from database import db
 from auth_service import AuthService
@@ -6,6 +6,8 @@ from email_service import EmailService, mail
 from config import Config
 from print_service import PrintService
 from totp_service import TotpService
+import os
+import uuid
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for frontend requests
@@ -17,6 +19,11 @@ app.config['MAIL_USE_TLS'] = Config.MAIL_USE_TLS
 app.config['MAIL_USERNAME'] = Config.MAIL_USERNAME
 app.config['MAIL_PASSWORD'] = Config.MAIL_PASSWORD
 app.config['MAIL_DEFAULT_SENDER'] = Config.MAIL_DEFAULT_SENDER
+
+# Configure upload folder
+app.config['UPLOAD_FOLDER'] = Config.UPLOAD_FOLDER
+app.config['MAX_CONTENT_LENGTH'] = Config.MAX_UPLOAD_SIZE_MB * 1024 * 1024
+os.makedirs(Config.UPLOAD_FOLDER, exist_ok=True)
 
 mail.init_app(app)
 
@@ -243,6 +250,47 @@ def get_profile():
 
 # ==================== 3D PRINT REQUEST ENDPOINTS ====================
 
+@app.route('/api/print-requests/upload-stl', methods=['POST'])
+def upload_stl():
+    """Upload a .stl file before submitting a print request (Student)"""
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({'success': False, 'message': 'No token provided'}), 401
+
+    token = auth_header.split(' ')[1]
+    payload = AuthService.verify_jwt_token(token)
+    if not payload or payload.get('user_type') != 'student':
+        return jsonify({'success': False, 'message': 'Invalid token or not a student'}), 401
+
+    if 'file' not in request.files:
+        return jsonify({'success': False, 'message': 'No file provided'}), 400
+
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'success': False, 'message': 'No file selected'}), 400
+
+    original_name = file.filename
+    if not original_name.lower().endswith('.stl'):
+        return jsonify({'success': False, 'message': 'Only .stl files are allowed'}), 400
+
+    # Save as uuid.stl to avoid filename collisions
+    saved_name = f"{uuid.uuid4().hex}.stl"
+    save_path = os.path.join(app.config['UPLOAD_FOLDER'], saved_name)
+    file.save(save_path)
+
+    return jsonify({
+        'success': True,
+        'filename': saved_name,
+        'original_name': original_name
+    }), 201
+
+
+@app.route('/api/uploads/<filename>', methods=['GET'])
+def serve_upload(filename):
+    """Serve uploaded STL files"""
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+
+
 @app.route('/api/print-requests', methods=['POST'])
 def create_print_request():
     """Create a new 3D print request (Student)"""
@@ -270,7 +318,9 @@ def create_print_request():
         color_preference=data.get('color_preference'),
         estimated_weight_grams=data.get('estimated_weight_grams'),
         estimated_print_time_hours=data.get('estimated_print_time_hours'),
-        priority=data.get('priority', 'normal')
+        priority=data.get('priority', 'normal'),
+        stl_file_path=data.get('stl_file_path'),
+        stl_original_name=data.get('stl_original_name')
     )
     
     if result['success']:

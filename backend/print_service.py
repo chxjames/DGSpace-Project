@@ -18,7 +18,9 @@ class PrintService:
         color_preference: Optional[str] = None,
         estimated_weight_grams: Optional[float] = None,
         estimated_print_time_hours: Optional[float] = None,
-        priority: str = 'normal'
+        priority: str = 'normal',
+        stl_file_path: Optional[str] = None,
+        stl_original_name: Optional[str] = None
     ) -> Dict:
         """
         Create a new 3D print request
@@ -39,7 +41,7 @@ class PrintService:
         try:
             # Validate student exists
             check_student_query = "SELECT email FROM students WHERE email = %s AND email_verified = TRUE"
-            result = db.execute_query(check_student_query, (student_email,))
+            result = db.fetch_one(check_student_query, (student_email,))
             
             if not result:
                 return {
@@ -51,12 +53,14 @@ class PrintService:
             query = """
                 INSERT INTO print_requests 
                 (student_email, project_name, description, material_type, 
-                color_preference, estimated_weight_grams, estimated_print_time_hours, priority)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                color_preference, estimated_weight_grams, estimated_print_time_hours, priority,
+                stl_file_path, stl_original_name)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """
             values = (
                 student_email, project_name, description, material_type,
-                color_preference, estimated_weight_grams, estimated_print_time_hours, priority
+                color_preference, estimated_weight_grams, estimated_print_time_hours, priority,
+                stl_file_path, stl_original_name
             )
             
             db.execute_query(query, values)
@@ -107,7 +111,7 @@ class PrintService:
                     WHERE student_email = %s AND status = %s
                     ORDER BY created_at DESC
                 """
-                results = db.execute_query(query, (student_email, status))
+                results = db.fetch_all(query, (student_email, status))
             else:
                 query = """
                     SELECT request_id, project_name, description, material_type, 
@@ -118,27 +122,28 @@ class PrintService:
                     WHERE student_email = %s
                     ORDER BY created_at DESC
                 """
-                results = db.execute_query(query, (student_email,))
+                results = db.fetch_all(query, (student_email,))
             
             requests = []
             if results:
                 for row in results:
                     requests.append({
-                        'request_id': row[0],
-                        'project_name': row[1],
-                        'description': row[2],
-                        'material_type': row[3],
-                        'color_preference': row[4],
-                        'estimated_weight_grams': float(row[5]) if row[5] else None,
-                        'estimated_print_time_hours': float(row[6]) if row[6] else None,
-                        'priority': row[7],
-                        'status': row[8],
-                        'admin_notes': row[9],
-                        'reviewed_by': row[10],
-                        'reviewed_at': row[11].isoformat() if row[11] else None,
-                        'created_at': row[12].isoformat() if row[12] else None,
-                        'updated_at': row[13].isoformat() if row[13] else None,
-                        'completed_at': row[14].isoformat() if row[14] else None
+                        'id': row['request_id'],
+                        'request_id': row['request_id'],
+                        'project_name': row['project_name'],
+                        'description': row['description'],
+                        'material_type': row['material_type'],
+                        'color_preference': row['color_preference'],
+                        'estimated_weight_grams': float(row['estimated_weight_grams']) if row['estimated_weight_grams'] else None,
+                        'estimated_print_time_hours': float(row['estimated_print_time_hours']) if row['estimated_print_time_hours'] else None,
+                        'priority': row['priority'],
+                        'status': row['status'],
+                        'admin_notes': row['admin_notes'],
+                        'reviewed_by': row['reviewed_by'],
+                        'reviewed_at': row['reviewed_at'].isoformat() if row['reviewed_at'] else None,
+                        'created_at': row['created_at'].isoformat() if row['created_at'] else None,
+                        'updated_at': row['updated_at'].isoformat() if row['updated_at'] else None,
+                        'completed_at': row['completed_at'].isoformat() if row['completed_at'] else None,
                     })
             
             return {
@@ -171,12 +176,13 @@ class PrintService:
                        pr.description, pr.material_type, pr.color_preference,
                        pr.estimated_weight_grams, pr.estimated_print_time_hours,
                        pr.priority, pr.status, pr.admin_notes, pr.reviewed_by,
-                       pr.reviewed_at, pr.created_at, pr.updated_at, pr.completed_at
+                       pr.reviewed_at, pr.created_at, pr.updated_at, pr.completed_at,
+                       pr.stl_file_path, pr.stl_original_name
                 FROM print_requests pr
                 JOIN students s ON pr.student_email = s.email
                 WHERE pr.request_id = %s
             """
-            result = db.execute_query(query, (request_id,))
+            result = db.fetch_one(query, (request_id,))
             
             if not result:
                 return {
@@ -184,25 +190,27 @@ class PrintService:
                     'message': 'Request not found'
                 }
             
-            row = result[0]
             request_data = {
-                'request_id': row[0],
-                'student_email': row[1],
-                'student_name': row[2],
-                'project_name': row[3],
-                'description': row[4],
-                'material_type': row[5],
-                'color_preference': row[6],
-                'estimated_weight_grams': float(row[7]) if row[7] else None,
-                'estimated_print_time_hours': float(row[8]) if row[8] else None,
-                'priority': row[9],
-                'status': row[10],
-                'admin_notes': row[11],
-                'reviewed_by': row[12],
-                'reviewed_at': row[13].isoformat() if row[13] else None,
-                'created_at': row[14].isoformat() if row[14] else None,
-                'updated_at': row[15].isoformat() if row[15] else None,
-                'completed_at': row[16].isoformat() if row[16] else None
+                'id': result['request_id'],
+                'request_id': result['request_id'],
+                'student_email': result['student_email'],
+                'student_name': result['full_name'],
+                'project_name': result['project_name'],
+                'description': result['description'],
+                'material_type': result['material_type'],
+                'color_preference': result['color_preference'],
+                'estimated_weight_grams': float(result['estimated_weight_grams']) if result['estimated_weight_grams'] else None,
+                'estimated_print_time_hours': float(result['estimated_print_time_hours']) if result['estimated_print_time_hours'] else None,
+                'priority': result['priority'],
+                'status': result['status'],
+                'admin_notes': result['admin_notes'],
+                'reviewed_by': result['reviewed_by'],
+                'reviewed_at': result['reviewed_at'].isoformat() if result['reviewed_at'] else None,
+                'created_at': result['created_at'].isoformat() if result['created_at'] else None,
+                'updated_at': result['updated_at'].isoformat() if result['updated_at'] else None,
+                'completed_at': result['completed_at'].isoformat() if result['completed_at'] else None,
+                'stl_file_path': result['stl_file_path'],
+                'stl_original_name': result['stl_original_name'],
             }
             
             return {
@@ -250,23 +258,24 @@ class PrintService:
             
             query += " ORDER BY pr.created_at DESC"
             
-            results = db.execute_query(query, tuple(params) if params else None)
+            results = db.fetch_all(query, tuple(params) if params else None)
             
             requests = []
             if results:
                 for row in results:
                     requests.append({
-                        'request_id': row[0],
-                        'student_email': row[1],
-                        'student_name': row[2],
-                        'project_name': row[3],
-                        'description': row[4],
-                        'material_type': row[5],
-                        'priority': row[6],
-                        'status': row[7],
-                        'created_at': row[8].isoformat() if row[8] else None,
-                        'reviewed_by': row[9],
-                        'reviewed_at': row[10].isoformat() if row[10] else None
+                        'id': row['request_id'],
+                        'request_id': row['request_id'],
+                        'student_email': row['student_email'],
+                        'student_name': row['full_name'],
+                        'project_name': row['project_name'],
+                        'description': row['description'],
+                        'material_type': row['material_type'],
+                        'priority': row['priority'],
+                        'status': row['status'],
+                        'created_at': row['created_at'].isoformat() if row['created_at'] else None,
+                        'reviewed_by': row['reviewed_by'],
+                        'reviewed_at': row['reviewed_at'].isoformat() if row['reviewed_at'] else None,
                     })
             
             return {
@@ -306,7 +315,7 @@ class PrintService:
         try:
             # Get current status
             get_query = "SELECT status FROM print_requests WHERE request_id = %s"
-            result = db.execute_query(get_query, (request_id,))
+            result = db.fetch_one(get_query, (request_id,))
             
             if not result:
                 return {
@@ -314,7 +323,7 @@ class PrintService:
                     'message': 'Request not found'
                 }
             
-            old_status = result[0][0]
+            old_status = result['status']
             
             # Update the request
             update_query = """
@@ -370,18 +379,18 @@ class PrintService:
                 WHERE request_id = %s
                 ORDER BY created_at ASC
             """
-            results = db.execute_query(query, (request_id,))
+            results = db.fetch_all(query, (request_id,))
             
             history = []
             if results:
                 for row in results:
                     history.append({
-                        'history_id': row[0],
-                        'old_status': row[1],
-                        'new_status': row[2],
-                        'changed_by': row[3],
-                        'change_reason': row[4],
-                        'created_at': row[5].isoformat() if row[5] else None
+                        'history_id': row['history_id'],
+                        'old_status': row['old_status'],
+                        'new_status': row['new_status'],
+                        'changed_by': row['changed_by'],
+                        'change_reason': row['change_reason'],
+                        'created_at': row['created_at'].isoformat() if row['created_at'] else None,
                     })
             
             return {

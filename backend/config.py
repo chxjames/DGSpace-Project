@@ -31,3 +31,8 @@ class Config:
 
     # Server
     PORT = int(os.getenv('PORT', 5000))
+
+    # File uploads
+    UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), 'uploads')
+    MAX_UPLOAD_SIZE_MB = 50  # 50 MB limit for STL files
+    ALLOWED_EXTENSIONS = {'stl'}
