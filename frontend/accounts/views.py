@@ -25,6 +25,10 @@ class PrintRequestDetailView(TemplateView):
     template_name = "print_request_detail.html"
 
 
+class PrintRequestReturnView(TemplateView):
+    template_name = "print_request_return.html"
+
+
 @method_decorator(csrf_exempt, name='dispatch')
 class ApiProxyView(View):
     """Forward every /api/... request to the Flask backend transparently."""

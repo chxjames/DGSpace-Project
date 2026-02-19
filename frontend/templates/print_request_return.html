@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+{% block title %}Return Request — DGSpace{% endblock %}
+
+{% block content %}
+<div style="max-width:600px;margin:0 auto">
+
+  <a href="/print-requests/" style="color:#888;font-size:0.9rem;text-decoration:none">← Back to list</a>
+
+  <div id="loading-info" style="text-align:center;padding:40px;color:#888">Loading request info…</div>
+
+  <div id="return-card" style="display:none;margin-top:16px">
+
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px">
+      <span style="font-size:1.5rem">💬</span>
+      <h2 style="margin:0;color:#1a1a2e">Send Feedback to Student</h2>
+    </div>
+
+    <!-- Request summary -->
+    <div class="card" style="margin-bottom:20px;padding:16px 20px;background:#f8f9fa">
+      <div style="font-size:0.85rem;color:#888;margin-bottom:4px">Returning request</div>
+      <div id="r-project-name" style="font-weight:600;font-size:1.05rem;color:#1a1a2e"></div>
+      <div style="margin-top:6px;display:flex;gap:10px;align-items:center">
+        <span id="r-status-badge"></span>
+        <span id="r-student" style="font-size:0.85rem;color:#888"></span>
+      </div>
+    </div>
+
+    <!-- Return reason form -->
+    <div class="card">
+      <div id="alert-box"></div>
+
+      <label for="reason-input" style="display:block;font-weight:600;margin-bottom:8px;color:#333">
+        Feedback for Student <span style="color:#e94560">*</span>
+      </label>
+      <p style="font-size:0.85rem;color:#888;margin:0 0 12px">
+        The student will see this message on their request list and detail page. Explain what needs to be changed before resubmitting.
+      </p>
+
+      <textarea
+        id="reason-input"
+        rows="6"
+        placeholder="e.g. The STL file has non-manifold geometry. Please repair the mesh and re-upload…"
+        style="width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid #ddd;border-radius:8px;font-size:0.95rem;resize:vertical;font-family:inherit"
+      ></textarea>
+
+      <div style="display:flex;gap:10px;margin-top:16px;justify-content:flex-end">
+        <a href="/print-requests/" class="btn"
+           style="width:auto;padding:8px 20px;background:#6c757d;text-decoration:none;text-align:center">
+          Cancel
+        </a>
+        <button id="btn-submit" class="btn"
+                style="width:auto;padding:8px 24px;background:#f39c12"
+                onclick="submitReturn()">
+          💬 Send Feedback
+        </button>
+      </div>
+    </div>
+
+  </div><!-- /return-card -->
+</div>
+
+<script>
+// Extract request ID from URL: /print-requests/42/return/
+const requestId = parseInt(location.pathname.split('/').filter(Boolean)[1]);
+
+(async function init() {
+  const user = getUser();
+  if (!user) { location.href = '/accounts/login'; return; }
+  if (user.user_type !== 'admin') { location.href = '/print-requests/'; return; }
+
+  try {
+    const res  = await apiFetch(`/api/print-requests/${requestId}`);
+    if (res.status === 401) { location.href = '/accounts/login'; return; }
+    const data = await res.json();
+
+    if (!data.success) {
+      document.getElementById('loading-info').textContent = 'Request not found.';
+      return;
+    }
+
+    const r = data.request;
+    document.getElementById('loading-info').style.display = 'none';
+    document.getElementById('return-card').style.display  = 'block';
+
+    document.getElementById('r-project-name').textContent = r.project_name;
+    document.getElementById('r-status-badge').innerHTML   = statusBadge(r.status);
+    document.getElementById('r-student').textContent      = r.student_name
+      ? `${r.student_name} (${r.student_email})`
+      : r.student_email;
+
+    // Pre-fill textarea if feedback was previously sent
+    if (r.admin_notes) {
+      document.getElementById('reason-input').value = r.admin_notes;
+    }
+  } catch(e) {
+    document.getElementById('loading-info').textContent = 'Failed to load. Is the backend running?';
+  }
+})();
+
+function statusBadge(s) {
+  const map = {
+    pending:'Pending', approved:'Approved', rejected:'Rejected',
+    in_progress:'In Progress', completed:'Completed', cancelled:'Cancelled'
+  };
+  return `<span class="badge badge-${s}">${map[s] || s}</span>`;
+}
+
+function showAlert(msg, type) {
+  document.getElementById('alert-box').innerHTML =
+    `<div class="alert alert-${type}" style="margin-bottom:14px">${msg}</div>`;
+}
+
+async function submitReturn() {
+  const reason = document.getElementById('reason-input').value.trim();
+
+  if (!reason) {
+    showAlert('Please enter a return reason before submitting.', 'error');
+    document.getElementById('reason-input').focus();
+    return;
+  }
+
+  const btn = document.getElementById('btn-submit');
+  btn.disabled = true;
+      btn.textContent = 'Sending…';  try {
+    const res  = await apiFetch(`/api/admin/print-requests/${requestId}/return`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reason })
+    });
+    const data = await res.json();
+
+    if (data.success) {
+      showAlert('Feedback sent to student successfully. Redirecting…', 'success');
+      setTimeout(() => { location.href = '/print-requests/'; }, 1500);
+    } else {
+      showAlert(data.message || 'Failed to send feedback.', 'error');
+      btn.disabled = false;
+      btn.textContent = '💬 Send Feedback';
+    }
+  } catch(e) {
+    showAlert('Network error. Make sure the backend is running.', 'error');
+    btn.disabled = false;
+    btn.textContent = '💬 Send Feedback';
+  }
+}
+</script>
+{% endblock %}

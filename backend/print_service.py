@@ -5,6 +5,8 @@ Handles business logic for 3D print request management
 from database import db
 from datetime import datetime
 from typing import Dict, List, Optional
+import os
+from config import Config
 
 class PrintService:
     """Service for managing 3D print requests"""
@@ -224,7 +226,72 @@ class PrintService:
                 'success': False,
                 'message': f'Failed to get request: {str(e)}'
             }
-    
+
+    @staticmethod
+    def delete_print_request(request_id: int, student_email: str) -> Dict:
+        """
+        Delete a print request (students can only delete their own pending requests)
+
+        Args:
+            request_id: ID of the print request to delete
+            student_email: Email of the student attempting deletion
+
+        Returns:
+            Dict with success status and message
+        """
+        try:
+            # Verify ownership and status — also grab stl_file_path for cleanup
+            check_query = """
+                SELECT student_email, status, stl_file_path FROM print_requests
+                WHERE request_id = %s
+            """
+            row = db.fetch_one(check_query, (request_id,))
+
+            if not row:
+                return {'success': False, 'message': 'Request not found'}
+
+            if row['student_email'] != student_email:
+                return {'success': False, 'message': 'Unauthorized: this is not your request'}
+
+            if row['status'] != 'pending':
+                return {
+                    'success': False,
+                    'message': f'Cannot delete a request with status "{row["status"]}". Only pending requests can be deleted.'
+                }
+
+            stl_file_path = row['stl_file_path']
+
+            # Delete history entries first (FK constraint)
+            db.execute_query(
+                "DELETE FROM print_request_history WHERE request_id = %s",
+                (request_id,)
+            )
+
+            # Delete the request
+            db.execute_query(
+                "DELETE FROM print_requests WHERE request_id = %s",
+                (request_id,)
+            )
+
+            # Delete the uploaded STL file from disk (if one exists)
+            if stl_file_path:
+                file_path = os.path.join(Config.UPLOAD_FOLDER, stl_file_path)
+                try:
+                    if os.path.isfile(file_path):
+                        os.remove(file_path)
+                        print(f"Deleted STL file: {file_path}")
+                    else:
+                        print(f"STL file not found on disk (already gone?): {file_path}")
+                except Exception as file_err:
+                    # Log but don't fail the whole operation — DB row is already deleted
+                    print(f"Warning: could not delete STL file {file_path}: {file_err}")
+
+            return {'success': True, 'message': 'Request deleted successfully'}
+
+        except Exception as e:
+            print(f"Error deleting request: {e}")
+            return {'success': False, 'message': f'Failed to delete request: {str(e)}'}
+
     @staticmethod
     def get_all_requests(status: Optional[str] = None, priority: Optional[str] = None) -> Dict:
         """
@@ -359,7 +426,63 @@ class PrintService:
                 'success': False,
                 'message': f'Failed to update status: {str(e)}'
             }
-    
+
+    @staticmethod
+    def return_print_request(request_id: int, admin_email: str, reason: str) -> Dict:
+        """
+        Return (send back) a print request to the student for revision.
+        Sets status back to 'pending' and stores the admin's reason in admin_notes.
+
+        Args:
+            request_id: ID of the print request
+            admin_email: Email of the admin returning the request
+            reason: Explanation written by the admin (required)
+
+        Returns:
+            Dict with success status and message
+        """
+        try:
+            if not reason or not reason.strip():
+                return {'success': False, 'message': 'A return reason is required'}
+
+            # Verify request exists
+            row = db.fetch_one(
+                "SELECT status FROM print_requests WHERE request_id = %s",
+                (request_id,)
+            )
+            if not row:
+                return {'success': False, 'message': 'Request not found'}
+
+            old_status = row['status']
+
+            # Always update admin_notes and set status to pending
+            db.execute_query(
+                """UPDATE print_requests
+                   SET status = 'pending', reviewed_by = %s, reviewed_at = NOW(),
+                       admin_notes = %s
+                   WHERE request_id = %s""",
+                (admin_email, reason.strip(), request_id)
+            )
+
+            # History entry (record the transition, even if status didn't change)
+            db.execute_query(
+                """INSERT INTO print_request_history
+                   (request_id, old_status, new_status, changed_by, change_reason)
+                   VALUES (%s, %s, 'pending', %s, %s)""",
+                (request_id, old_status, admin_email, reason.strip())
+            )
+
+            return {
+                'success': True,
+                'message': 'Feedback sent to student',
+                'old_status': old_status,
+                'new_status': 'pending'
+            }
+
+        except Exception as e:
+            print(f"Error returning request: {e}")
+            return {'success': False, 'message': f'Failed to return request: {str(e)}'}
+
     @staticmethod
     def get_request_history(request_id: int) -> Dict:
         """

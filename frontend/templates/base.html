@@ -76,6 +76,30 @@
     .badge-in_progress { background: #cce5ff; color: #004085; }
     .badge-completed   { background: #d4edda; color: #155724; }
     .badge-cancelled   { background: #e2e3e5; color: #383d41; }
+    /* ── Delete button ── */
+    .btn-delete {
+      background: none; border: 1px solid #e74c3c; color: #e74c3c;
+      border-radius: 6px; padding: 2px 10px; font-size: 0.8rem;
+      cursor: pointer; transition: background 0.15s, color 0.15s;
+    }
+    .btn-delete:hover { background: #e74c3c; color: #fff; }
+    /* ── Return button ── */
+    .btn-return {
+      display: inline-block; border: 1px solid #f39c12; color: #f39c12;
+      border-radius: 6px; padding: 2px 10px; font-size: 0.8rem;
+      text-decoration: none; transition: background 0.15s, color 0.15s;
+    }
+    .btn-return:hover { background: #f39c12; color: #fff; }
+    /* ── Admin feedback banner (student view) ── */
+    .feedback-banner {
+      background: #fff8e1; border: 1px solid #ffe082; border-radius: 6px;
+      padding: 8px 14px; font-size: 0.85rem; color: #7a5800;
+    }
+    .feedback-row td { border-bottom: none; padding-top: 0; }
+    /* ── Alert messages ── */
+    .alert { padding: 10px 16px; border-radius: 8px; margin-bottom: 12px; font-size: 0.9rem; }
+    .alert-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+    .alert-error   { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
   </style>
   <script>
     /* ── JWT helpers — loaded in <head> so all page scripts can use them ── */

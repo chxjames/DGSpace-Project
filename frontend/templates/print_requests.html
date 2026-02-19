@@ -68,21 +68,62 @@ async function loadRequests(userType) {
     }
 
     const tbody = document.getElementById('req-body');
-    tbody.innerHTML = list.map(r => `
-      <tr>
-        <td>${r.id}</td>
-        <td>${r.project_name}</td>
-        <td>${r.material_type || 'PLA'}</td>
-        <td>${priorityLabel(r.priority)}</td>
-        <td>${statusBadge(r.status)}</td>
-        <td>${new Date(r.created_at).toLocaleDateString('en-US')}</td>
-        <td><a href="/print-requests/${r.id}/" style="color:#e94560">Details</a></td>
-      </tr>`).join('');
+    tbody.innerHTML = list.map(r => {
+      // Feedback banner shown to students when admin has left notes on a pending request
+      const feedbackBanner = (userType !== 'admin' && r.status === 'pending' && r.admin_notes)
+        ? `<tr class="feedback-row">
+             <td colspan="7" style="padding:0 12px 10px 32px">
+               <div class="feedback-banner">
+                 <strong>⚠️ Admin Feedback:</strong> ${r.admin_notes}
+                 &nbsp;—&nbsp; <em>Please review and delete or resubmit a new request.</em>
+               </div>
+             </td>
+           </tr>`
+        : '';
+
+      const row = `
+        <tr>
+          <td>${r.id}</td>
+          <td>${r.project_name}</td>
+          <td>${r.material_type || 'PLA'}</td>
+          <td>${priorityLabel(r.priority)}</td>
+          <td>${statusBadge(r.status)}</td>
+          <td>${new Date(r.created_at).toLocaleDateString('en-US')}</td>
+          <td style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <a href="/print-requests/${r.id}/" style="color:#e94560">Details</a>
+            ${userType !== 'admin' && r.status === 'pending' ? `<button onclick="deleteRequest(${r.id},'${r.project_name.replace(/'/g,"&#39;")}')" class="btn-delete">🗑 Delete</button>` : ''}
+            ${userType === 'admin' ? `<a href="/print-requests/${r.id}/return/" class="btn-return">💬 Feedback</a>` : ''}
+          </td>
+        </tr>`;
+      return row + feedbackBanner;
+    }).join('');
 
     document.getElementById('req-table').style.display = 'table';
   } catch(e) {
     document.getElementById('loading').innerHTML =
       '<span style="color:#c0392b">Failed to load. Make sure the backend is running.</span>';
+  }
+}
+
+async function deleteRequest(id, name) {
+  if (!confirm(`Delete request "${name}"?\n\nThis cannot be undone.`)) return;
+
+  const alertBox = document.getElementById('alert-box');
+  alertBox.innerHTML = '';
+
+  try {
+    const res = await apiFetch(`/api/print-requests/${id}`, { method: 'DELETE' });
+    const data = await res.json();
+
+    if (data.success) {
+      alertBox.innerHTML = `<div class="alert alert-success">Request deleted successfully.</div>`;
+      const user = getUser();
+      loadRequests(user.user_type);
+    } else {
+      alertBox.innerHTML = `<div class="alert alert-error">${data.message}</div>`;
+    }
+  } catch(e) {
+    alertBox.innerHTML = `<div class="alert alert-error">Failed to delete. Make sure the backend is running.</div>`;
   }
 }
 </script>

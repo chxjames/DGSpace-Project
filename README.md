@@ -140,6 +140,7 @@ All browser JS uses relative URLs (`/api/...`) — everything routes through Dja
 | POST | `/api/print-requests` | Student: submit new request (includes optional STL info) |
 | POST | `/api/print-requests/upload-stl` | Student: upload `.stl` file, returns `filename` |
 | GET | `/api/print-requests/<id>` | Get single request details (includes `stl_file_path`) |
+| DELETE | `/api/print-requests/<id>` | Student: delete own **pending** request |
 | GET | `/api/uploads/<filename>` | Serve uploaded STL files |
 | GET | `/api/admin/print-requests` | Admin: list all requests |
 

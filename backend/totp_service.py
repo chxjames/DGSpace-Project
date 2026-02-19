@@ -1,12 +1,16 @@
-"""
-TOTP (Time-based One-Time Password) 二次验证服务
-基于 RFC 6238，兼容 Google Authenticator / Microsoft Authenticator / Duo 等所有标准 TOTP 应用
+"""backend.totp_service
 
-流程：
-  1. 用户登录成功后调用 setup_totp() 获取二维码 URI
-  2. 用户扫码绑定后调用 confirm_totp() 验证第一个 TOTP 码以激活
-  3. 以后每次登录，在密码验证通过后调用 verify_totp() 校验 6 位码
-  4. 可调用 disable_totp() 关闭 2FA
+TOTP (Time-based One-Time Password) two-factor authentication service.
+Implements RFC 6238 and is compatible with standard authenticator apps
+such as Google Authenticator / Microsoft Authenticator / Duo.
+
+Flow:
+    1. After a successful password login, call setup_totp() to get a QR-code URI.
+    2. After the user scans the QR code, call confirm_totp() with the first code
+         to activate TOTP.
+    3. On subsequent logins (after password verification), call verify_totp() to
+         validate the 6-digit code.
+    4. Call disable_totp() to turn off 2FA.
 """
 
 import pyotp
@@ -22,12 +26,15 @@ APP_NAME = "DGSpace"
 class TotpService:
 
     # ------------------------------------------------------------------
-    # 内部辅助
+    # Internal helpers
     # ------------------------------------------------------------------
 
     @staticmethod
     def _get_secret(email: str, user_type: str) -> Optional[str]:
-        """从数据库读取该用户的 TOTP 密钥（未激活的也读出来，供扫码确认）"""
+        """Read the user's TOTP secret from DB.
+
+        Includes inactive secrets so the user can scan + confirm activation.
+        """
         row = db.fetch_one(
             "SELECT secret FROM totp_secrets WHERE email = %s AND user_type = %s",
             (email, user_type),
@@ -35,14 +42,16 @@ class TotpService:
         return row["secret"] if row else None
 
     # ------------------------------------------------------------------
-    # 1. 生成 / 刷新密钥并返回二维码数据 URI
+    # 1) Generate/refresh secret and return QR Code data URI
     # ------------------------------------------------------------------
 
     @staticmethod
     def setup_totp(email: str, user_type: str) -> dict:
         """
-        为用户生成新的 TOTP 密钥，写入数据库（is_active=FALSE 等待确认），
-        返回 otpauth URI 和 Base64 PNG 二维码，供前端展示。
+        Generate a new TOTP secret for the user and write it to the database
+        (is_active=FALSE until confirmed).
+
+        Returns an otpauth URI and a Base64-encoded PNG QR code for the frontend.
 
         Returns:
             {
@@ -56,14 +65,14 @@ class TotpService:
         totp = pyotp.TOTP(secret)
         uri = totp.provisioning_uri(name=email, issuer_name=APP_NAME)
 
-        # 生成 PNG 二维码并编码为 base64
+    # Generate PNG QR code and encode to base64
         img = qrcode.make(uri)
         buffer = io.BytesIO()
         img.save(buffer, format="PNG")
         b64 = base64.b64encode(buffer.getvalue()).decode()
         qr_data_uri = f"data:image/png;base64,{b64}"
 
-        # 删除旧密钥（如果有），插入新密钥（未激活）
+    # Remove any existing secret, then insert the new secret (inactive)
         db.execute_query(
             "DELETE FROM totp_secrets WHERE email = %s AND user_type = %s",
             (email, user_type),
@@ -78,43 +87,44 @@ class TotpService:
 
         return {
             "success": True,
-            "secret": secret,          # 供手动输入备用
+            "secret": secret,          # for manual entry / backup
             "otpauth_uri": uri,
             "qr_code_base64": qr_data_uri,
         }
 
     # ------------------------------------------------------------------
-    # 2. 用户扫码后输入第一个验证码 → 激活 2FA
+    # 2) Confirm first code after scan → activate 2FA
     # ------------------------------------------------------------------
 
     @staticmethod
     def confirm_totp(email: str, user_type: str, code: str) -> dict:
         """
-        验证用户提交的 TOTP 码是否正确，正确则将 is_active 置为 TRUE（激活 2FA）。
+        Validate the user's first TOTP code.
+        If valid, set is_active=TRUE to activate 2FA.
         """
         secret = TotpService._get_secret(email, user_type)
         if not secret:
-            return {"success": False, "message": "未找到 2FA 设置，请先调用 setup"}
+            return {"success": False, "message": "No 2FA setup found. Please call setup first."}
 
         totp = pyotp.TOTP(secret)
-        # valid_window=1 允许前后各一个时间窗口（±30s），防止时钟偏差
+        # valid_window=1 allows ±1 time-step (±30s) to tolerate clock drift
         if not totp.verify(code, valid_window=1):
-            return {"success": False, "message": "验证码不正确，请重试"}
+            return {"success": False, "message": "Invalid code. Please try again."}
 
         db.execute_query(
             "UPDATE totp_secrets SET is_active = TRUE WHERE email = %s AND user_type = %s",
             (email, user_type),
         )
-        return {"success": True, "message": "2FA 已成功启用"}
+        return {"success": True, "message": "2FA enabled successfully."}
 
     # ------------------------------------------------------------------
-    # 3. 登录时验证 TOTP 码
+    # 3) Verify TOTP code during login
     # ------------------------------------------------------------------
 
     @staticmethod
     def verify_totp(email: str, user_type: str, code: str) -> dict:
         """
-        在用户已激活 2FA 的情况下，验证登录时提交的 6 位 TOTP 码。
+        Validate the 6-digit TOTP code at login time (when 2FA is active).
 
         Returns:
             {"success": True/False, "message": "..."}
@@ -124,34 +134,34 @@ class TotpService:
             (email, user_type),
         )
         if not row:
-            # 用户没有激活 2FA，跳过（不阻断登录）
+            # No active 2FA → skip (do not block login)
             return {"success": True, "required": False}
 
         totp = pyotp.TOTP(row["secret"])
         if totp.verify(code, valid_window=1):
             return {"success": True, "required": True}
-        return {"success": False, "required": True, "message": "2FA 验证码错误或已过期"}
+        return {"success": False, "required": True, "message": "Invalid or expired 2FA code."}
 
     # ------------------------------------------------------------------
-    # 4. 关闭 2FA
+    # 4) Disable 2FA
     # ------------------------------------------------------------------
 
     @staticmethod
     def disable_totp(email: str, user_type: str) -> dict:
-        """删除用户的 TOTP 密钥，关闭 2FA。"""
+        """Delete the user's TOTP secret and disable 2FA."""
         db.execute_query(
             "DELETE FROM totp_secrets WHERE email = %s AND user_type = %s",
             (email, user_type),
         )
-        return {"success": True, "message": "2FA 已关闭"}
+        return {"success": True, "message": "2FA disabled."}
 
     # ------------------------------------------------------------------
-    # 5. 查询 2FA 状态
+    # 5) Get 2FA status
     # ------------------------------------------------------------------
 
     @staticmethod
     def get_totp_status(email: str, user_type: str) -> dict:
-        """返回该用户的 2FA 启用状态。"""
+        """Return whether 2FA is enabled for the given user."""
         row = db.fetch_one(
             "SELECT is_active FROM totp_secrets WHERE email = %s AND user_type = %s",
             (email, user_type),

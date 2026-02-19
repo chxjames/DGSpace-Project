@@ -378,6 +378,36 @@ def get_request_details(request_id):
     return jsonify(result), 200
 
 
+@app.route('/api/print-requests/<int:request_id>', methods=['DELETE'])
+def delete_print_request(request_id):
+    """Delete a pending print request (student only, own requests)"""
+    auth_header = request.headers.get('Authorization')
+
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({'success': False, 'message': 'No token provided'}), 401
+
+    token = auth_header.split(' ')[1]
+    payload = AuthService.verify_jwt_token(token)
+
+    if not payload:
+        return jsonify({'success': False, 'message': 'Invalid token'}), 401
+
+    if payload.get('user_type') != 'student':
+        return jsonify({'success': False, 'message': 'Only students can delete requests'}), 403
+
+    result = PrintService.delete_print_request(request_id, payload['email'])
+
+    if result['success']:
+        return jsonify(result), 200
+    else:
+        # 404 if not found, 403 if wrong owner, 400 if wrong status
+        if 'not found' in result['message']:
+            return jsonify(result), 404
+        if 'Unauthorized' in result['message']:
+            return jsonify(result), 403
+        return jsonify(result), 400
+
+
 @app.route('/api/print-requests/<int:request_id>/history', methods=['GET'])
 def get_request_history(request_id):
     """Get status change history for a print request"""
@@ -469,6 +499,40 @@ def admin_update_request_status(request_id):
     
     if result['success']:
         return jsonify(result), 200
+    else:
+        return jsonify(result), 400
+
+
+@app.route('/api/admin/print-requests/<int:request_id>/return', methods=['POST'])
+def admin_return_request(request_id):
+    """Return a print request back to the student for revision (Admin only)"""
+    auth_header = request.headers.get('Authorization')
+
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({'success': False, 'message': 'No token provided'}), 401
+
+    token = auth_header.split(' ')[1]
+    payload = AuthService.verify_jwt_token(token)
+
+    if not payload or payload.get('user_type') != 'admin':
+        return jsonify({'success': False, 'message': 'Admin access required'}), 403
+
+    data = request.json or {}
+    reason = data.get('reason', '').strip()
+
+    if not reason:
+        return jsonify({'success': False, 'message': 'A return reason is required'}), 400
+
+    result = PrintService.return_print_request(
+        request_id=request_id,
+        admin_email=payload['email'],
+        reason=reason
+    )
+
+    if result['success']:
+        return jsonify(result), 200
+    elif 'not found' in result['message']:
+        return jsonify(result), 404
     else:
         return jsonify(result), 400
 

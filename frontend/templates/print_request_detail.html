@@ -36,6 +36,7 @@
           <tr><td style="padding:6px 0;color:#888">Est. Weight</td>             <td id="d-weight"></td></tr>
           <tr><td style="padding:6px 0;color:#888">Est. Print Time</td>         <td id="d-time"></td></tr>
           <tr><td style="padding:6px 0;color:#888">Submitted by</td>            <td id="d-student"></td></tr>
+          <tr id="d-email-row" style="display:none"><td style="padding:6px 0;color:#888">Student Email</td>  <td><a id="d-student-email" href="#" style="color:#e94560;font-size:0.9rem"></a></td></tr>
         </table>
 
         <div id="d-description-block" style="margin-top:16px;display:none">
@@ -43,9 +44,12 @@
           <div id="d-description" style="font-size:0.9rem;color:#333;white-space:pre-wrap"></div>
         </div>
 
-        <div id="d-admin-notes-block" style="margin-top:16px;padding:12px;background:#f8f9fa;border-radius:6px;display:none">
-          <div style="font-size:0.85rem;color:#888;margin-bottom:4px">Admin Notes</div>
-          <div id="d-admin-notes" style="font-size:0.9rem;color:#333"></div>
+        <div id="d-admin-notes-block" style="margin-top:16px;padding:12px 14px;background:#fff8e1;border:1px solid #ffe082;border-radius:6px;display:none">
+          <div style="font-size:0.85rem;font-weight:600;color:#7a5800;margin-bottom:4px">⚠️ Admin Feedback</div>
+          <div id="d-admin-notes" style="font-size:0.9rem;color:#7a5800"></div>
+          <div id="d-admin-notes-hint" style="margin-top:8px;font-size:0.8rem;color:#999;display:none">
+            Please address the feedback above, then delete this request and submit a new one.
+          </div>
         </div>
       </div>
 
@@ -143,6 +147,15 @@ function renderDetail(r) {
   document.getElementById('d-time').textContent          = r.estimated_print_time_hours ? r.estimated_print_time_hours + ' h' : '—';
   document.getElementById('d-student').textContent       = r.student_name || r.student_email || '—';
 
+  // Show student email only to admins
+  const currentUser = window.getUser ? window.getUser() : null;
+  if (currentUser && currentUser.user_type === 'admin' && r.student_email) {
+    const emailEl = document.getElementById('d-student-email');
+    emailEl.textContent = r.student_email;
+    emailEl.href = `mailto:${r.student_email}`;
+    document.getElementById('d-email-row').style.display = '';
+  }
+
   if (r.description) {
     document.getElementById('d-description').textContent = r.description;
     document.getElementById('d-description-block').style.display = 'block';
@@ -150,6 +163,10 @@ function renderDetail(r) {
   if (r.admin_notes) {
     document.getElementById('d-admin-notes').textContent = r.admin_notes;
     document.getElementById('d-admin-notes-block').style.display = 'block';
+    const user = window.getUser ? window.getUser() : null;
+    if (user && user.user_type !== 'admin') {
+      document.getElementById('d-admin-notes-hint').style.display = 'block';
+    }
   }
   if (r.reviewed_at) {
     document.getElementById('d-reviewed-at').textContent = new Date(r.reviewed_at).toLocaleDateString('en-US');
