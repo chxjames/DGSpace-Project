@@ -39,12 +39,14 @@ DGSpace-Project-1/
 │       ├── home.html          # Landing / dashboard
 │       ├── print_requests.html
 │       ├── print_request_new.html
+│       ├── print_request_detail.html  # Detail + Three.js STL viewer
 │       └── registration/
 │           ├── login.html
 │           └── signup.html
 └── database/
     ├── schema.sql             # Full DB schema (7 tables)
-    └── migration_001_print_requests.sql
+    ├── migration_001_print_requests.sql
+    └── migration_002_stl_upload.sql   # Adds stl_file_path, stl_original_name
 ```
 
 ---
@@ -107,6 +109,7 @@ All browser JS uses relative URLs (`/api/...`) — everything routes through Dja
 | `/accounts/signup/` | Sign up |
 | `/print-requests/` | My print requests |
 | `/print-requests/new/` | Submit new request |
+| `/print-requests/<id>/` | Request detail + Three.js STL preview |
 
 ---
 
@@ -134,7 +137,10 @@ All browser JS uses relative URLs (`/api/...`) — everything routes through Dja
 | Method | Endpoint | Description |
 | --- | --- | --- |
 | GET | `/api/print-requests/my-requests` | Student: list own requests |
-| POST | `/api/print-requests` | Student: submit new request |
+| POST | `/api/print-requests` | Student: submit new request (includes optional STL info) |
+| POST | `/api/print-requests/upload-stl` | Student: upload `.stl` file, returns `filename` |
+| GET | `/api/print-requests/<id>` | Get single request details (includes `stl_file_path`) |
+| GET | `/api/uploads/<filename>` | Serve uploaded STL files |
 | GET | `/api/admin/print-requests` | Admin: list all requests |
 
 ---
@@ -147,6 +153,7 @@ All browser JS uses relative URLs (`/api/...`) — everything routes through Dja
 $mysql = "C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe"
 & $mysql -u root -p DGSpace < database/schema.sql
 & $mysql -u root -p DGSpace < database/migration_001_print_requests.sql
+& $mysql -u root -p DGSpace < database/migration_002_stl_upload.sql
 ```
 
 Tables: `students`, `admins`, `email_verification_codes`, `password_reset_tokens`, `totp_secrets`, `print_requests`, `print_request_history`
