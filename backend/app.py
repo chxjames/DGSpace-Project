@@ -285,8 +285,48 @@ def upload_stl():
     }), 201
 
 
+@app.route('/api/print-requests/upload-stl/<filename>', methods=['DELETE'])
+def delete_uploaded_stl(filename: str):
+    """Delete a previously uploaded STL file before submitting a print request (Student)
+
+    This supports the frontend "Remove" button so mistaken uploads don't linger on disk.
+    """
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({'success': False, 'message': 'No token provided'}), 401
+
+    token = auth_header.split(' ')[1]
+    payload = AuthService.verify_jwt_token(token)
+    if not payload or payload.get('user_type') != 'student':
+        return jsonify({'success': False, 'message': 'Invalid token or not a student'}), 401
+
+    # Basic path-traversal protection: only allow the basename.
+    safe_name = os.path.basename(filename)
+    if safe_name != filename:
+        return jsonify({'success': False, 'message': 'Invalid filename'}), 400
+
+    upload_dir = f"{app.config['UPLOAD_FOLDER']}"
+    file_path = os.path.join(upload_dir, safe_name)
+
+    # Ensure the resolved path stays within the uploads directory.
+    abs_upload_dir = os.path.abspath(upload_dir)
+    abs_file_path = os.path.abspath(file_path)
+    if not abs_file_path.startswith(abs_upload_dir + os.sep):
+        return jsonify({'success': False, 'message': 'Invalid filename'}), 400
+
+    if not os.path.exists(abs_file_path):
+        # Idempotent: removing twice should be fine.
+        return jsonify({'success': True, 'message': 'File already deleted'}), 200
+
+    try:
+        os.remove(abs_file_path)
+        return jsonify({'success': True, 'message': 'File deleted'}), 200
+    except OSError:
+        return jsonify({'success': False, 'message': 'Failed to delete file'}), 500
+
+
 @app.route('/api/uploads/<filename>', methods=['GET'])
-def serve_upload(filename):
+def serve_upload(filename: str):
     """Serve uploaded STL files"""
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
@@ -440,6 +480,67 @@ def get_request_history(request_id):
 
 
 # ==================== ADMIN PRINT REQUEST ENDPOINTS ====================
+
+# ==================== ADMIN USER MANAGEMENT ====================
+
+
+@app.route('/api/admin/students', methods=['GET'])
+def admin_list_students():
+    """List all student accounts (Admin only)."""
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({'success': False, 'message': 'No token provided'}), 401
+
+    token = auth_header.split(' ')[1]
+    payload = AuthService.verify_jwt_token(token)
+    if not payload or payload.get('user_type') != 'admin':
+        return jsonify({'success': False, 'message': 'Admin access required'}), 403
+
+    students = db.fetch_all(
+        """
+        SELECT email, full_name, department, email_verified, created_at, last_login
+        FROM students
+        ORDER BY created_at DESC
+        """
+    ) or []
+
+    return jsonify({'success': True, 'students': students}), 200
+
+
+@app.route('/api/admin/students/<email>', methods=['DELETE'])
+def admin_delete_student(email: str):
+    """Delete a student account (Admin only).
+
+    Note: print_requests has a FK ON DELETE CASCADE on student_email, so the
+    student's print requests and their history will be deleted automatically.
+    """
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({'success': False, 'message': 'No token provided'}), 401
+
+    token = auth_header.split(' ')[1]
+    payload = AuthService.verify_jwt_token(token)
+    if not payload or payload.get('user_type') != 'admin':
+        return jsonify({'success': False, 'message': 'Admin access required'}), 403
+
+    # Defensive: avoid deleting admins accidentally via weird routing.
+    if not email or '@' not in email:
+        return jsonify({'success': False, 'message': 'Invalid email'}), 400
+
+    existing = db.fetch_one("SELECT email FROM students WHERE email = %s", (email,))
+    if not existing:
+        return jsonify({'success': False, 'message': 'Student not found'}), 404
+
+    # Also clean up any 2FA secrets, password reset tokens, and verification codes.
+    db.execute_query("DELETE FROM totp_secrets WHERE email = %s AND user_type = 'student'", (email,))
+    db.execute_query("DELETE FROM password_reset_tokens WHERE email = %s AND user_type = 'student'", (email,))
+    db.execute_query("DELETE FROM email_verification_codes WHERE email = %s AND user_type = 'student'", (email,))
+
+    delete_result = db.execute_query("DELETE FROM students WHERE email = %s", (email,))
+    if delete_result is None:
+        return jsonify({'success': False, 'message': 'Failed to delete student'}), 500
+
+    return jsonify({'success': True, 'message': 'Student deleted'}), 200
 
 @app.route('/api/admin/print-requests', methods=['GET'])
 def admin_get_all_requests():

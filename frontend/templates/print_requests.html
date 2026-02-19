@@ -67,8 +67,8 @@ async function loadRequests(userType) {
       return;
     }
 
-    const tbody = document.getElementById('req-body');
-    tbody.innerHTML = list.map(r => {
+  const tbody = document.getElementById('req-body');
+  tbody.innerHTML = list.map((r, idx) => {
       // Feedback banner shown to students when admin has left notes on a pending request
       const feedbackBanner = (userType !== 'admin' && r.status === 'pending' && r.admin_notes)
         ? `<tr class="feedback-row">
@@ -83,7 +83,7 @@ async function loadRequests(userType) {
 
       const row = `
         <tr>
-          <td>${r.id}</td>
+          <td>${idx + 1}</td>
           <td>${r.project_name}</td>
           <td>${r.material_type || 'PLA'}</td>
           <td>${priorityLabel(r.priority)}</td>

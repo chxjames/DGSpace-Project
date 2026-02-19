@@ -94,6 +94,9 @@
     .feedback-banner {
       background: #fff8e1; border: 1px solid #ffe082; border-radius: 6px;
       padding: 8px 14px; font-size: 0.85rem; color: #7a5800;
+      white-space: normal;
+      overflow-wrap: anywhere;
+      word-break: break-word;
     }
     .feedback-row td { border-bottom: none; padding-top: 0; }
     /* ── Alert messages ── */
@@ -132,6 +135,7 @@
     <div class="nav-links">
       <span id="nav-username" style="display:none"></span>
       <a href="/print-requests/" id="nav-print" style="display:none">Print Requests</a>
+      <a href="/admin/students/" id="nav-admin-students" style="display:none">Students</a>
       <a href="/accounts/login" id="nav-login">Log In</a>
       <a href="/accounts/signup" id="nav-signup">Sign Up</a>
       <button id="nav-logout" style="display:none" onclick="logout()">Log Out</button>
@@ -153,6 +157,10 @@
         document.getElementById('nav-signup').style.display  = 'none';
         document.getElementById('nav-logout').style.display  = 'inline-block';
         document.getElementById('nav-print').style.display   = 'inline';
+
+        if (user.user_type === 'admin') {
+          document.getElementById('nav-admin-students').style.display = 'inline';
+        }
       }
     })();
   </script>

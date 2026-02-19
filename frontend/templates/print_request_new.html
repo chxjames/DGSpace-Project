@@ -94,6 +94,39 @@
 // ── STL upload state ──────────────────────────────────────
 let uploadedStlFilename = null;   // saved name on server (uuid.stl)
 let uploadedStlOriginalName = null;
+let autoFilledProjectNameFromStl = false;
+let submittedSuccessfully = false;
+
+function deriveProjectNameFromFilename(filename) {
+  if (!filename) return '';
+  // Strip path if any (some browsers may include fakepath)
+  const base = filename.split('\\').pop().split('/').pop();
+  // Remove .stl extension
+  return base.replace(/\.stl$/i, '').trim();
+}
+
+function maybeAutoFillProjectNameFromStl(originalName) {
+  const input = document.getElementById('project_name');
+  if (!input) return;
+
+  // Only auto-fill when empty or when we previously auto-filled it.
+  if (input.value.trim() && !autoFilledProjectNameFromStl) return;
+
+  const derived = deriveProjectNameFromFilename(originalName);
+  if (!derived) return;
+
+  input.value = derived;
+  autoFilledProjectNameFromStl = true;
+}
+
+// If the user types, stop auto-overwriting.
+document.addEventListener('DOMContentLoaded', () => {
+  const input = document.getElementById('project_name');
+  if (!input) return;
+  input.addEventListener('input', () => {
+    autoFilledProjectNameFromStl = false;
+  });
+});
 
 function setStlStatus(msg, color) {
   const el = document.getElementById('stl-upload-status');
@@ -141,6 +174,8 @@ async function uploadStlFile(file) {
       uploadedStlFilename     = data.filename;
       uploadedStlOriginalName = data.original_name;
 
+      maybeAutoFillProjectNameFromStl(uploadedStlOriginalName);
+
       document.getElementById('stl-drop-label').style.display   = 'none';
       document.getElementById('stl-file-selected').style.display = 'block';
       document.getElementById('stl-filename-display').textContent = data.original_name;
@@ -153,14 +188,30 @@ async function uploadStlFile(file) {
   }
 }
 
-function clearStlFile(event) {
+async function clearStlFile(event) {
   event.stopPropagation();
+
+  const filenameToDelete = uploadedStlFilename;
+
+  // Clear UI state immediately for a snappy UX.
   uploadedStlFilename     = null;
   uploadedStlOriginalName = null;
+  autoFilledProjectNameFromStl = false;
   document.getElementById('stl-file-input').value = '';
   document.getElementById('stl-drop-label').style.display   = 'block';
   document.getElementById('stl-file-selected').style.display = 'none';
   setStlStatus('');
+
+  // Best-effort cleanup on the server.
+  if (!filenameToDelete) return;
+  try {
+    await fetch(`/api/print-requests/upload-stl/${encodeURIComponent(filenameToDelete)}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': 'Bearer ' + getToken() }
+    });
+  } catch (e) {
+    // If server is unreachable, we still let the user proceed.
+  }
 }
 
 // ── Form submit ───────────────────────────────────────────
@@ -190,6 +241,7 @@ async function doSubmit() {
     const data = await res.json();
 
     if (data.success) {
+      submittedSuccessfully = true;
       showAlert('Request submitted successfully!', 'success');
       setTimeout(() => location.href = '/print-requests/', 1200);
     } else {
@@ -199,5 +251,36 @@ async function doSubmit() {
     showAlert('Cannot reach the backend.');
   }
 }
+
+// ── Best-effort cleanup: if user leaves after uploading but before submitting ──
+window.addEventListener('beforeunload', () => {
+  if (submittedSuccessfully) return;
+  if (!uploadedStlFilename) return;
+
+  const url = `/api/print-requests/upload-stl/${encodeURIComponent(uploadedStlFilename)}`;
+
+  // Note: Browsers restrict what you can do during unload.
+  // We try sendBeacon first; if not supported, fall back to fetch keepalive.
+  try {
+    if (navigator.sendBeacon) {
+      // sendBeacon supports simple payloads; use JSON and backend ignores body.
+      // We can't reliably set custom headers in sendBeacon, so this may be a no-op
+      // depending on browser. keepalive fetch below often works better.
+      navigator.sendBeacon(url, JSON.stringify({}));
+    }
+  } catch (e) {
+    // ignore
+  }
+
+  try {
+    fetch(url, {
+      method: 'DELETE',
+      headers: { 'Authorization': 'Bearer ' + getToken() },
+      keepalive: true
+    });
+  } catch (e) {
+    // ignore
+  }
+});
 </script>
 {% endblock %}

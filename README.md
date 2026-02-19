@@ -111,6 +111,7 @@ All browser JS uses relative URLs (`/api/...`) — everything routes through Dja
 | `/print-requests/new/` | Submit new request |
 | `/print-requests/<id>/` | Request detail + Three.js STL preview |
 | `/print-requests/<id>/return/` | Admin: send feedback to student (writes `admin_notes` and sets status to `pending`) |
+| `/admin/students/` | Admin-only student accounts list + delete |
 
 ---
 
@@ -132,6 +133,8 @@ All browser JS uses relative URLs (`/api/...`) — everything routes through Dja
 | POST | `/api/admins/register` | Register admin |
 | POST | `/api/admins/verify-email` | Verify admin email |
 | POST | `/api/admins/login` | Login, returns JWT |
+| GET | `/api/admin/students` | List all student accounts |
+| DELETE | `/api/admin/students/<email>` | Delete a student account (also deletes their print requests) |
 
 ### Print Requests
 
@@ -203,7 +206,7 @@ DEV_EMAIL_MODE=True
 - No real email is sent
 - Code appears in the **Flask terminal window**:
 
-```
+```text
 [DEV] Verification code for user@email.com: 483921
 ```
 

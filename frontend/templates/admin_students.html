@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% block title %}Students — DGSpace{% endblock %}
+
+{% block content %}
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+  <h2 style="color:#1a1a2e">👥 Students</h2>
+  <a href="/print-requests/" style="color:#888;text-decoration:none;font-size:0.9rem">← Back</a>
+</div>
+
+<div id="alert-box"></div>
+
+<div class="card">
+  <div id="loading" style="text-align:center;padding:32px;color:#888">Loading…</div>
+
+  <table id="students-table" style="display:none">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Email</th>
+        <th>Name</th>
+        <th>Department</th>
+        <th>Verified</th>
+        <th>Created</th>
+        <th>Last Login</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody id="students-body"></tbody>
+  </table>
+
+  <p id="no-data" style="display:none;text-align:center;color:#888;padding:32px">
+    No students found.
+  </p>
+
+  <div style="margin-top:12px;color:#999;font-size:0.85rem">
+    <strong>Note:</strong> Deleting a student will also delete all of their print requests.
+  </div>
+</div>
+
+<script>
+(function() {
+  const user = getUser();
+  if (!user) { location.href = '/accounts/login'; return; }
+  if (user.user_type !== 'admin') { location.href = '/'; return; }
+  loadStudents();
+})();
+
+function showAlert(msg, type='error') {
+  document.getElementById('alert-box').innerHTML = `<div class="alert alert-${type}">${msg}</div>`;
+}
+
+function fmtDate(s) {
+  if (!s) return '—';
+  try { return new Date(s).toLocaleDateString('en-US'); } catch { return '—'; }
+}
+
+async function loadStudents() {
+  try {
+    const res  = await apiFetch('/api/admin/students');
+    if (res.status === 401) { location.href = '/accounts/login'; return; }
+    const data = await res.json();
+
+    document.getElementById('loading').style.display = 'none';
+
+    if (!data.success) {
+      showAlert(data.message || 'Failed to load students.');
+      return;
+    }
+
+    const list = data.students || [];
+    if (!list.length) {
+      document.getElementById('no-data').style.display = 'block';
+      return;
+    }
+
+    const tbody = document.getElementById('students-body');
+    tbody.innerHTML = list.map((s, idx) => {
+      const safeEmail = String(s.email || '');
+      const safeName  = String(s.full_name || '');
+      const safeDept  = String(s.department || '');
+      const verified  = s.email_verified ? '✅' : '—';
+      return `
+        <tr>
+          <td>${idx + 1}</td>
+          <td>${safeEmail}</td>
+          <td>${safeName}</td>
+          <td>${safeDept || '—'}</td>
+          <td style="text-align:center">${verified}</td>
+          <td>${fmtDate(s.created_at)}</td>
+          <td>${fmtDate(s.last_login)}</td>
+          <td>
+            <button class="btn-delete" onclick="deleteStudent('${safeEmail.replace(/'/g, "&#39;")}')">🗑 Delete</button>
+          </td>
+        </tr>`;
+    }).join('');
+
+    document.getElementById('students-table').style.display = 'table';
+  } catch(e) {
+    document.getElementById('loading').innerHTML =
+      '<span style="color:#c0392b">Failed to load. Make sure the backend is running.</span>';
+  }
+}
+
+async function deleteStudent(email) {
+  if (!email) return;
+  if (!confirm(`Delete student "${email}"?\n\nThis will also delete ALL their print requests.`)) return;
+
+  try {
+    const res  = await apiFetch(`/api/admin/students/${encodeURIComponent(email)}`, { method: 'DELETE' });
+    const data = await res.json();
+
+    if (data.success) {
+      showAlert('Student deleted successfully.', 'success');
+      loadStudents();
+    } else {
+      showAlert(data.message || 'Failed to delete student.');
+    }
+  } catch (e) {
+    showAlert('Failed to delete. Make sure the backend is running.');
+  }
+}
+</script>
+{% endblock %}
