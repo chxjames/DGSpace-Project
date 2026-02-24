@@ -100,7 +100,8 @@ const requestId = parseInt(location.pathname.split('/').filter(Boolean)[1]);
 function statusBadge(s) {
   const map = {
     pending:'Pending', approved:'Approved', rejected:'Rejected',
-    in_progress:'In Progress', completed:'Completed', cancelled:'Cancelled'
+    in_progress:'In Progress', completed:'Completed', cancelled:'Cancelled',
+    revision_requested:'Revision Requested'
   };
   return `<span class="badge badge-${s}">${map[s] || s}</span>`;
 }

@@ -57,7 +57,11 @@ function fmtDate(s) {
 async function loadStudents() {
   try {
     const res  = await apiFetch('/api/admin/students');
-    if (res.status === 401) { location.href = '/accounts/login'; return; }
+    if (res.status === 401 || res.status === 403) {
+      clearAuth();
+      location.href = '/accounts/login';
+      return;
+    }
     const data = await res.json();
 
     document.getElementById('loading').style.display = 'none';

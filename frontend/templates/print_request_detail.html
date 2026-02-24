@@ -51,6 +51,40 @@
             Please address the feedback above, then delete this request and submit a new one.
           </div>
         </div>
+
+        <!-- STL Analysis -->
+        <div id="d-analysis-block" style="margin-top:16px;padding:12px 14px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;display:none">
+          <div style="font-size:0.85rem;font-weight:600;color:#166534;margin-bottom:8px">📊 STL Analysis</div>
+          <table style="width:100%;font-size:0.85rem;border-collapse:collapse">
+            <tr>
+              <td style="padding:3px 0;color:#555;width:40%">Volume</td>
+              <td id="d-a-volume" style="font-weight:500"></td>
+            </tr>
+            <tr>
+              <td style="padding:3px 0;color:#555">Dimensions</td>
+              <td id="d-a-bbox" style="font-weight:500"></td>
+            </tr>
+            <tr>
+              <td style="padding:3px 0;color:#555">Est. Weight</td>
+              <td id="d-a-weight" style="font-weight:500"></td>
+            </tr>
+            <tr>
+              <td style="padding:3px 0;color:#555">Est. Print Time</td>
+              <td id="d-a-time" style="font-weight:500"></td>
+            </tr>
+          </table>
+          <div style="margin-top:10px">
+            <label style="font-size:0.82rem;color:#555;font-weight:500">Infill: <span id="d-infill-display">20</span>%</label>
+            <input type="range" id="d-infill-slider" min="5" max="100" step="5" value="20"
+                   style="width:100%;accent-color:#16a34a;margin-top:2px"
+                   oninput="document.getElementById('d-infill-display').textContent=this.value;"
+                   onchange="detailReanalyze();">
+            <div style="display:flex;justify-content:space-between;font-size:0.72rem;color:#aaa;margin-top:1px">
+              <span>5%</span><span>Hollow → Solid</span><span>100%</span>
+            </div>
+          </div>
+          <div style="margin-top:6px;font-size:0.78rem;color:#888">⚠️ Estimates are approximate. Actual values depend on slicer settings.</div>
+        </div>
       </div>
 
       <!-- Right: STL viewer -->
@@ -124,7 +158,8 @@ async function loadDetail() {
 
 function statusBadge(s) {
   const map = { pending:'Pending', approved:'Approved', rejected:'Rejected',
-                in_progress:'In Progress', completed:'Completed', cancelled:'Cancelled' };
+                in_progress:'In Progress', completed:'Completed', cancelled:'Cancelled',
+                revision_requested:'Revision Requested' };
   return `<span class="badge badge-${s}">${map[s] || s}</span>`;
 }
 function priorityLabel(p) {
@@ -181,7 +216,40 @@ function renderDetail(r) {
     document.getElementById('stl-download').href              = stlUrl;
     document.getElementById('stl-download').download          = r.stl_original_name || r.stl_file_path;
     initViewer(stlUrl);
+
+    // Store for re-analysis
+    window._detailStlFile = r.stl_file_path;
+    window._detailMaterial = r.material_type || 'PLA';
+
+    // Fetch live STL analysis
+    fetchAnalysis(r.stl_file_path, r.material_type || 'PLA', 0.20);
   }
+}
+
+async function fetchAnalysis(filename, material, infill) {
+  try {
+    const res = await window.apiFetch(
+      `/api/print-requests/analyze-stl/${encodeURIComponent(filename)}?material=${encodeURIComponent(material)}&infill=${infill}`
+    );
+    const data = await res.json();
+    if (data.success && data.analysis) {
+      const a = data.analysis;
+      document.getElementById('d-a-volume').textContent = a.volume_cm3 + ' cm³';
+      document.getElementById('d-a-weight').textContent = a.estimated_weight_grams + ' g';
+      document.getElementById('d-a-time').textContent   = a.estimated_print_time_hours + ' h';
+      const bb = a.bounding_box;
+      document.getElementById('d-a-bbox').textContent   = bb.x_mm + ' × ' + bb.y_mm + ' × ' + bb.z_mm + ' mm';
+      document.getElementById('d-analysis-block').style.display = 'block';
+    }
+  } catch(e) {
+    // Analysis is optional — silently ignore errors
+  }
+}
+
+function detailReanalyze() {
+  if (!window._detailStlFile) return;
+  const infill = (document.getElementById('d-infill-slider').value || 20) / 100;
+  fetchAnalysis(window._detailStlFile, window._detailMaterial, infill);
 }
 
 // ── Three.js STL viewer ─────────────────────────────────────

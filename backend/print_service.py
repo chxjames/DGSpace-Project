@@ -253,10 +253,10 @@ class PrintService:
             if row['student_email'] != student_email:
                 return {'success': False, 'message': 'Unauthorized: this is not your request'}
 
-            if row['status'] != 'pending':
+            if row['status'] not in ('pending', 'revision_requested'):
                 return {
                     'success': False,
-                    'message': f'Cannot delete a request with status "{row["status"]}". Only pending requests can be deleted.'
+                    'message': f'Cannot delete a request with status "{row["status"]}". Only pending or revision-requested requests can be deleted.'
                 }
 
             stl_file_path = row['stl_file_path']
@@ -431,7 +431,7 @@ class PrintService:
     def return_print_request(request_id: int, admin_email: str, reason: str) -> Dict:
         """
         Return (send back) a print request to the student for revision.
-        Sets status back to 'pending' and stores the admin's reason in admin_notes.
+        Sets status to 'revision_requested' and stores the admin's reason in admin_notes.
 
         Args:
             request_id: ID of the print request
@@ -455,10 +455,10 @@ class PrintService:
 
             old_status = row['status']
 
-            # Always update admin_notes and set status to pending
+            # Always update admin_notes and set status to revision_requested
             db.execute_query(
                 """UPDATE print_requests
-                   SET status = 'pending', reviewed_by = %s, reviewed_at = NOW(),
+                   SET status = 'revision_requested', reviewed_by = %s, reviewed_at = NOW(),
                        admin_notes = %s
                    WHERE request_id = %s""",
                 (admin_email, reason.strip(), request_id)
@@ -468,7 +468,7 @@ class PrintService:
             db.execute_query(
                 """INSERT INTO print_request_history
                    (request_id, old_status, new_status, changed_by, change_reason)
-                   VALUES (%s, %s, 'pending', %s, %s)""",
+                   VALUES (%s, %s, 'revision_requested', %s, %s)""",
                 (request_id, old_status, admin_email, reason.strip())
             )
 
@@ -476,7 +476,7 @@ class PrintService:
                 'success': True,
                 'message': 'Feedback sent to student',
                 'old_status': old_status,
-                'new_status': 'pending'
+                'new_status': 'revision_requested'
             }
 
         except Exception as e:

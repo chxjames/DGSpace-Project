@@ -6,6 +6,7 @@ from email_service import EmailService, mail
 from config import Config
 from print_service import PrintService
 from totp_service import TotpService
+from stl_analysis import analyze_stl
 import os
 import uuid
 
@@ -278,11 +279,32 @@ def upload_stl():
     save_path = os.path.join(app.config['UPLOAD_FOLDER'], saved_name)
     file.save(save_path)
 
-    return jsonify({
+    # Analyze the STL file for volume, weight, and print time estimates
+    material = request.form.get('material', 'PLA')
+    try:
+        infill = float(request.form.get('infill', 0.20))
+        infill = max(0.01, min(1.0, infill))   # clamp to valid range
+    except (ValueError, TypeError):
+        infill = 0.20
+    analysis = analyze_stl(save_path, material=material, infill=infill)
+
+    response = {
         'success': True,
         'filename': saved_name,
         'original_name': original_name
-    }), 201
+    }
+
+    if analysis.get('success'):
+        response['analysis'] = {
+            'volume_cm3':                analysis['volume_cm3'],
+            'bounding_box':              analysis['bounding_box'],
+            'estimated_weight_grams':    analysis['estimated_weight_grams'],
+            'estimated_print_time_hours': analysis['estimated_print_time_hours'],
+            'material':                  analysis['material'],
+            'infill_percent':            analysis['infill_percent'],
+        }
+
+    return jsonify(response), 201
 
 
 @app.route('/api/print-requests/upload-stl/<filename>', methods=['DELETE'])
@@ -329,6 +351,35 @@ def delete_uploaded_stl(filename: str):
 def serve_upload(filename: str):
     """Serve uploaded STL files"""
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+
+
+@app.route('/api/print-requests/analyze-stl/<filename>', methods=['GET'])
+def analyze_stl_file(filename: str):
+    """Analyze an uploaded STL file and return volume / weight / time estimates."""
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({'success': False, 'message': 'No token provided'}), 401
+
+    token = auth_header.split(' ')[1]
+    payload = AuthService.verify_jwt_token(token)
+    if not payload:
+        return jsonify({'success': False, 'message': 'Invalid or expired token'}), 401
+
+    safe_name = os.path.basename(filename)
+    file_path = os.path.join(app.config['UPLOAD_FOLDER'], safe_name)
+
+    material = request.args.get('material', 'PLA')
+    try:
+        infill = float(request.args.get('infill', 0.20))
+        infill = max(0.01, min(1.0, infill))
+    except (ValueError, TypeError):
+        infill = 0.20
+    analysis = analyze_stl(file_path, material=material, infill=infill)
+
+    if not analysis.get('success'):
+        return jsonify(analysis), 400
+
+    return jsonify({'success': True, 'analysis': analysis}), 200
 
 
 @app.route('/api/print-requests', methods=['POST'])
@@ -586,7 +637,7 @@ def admin_update_request_status(request_id):
     if 'status' not in data:
         return jsonify({'success': False, 'message': 'Status is required'}), 400
     
-    valid_statuses = ['approved', 'rejected', 'in_progress', 'completed', 'cancelled']
+    valid_statuses = ['approved', 'rejected', 'in_progress', 'completed', 'cancelled', 'revision_requested']
     if data['status'] not in valid_statuses:
         return jsonify({'success': False, 'message': f'Invalid status. Must be one of: {", ".join(valid_statuses)}'}), 400
     

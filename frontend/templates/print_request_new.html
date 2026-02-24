@@ -9,48 +9,7 @@
   <div id="alert-box"></div>
 
   <div class="form-group">
-    <label>Project Name *</label>
-    <input type="text" id="project_name" placeholder="e.g. Graduation project base">
-  </div>
-  <div class="form-group">
-    <label>Description</label>
-    <textarea id="description" placeholder="Dimensions, purpose, special notes…"></textarea>
-  </div>
-  <div class="form-group">
-    <label>Material</label>
-    <select id="material_type">
-      <option value="PLA">PLA (Recommended, easy to print)</option>
-      <option value="ABS">ABS (Stronger, requires ventilation)</option>
-      <option value="PETG">PETG (Flexible and heat-resistant)</option>
-      <option value="TPU">TPU (Flexible material)</option>
-      <option value="Resin">Resin (High precision)</option>
-    </select>
-  </div>
-  <div class="form-group">
-    <label>Color Preference</label>
-    <input type="text" id="color_preference" placeholder="White, Black, Any…">
-  </div>
-  <div style="display:flex;gap:12px">
-    <div class="form-group" style="flex:1">
-      <label>Est. Weight (g)</label>
-      <input type="number" id="estimated_weight_grams" min="1" placeholder="50">
-    </div>
-    <div class="form-group" style="flex:1">
-      <label>Est. Print Time (h)</label>
-      <input type="number" id="estimated_print_time_hours" min="0.5" step="0.5" placeholder="2">
-    </div>
-  </div>
-  <div class="form-group">
-    <label>Priority</label>
-    <select id="priority">
-      <option value="normal">🟢 Normal</option>
-      <option value="high">🟠 High</option>
-      <option value="urgent">🔴 Urgent</option>
-    </select>
-  </div>
-
-  <div class="form-group">
-    <label>STL File <span style="color:#888;font-weight:400">(optional)</span></label>
+    <label>STL File * <span style="color:#888;font-weight:400">(Project name, weight & time will be auto-filled — please review before submitting)</span></label>
     <div id="stl-drop-zone" style="
         border: 2px dashed #ccc;
         border-radius: 8px;
@@ -77,6 +36,83 @@
     </div>
     <input type="file" id="stl-file-input" accept=".stl" style="display:none" onchange="handleFileSelect(this.files[0])">
     <div id="stl-upload-status" style="margin-top:6px;font-size:0.85rem"></div>
+
+    <!-- STL Analysis Results -->
+    <div id="stl-analysis-card" style="display:none;margin-top:12px;padding:14px 16px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px">
+      <div style="font-size:0.85rem;font-weight:600;color:#166534;margin-bottom:8px">📊 STL Analysis</div>
+      <table style="width:100%;font-size:0.85rem;border-collapse:collapse">
+        <tr>
+          <td style="padding:3px 0;color:#555">Volume</td>
+          <td id="stl-a-volume" style="font-weight:500"></td>
+          <td style="padding:3px 0;color:#555;padding-left:16px">Dimensions</td>
+          <td id="stl-a-bbox" style="font-weight:500"></td>
+        </tr>
+        <tr>
+          <td style="padding:3px 0;color:#555">Est. Weight</td>
+          <td id="stl-a-weight" style="font-weight:500"></td>
+          <td style="padding:3px 0;color:#555;padding-left:16px">Est. Print Time</td>
+          <td id="stl-a-time" style="font-weight:500"></td>
+        </tr>
+        <tr>
+          <td style="padding:3px 0;color:#555">Material</td>
+          <td id="stl-a-material" style="font-weight:500"></td>
+          <td style="padding:3px 0;color:#555;padding-left:16px">Infill</td>
+          <td id="stl-a-infill" style="font-weight:500"></td>
+        </tr>
+      </table>
+      <div style="margin-top:6px;font-size:0.78rem;color:#888">⚠️ Estimates are approximate. Actual values depend on slicer settings.</div>
+    </div>
+  </div>
+
+  <div class="form-group">
+    <label>Project Name * <span style="color:#888;font-weight:400">(auto-filled from filename)</span></label>
+    <input type="text" id="project_name" placeholder="e.g. Graduation project base">
+  </div>
+  <div class="form-group">
+    <label>Description</label>
+    <textarea id="description" placeholder="Dimensions, purpose, special notes…"></textarea>
+  </div>
+  <div class="form-group">
+    <label>Material</label>
+    <select id="material_type">
+      <option value="PLA">PLA (Recommended, easy to print)</option>
+      <option value="ABS">ABS (Stronger, requires ventilation)</option>
+      <option value="PETG">PETG (Flexible and heat-resistant)</option>
+      <option value="TPU">TPU (Flexible material)</option>
+      <option value="Resin">Resin (High precision)</option>
+    </select>
+  </div>
+  <div class="form-group">
+    <label>Color Preference</label>
+    <input type="text" id="color_preference" placeholder="White, Black, Any…">
+  </div>
+  <div style="display:flex;gap:12px">
+    <div class="form-group" style="flex:1">
+      <label>Est. Weight (g) <span style="color:#888;font-weight:400">(auto-filled)</span></label>
+      <input type="number" id="estimated_weight_grams" min="1" placeholder="50">
+    </div>
+    <div class="form-group" style="flex:1">
+      <label>Est. Print Time (h) <span style="color:#888;font-weight:400">(auto-filled)</span></label>
+      <input type="number" id="estimated_print_time_hours" min="0.5" step="0.5" placeholder="2">
+    </div>
+  </div>
+  <div class="form-group">
+    <label>Infill: <span id="infill-display">20</span>%</label>
+    <input type="range" id="infill_percent" min="5" max="100" step="5" value="20"
+           style="width:100%;accent-color:#e94560"
+           oninput="document.getElementById('infill-display').textContent=this.value;"
+           onchange="onInfillChange();">
+    <div style="display:flex;justify-content:space-between;font-size:0.75rem;color:#aaa;margin-top:2px">
+      <span>5%</span><span>Hollow → Solid</span><span>100%</span>
+    </div>
+  </div>
+  <div class="form-group">
+    <label>Priority</label>
+    <select id="priority">
+      <option value="normal">🟢 Normal</option>
+      <option value="high">🟠 High</option>
+      <option value="urgent">🔴 Urgent</option>
+    </select>
   </div>
 
   <button class="btn" onclick="doSubmit()">Submit Request</button>
@@ -126,7 +162,44 @@ document.addEventListener('DOMContentLoaded', () => {
   input.addEventListener('input', () => {
     autoFilledProjectNameFromStl = false;
   });
+
+  // Re-analyze when material changes
+  const materialSelect = document.getElementById('material_type');
+  if (materialSelect) {
+    materialSelect.addEventListener('change', () => {
+      if (!uploadedStlFilename) return;
+      reanalyzeStl();
+    });
+  }
+
+  // Stop auto-overwrite on manual weight/time input
+  const weightInput = document.getElementById('estimated_weight_grams');
+  const timeInput   = document.getElementById('estimated_print_time_hours');
+  if (weightInput) weightInput.addEventListener('input', () => { weightInput.dataset.autoFilled = ''; });
+  if (timeInput)   timeInput.addEventListener('input', () => { timeInput.dataset.autoFilled = ''; });
 });
+
+async function reanalyzeStl() {
+  const material = document.getElementById('material_type').value || 'PLA';
+  const infill   = (document.getElementById('infill_percent').value || 20) / 100;
+  try {
+    const res = await fetch(
+      `/api/print-requests/analyze-stl/${encodeURIComponent(uploadedStlFilename)}?material=${material}&infill=${infill}`,
+      { headers: { 'Authorization': 'Bearer ' + getToken() } }
+    );
+    const data = await res.json();
+    if (data.success && data.analysis) {
+      showAnalysis(data.analysis);
+    }
+  } catch(e) {
+    // silently ignore — analysis is a nice-to-have
+  }
+}
+
+function onInfillChange() {
+  if (!uploadedStlFilename) return;
+  reanalyzeStl();
+}
 
 function setStlStatus(msg, color) {
   const el = document.getElementById('stl-upload-status');
@@ -157,10 +230,15 @@ function handleFileSelect(file) {
 }
 
 async function uploadStlFile(file) {
-  setStlStatus('Uploading…', '#888');
+  setStlStatus('Uploading & analyzing…', '#888');
 
   const formData = new FormData();
   formData.append('file', file);
+  // Pass selected material and infill so analysis uses correct parameters
+  const material = document.getElementById('material_type').value || 'PLA';
+  const infill   = (document.getElementById('infill_percent').value || 20) / 100;
+  formData.append('material', material);
+  formData.append('infill', infill);
 
   try {
     const res = await fetch('/api/print-requests/upload-stl', {
@@ -180,11 +258,42 @@ async function uploadStlFile(file) {
       document.getElementById('stl-file-selected').style.display = 'block';
       document.getElementById('stl-filename-display').textContent = data.original_name;
       setStlStatus('File uploaded successfully.', '#28a745');
+
+      // Show analysis results if available
+      if (data.analysis) {
+        showAnalysis(data.analysis);
+      }
     } else {
       setStlStatus(data.message || 'Upload failed.', '#dc3545');
     }
   } catch(e) {
     setStlStatus('Upload failed — cannot reach server.', '#dc3545');
+  }
+}
+
+function showAnalysis(a) {
+  document.getElementById('stl-a-volume').textContent   = a.volume_cm3 + ' cm³';
+  document.getElementById('stl-a-weight').textContent   = a.estimated_weight_grams + ' g';
+  document.getElementById('stl-a-time').textContent     = a.estimated_print_time_hours + ' h';
+  document.getElementById('stl-a-material').textContent = a.material;
+  document.getElementById('stl-a-infill').textContent   = a.infill_percent + '%';
+
+  const bb = a.bounding_box;
+  document.getElementById('stl-a-bbox').textContent =
+    bb.x_mm + ' × ' + bb.y_mm + ' × ' + bb.z_mm + ' mm';
+
+  document.getElementById('stl-analysis-card').style.display = 'block';
+
+  // Auto-fill Est. Weight and Est. Print Time
+  const weightInput = document.getElementById('estimated_weight_grams');
+  const timeInput   = document.getElementById('estimated_print_time_hours');
+  if (weightInput && (!weightInput.value || weightInput.dataset.autoFilled === 'true')) {
+    weightInput.value = a.estimated_weight_grams;
+    weightInput.dataset.autoFilled = 'true';
+  }
+  if (timeInput && (!timeInput.value || timeInput.dataset.autoFilled === 'true')) {
+    timeInput.value = a.estimated_print_time_hours;
+    timeInput.dataset.autoFilled = 'true';
   }
 }
 
@@ -200,7 +309,20 @@ async function clearStlFile(event) {
   document.getElementById('stl-file-input').value = '';
   document.getElementById('stl-drop-label').style.display   = 'block';
   document.getElementById('stl-file-selected').style.display = 'none';
+  document.getElementById('stl-analysis-card').style.display = 'none';
   setStlStatus('');
+
+  // Clear auto-filled weight / time
+  const weightInput = document.getElementById('estimated_weight_grams');
+  const timeInput   = document.getElementById('estimated_print_time_hours');
+  if (weightInput && weightInput.dataset.autoFilled === 'true') {
+    weightInput.value = '';
+    weightInput.dataset.autoFilled = '';
+  }
+  if (timeInput && timeInput.dataset.autoFilled === 'true') {
+    timeInput.value = '';
+    timeInput.dataset.autoFilled = '';
+  }
 
   // Best-effort cleanup on the server.
   if (!filenameToDelete) return;
@@ -221,6 +343,8 @@ function showAlert(msg, type='error') {
 }
 
 async function doSubmit() {
+  if (!uploadedStlFilename) { showAlert('Please upload an STL file.'); return; }
+
   const project_name = document.getElementById('project_name').value.trim();
   if (!project_name) { showAlert('Project name is required.'); return; }
 

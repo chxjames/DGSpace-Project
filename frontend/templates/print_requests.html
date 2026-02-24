@@ -40,7 +40,8 @@
 function statusBadge(s) {
   const map = {
     pending:'Pending', approved:'Approved', rejected:'Rejected',
-    in_progress:'In Progress', completed:'Completed', cancelled:'Cancelled'
+    in_progress:'In Progress', completed:'Completed', cancelled:'Cancelled',
+    revision_requested:'Revision Requested'
   };
   return `<span class="badge badge-${s}">${map[s] || s}</span>`;
 }
@@ -69,8 +70,8 @@ async function loadRequests(userType) {
 
   const tbody = document.getElementById('req-body');
   tbody.innerHTML = list.map((r, idx) => {
-      // Feedback banner shown to students when admin has left notes on a pending request
-      const feedbackBanner = (userType !== 'admin' && r.status === 'pending' && r.admin_notes)
+      // Feedback banner shown to students when admin has left notes on a revision_requested request
+      const feedbackBanner = (userType !== 'admin' && r.status === 'revision_requested' && r.admin_notes)
         ? `<tr class="feedback-row">
              <td colspan="7" style="padding:0 12px 10px 32px">
                <div class="feedback-banner">
@@ -91,7 +92,7 @@ async function loadRequests(userType) {
           <td>${new Date(r.created_at).toLocaleDateString('en-US')}</td>
           <td style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
             <a href="/print-requests/${r.id}/" style="color:#e94560">Details</a>
-            ${userType !== 'admin' && r.status === 'pending' ? `<button onclick="deleteRequest(${r.id},'${r.project_name.replace(/'/g,"&#39;")}')" class="btn-delete">🗑 Delete</button>` : ''}
+            ${userType !== 'admin' && (r.status === 'pending' || r.status === 'revision_requested') ? `<button onclick="deleteRequest(${r.id},'${r.project_name.replace(/'/g,"&#39;")}')" class="btn-delete">🗑 Delete</button>` : ''}
             ${userType === 'admin' ? `<a href="/print-requests/${r.id}/return/" class="btn-return">💬 Feedback</a>` : ''}
           </td>
         </tr>`;
