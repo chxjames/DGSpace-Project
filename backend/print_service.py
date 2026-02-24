@@ -253,10 +253,10 @@ class PrintService:
             if row['student_email'] != student_email:
                 return {'success': False, 'message': 'Unauthorized: this is not your request'}
 
-            if row['status'] not in ('pending', 'revision_requested'):
+            if row['status'] not in ('pending', 'revision_requested', 'rejected'):
                 return {
                     'success': False,
-                    'message': f'Cannot delete a request with status "{row["status"]}". Only pending or revision-requested requests can be deleted.'
+                    'message': f'Cannot delete a request with status "{row["status"]}". Only pending, revision-requested, or rejected requests can be deleted.'
                 }
 
             stl_file_path = row['stl_file_path']

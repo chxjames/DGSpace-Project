@@ -73,15 +73,8 @@
               <td id="d-a-time" style="font-weight:500"></td>
             </tr>
           </table>
-          <div style="margin-top:10px">
-            <label style="font-size:0.82rem;color:#555;font-weight:500">Infill: <span id="d-infill-display">20</span>%</label>
-            <input type="range" id="d-infill-slider" min="5" max="100" step="5" value="20"
-                   style="width:100%;accent-color:#16a34a;margin-top:2px"
-                   oninput="document.getElementById('d-infill-display').textContent=this.value;"
-                   onchange="detailReanalyze();">
-            <div style="display:flex;justify-content:space-between;font-size:0.72rem;color:#aaa;margin-top:1px">
-              <span>5%</span><span>Hollow → Solid</span><span>100%</span>
-            </div>
+          <div style="margin-top:8px;font-size:0.85rem;color:#555">
+            <span style="font-weight:500">Infill:</span> <span id="d-infill-display" style="font-weight:600">20</span>%
           </div>
           <div style="margin-top:6px;font-size:0.78rem;color:#888">⚠️ Estimates are approximate. Actual values depend on slicer settings.</div>
         </div>
@@ -117,6 +110,62 @@
       </div>
 
     </div><!-- /grid -->
+
+    <!-- ══════ Admin Actions (below the grid) ══════ -->
+    <div id="admin-actions" style="display:none;margin-top:24px">
+      <div class="card" style="margin:0">
+        <h3 style="margin:0 0 16px;font-size:1rem;color:#444">🛠 Admin Actions</h3>
+        <div id="admin-alert-box"></div>
+
+        <!-- Status info for non-pending -->
+        <div id="admin-status-info" style="display:none;font-size:0.9rem;color:#555"></div>
+
+        <!-- Action buttons (shown for pending / revision_requested) -->
+        <div id="admin-btn-group" style="display:none;display:flex;gap:12px;flex-wrap:wrap">
+          <button id="btn-approve" class="btn" onclick="adminApprove()"
+                  style="width:auto;padding:10px 24px;background:#28a745;font-size:0.95rem">
+            ✅ Approve — Ready to Print
+          </button>
+          <button id="btn-reject" class="btn" onclick="adminReject()"
+                  style="width:auto;padding:10px 24px;background:#dc3545;font-size:0.95rem">
+            ❌ Reject
+          </button>
+          <button id="btn-feedback-toggle" class="btn" onclick="toggleFeedbackForm()"
+                  style="width:auto;padding:10px 24px;background:#f39c12;font-size:0.95rem">
+            💬 Send Feedback
+          </button>
+        </div>
+
+        <!-- Inline feedback form (hidden by default) -->
+        <div id="feedback-form" style="display:none;margin-top:16px">
+          <label style="font-weight:600;font-size:0.9rem;color:#333;display:block;margin-bottom:6px">
+            Feedback for Student <span style="color:#e94560">*</span>
+          </label>
+          <p style="font-size:0.82rem;color:#888;margin:0 0 8px">
+            The student will see this message. Explain what needs to be changed.
+          </p>
+          <textarea id="feedback-text" rows="4" placeholder="e.g. The STL file has non-manifold geometry. Please repair and re-upload…"
+                    style="width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid #ddd;border-radius:8px;font-size:0.9rem;resize:vertical;font-family:inherit"></textarea>
+          <div style="display:flex;gap:10px;margin-top:12px;justify-content:flex-end">
+            <button class="btn" onclick="toggleFeedbackForm()" style="width:auto;padding:8px 18px;background:#6c757d">Cancel</button>
+            <button id="btn-send-feedback" class="btn" onclick="adminSendFeedback()" style="width:auto;padding:8px 18px;background:#f39c12">💬 Send Feedback</button>
+          </div>
+        </div>
+
+        <!-- Status update buttons for in_progress -->
+        <div id="admin-progress-group" style="display:none;margin-top:12px;display:flex;gap:12px;flex-wrap:wrap">
+          <button class="btn" onclick="adminSetStatus('completed')"
+                  style="width:auto;padding:10px 24px;background:#28a745;font-size:0.95rem">
+            ✅ Mark Completed
+          </button>
+          <button class="btn" onclick="adminSetStatus('cancelled')"
+                  style="width:auto;padding:10px 24px;background:#6c757d;font-size:0.95rem">
+            🚫 Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+
   </div><!-- /detail-card -->
 </div>
 
@@ -224,6 +273,32 @@ function renderDetail(r) {
     // Fetch live STL analysis
     fetchAnalysis(r.stl_file_path, r.material_type || 'PLA', 0.20);
   }
+
+  // ── Admin actions panel ──────────────────────────────────
+  if (currentUser && currentUser.user_type === 'admin') {
+    document.getElementById('admin-actions').style.display = 'block';
+    window._currentRequestId = r.id || requestId;
+    window._currentStatus = r.status;
+
+    const btnGroup      = document.getElementById('admin-btn-group');
+    const progressGroup = document.getElementById('admin-progress-group');
+    const statusInfo    = document.getElementById('admin-status-info');
+
+    // Reset visibility
+    btnGroup.style.display      = 'none';
+    progressGroup.style.display = 'none';
+    statusInfo.style.display    = 'none';
+
+    if (r.status === 'pending' || r.status === 'revision_requested') {
+      btnGroup.style.display = 'flex';
+    } else if (r.status === 'approved' || r.status === 'in_progress') {
+      progressGroup.style.display = 'flex';
+    } else {
+      statusInfo.style.display = 'block';
+      const labels = { completed: '✅ Completed', rejected: '❌ Rejected', cancelled: '🚫 Cancelled' };
+      statusInfo.innerHTML = `<span style="font-size:1rem">${labels[r.status] || r.status}</span> — No further actions available.`;
+    }
+  }
 }
 
 async function fetchAnalysis(filename, material, infill) {
@@ -237,6 +312,7 @@ async function fetchAnalysis(filename, material, infill) {
       document.getElementById('d-a-volume').textContent = a.volume_cm3 + ' cm³';
       document.getElementById('d-a-weight').textContent = a.estimated_weight_grams + ' g';
       document.getElementById('d-a-time').textContent   = a.estimated_print_time_hours + ' h';
+      document.getElementById('d-infill-display').textContent = a.infill_percent;
       const bb = a.bounding_box;
       document.getElementById('d-a-bbox').textContent   = bb.x_mm + ' × ' + bb.y_mm + ' × ' + bb.z_mm + ' mm';
       document.getElementById('d-analysis-block').style.display = 'block';
@@ -244,12 +320,6 @@ async function fetchAnalysis(filename, material, infill) {
   } catch(e) {
     // Analysis is optional — silently ignore errors
   }
-}
-
-function detailReanalyze() {
-  if (!window._detailStlFile) return;
-  const infill = (document.getElementById('d-infill-slider').value || 20) / 100;
-  fetchAnalysis(window._detailStlFile, window._detailMaterial, infill);
 }
 
 // ── Three.js STL viewer ─────────────────────────────────────
@@ -342,6 +412,93 @@ function initViewer(stlUrl) {
     controls.update();
     renderer.render(scene, camera);
   })();
+}
+
+// ── Admin action functions ──────────────────────────────────
+// Expose to global scope so onclick handlers in HTML can call them
+window.adminApprove = adminApprove;
+window.adminReject = adminReject;
+window.adminSetStatus = adminSetStatus;
+window.toggleFeedbackForm = toggleFeedbackForm;
+window.adminSendFeedback = adminSendFeedback;
+
+function adminShowAlert(msg, type='error') {
+  document.getElementById('admin-alert-box').innerHTML =
+    `<div class="alert alert-${type}">${msg}</div>`;
+}
+
+async function adminApprove() {
+  if (!confirm('Approve this request and mark it as ready to print?')) return;
+  await adminSetStatus('approved');
+}
+
+async function adminReject() {
+  if (!confirm('Reject this request?')) return;
+  await adminSetStatus('rejected');
+}
+
+async function adminSetStatus(newStatus) {
+  try {
+    const res = await window.apiFetch(`/api/admin/print-requests/${window._currentRequestId}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status: newStatus })
+    });
+    const data = await res.json();
+    if (data.success) {
+      adminShowAlert(`Status updated to "${newStatus}". Reloading…`, 'success');
+      setTimeout(() => location.reload(), 1000);
+    } else {
+      adminShowAlert(data.message || 'Failed to update status.');
+    }
+  } catch(e) {
+    adminShowAlert('Network error. Make sure the backend is running.');
+  }
+}
+
+function toggleFeedbackForm() {
+  const form = document.getElementById('feedback-form');
+  const btnGroup = document.getElementById('admin-btn-group');
+  if (form.style.display === 'none') {
+    form.style.display = 'block';
+    btnGroup.style.display = 'none';
+    document.getElementById('feedback-text').focus();
+  } else {
+    form.style.display = 'none';
+    btnGroup.style.display = 'flex';
+  }
+}
+
+async function adminSendFeedback() {
+  const reason = document.getElementById('feedback-text').value.trim();
+  if (!reason) {
+    adminShowAlert('Please enter feedback before sending.');
+    document.getElementById('feedback-text').focus();
+    return;
+  }
+
+  const btn = document.getElementById('btn-send-feedback');
+  btn.disabled = true;
+  btn.textContent = 'Sending…';
+
+  try {
+    const res = await window.apiFetch(`/api/admin/print-requests/${window._currentRequestId}/return`, {
+      method: 'POST',
+      body: JSON.stringify({ reason })
+    });
+    const data = await res.json();
+    if (data.success) {
+      adminShowAlert('Feedback sent successfully. Reloading…', 'success');
+      setTimeout(() => location.reload(), 1000);
+    } else {
+      adminShowAlert(data.message || 'Failed to send feedback.');
+      btn.disabled = false;
+      btn.textContent = '💬 Send Feedback';
+    }
+  } catch(e) {
+    adminShowAlert('Network error. Make sure the backend is running.');
+    btn.disabled = false;
+    btn.textContent = '💬 Send Feedback';
+  }
 }
 
 loadDetail();

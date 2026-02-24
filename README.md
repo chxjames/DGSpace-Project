@@ -128,7 +128,7 @@ When a student uploads an `.stl` file, the backend automatically analyzes it usi
 | Nylon | 1.14 | 3.5 |
 | Resin | 1.10 | 8.0 |
 
-Students can adjust the **infill slider** (5–100%) on both the new request form and detail page — estimates update in real-time (on mouse release).
+Students can adjust the **infill slider** (5–100%) on the new request form — estimates update in real-time (on mouse release). The detail page displays the infill value used at submission.
 
 ### Estimation Formula
 
@@ -169,12 +169,26 @@ where `speed_mm3_per_s` is the material-specific print speed from the table abov
 | Status | Description |
 | --- | --- |
 | `pending` | Newly submitted, awaiting admin review |
-| `approved` | Admin approved the request |
-| `rejected` | Admin rejected the request |
+| `approved` | Admin approved — ready to print |
+| `rejected` | Admin rejected the request (student can delete) |
 | `in_progress` | Print job is running |
 | `completed` | Print finished |
 | `cancelled` | Cancelled by admin |
 | `revision_requested` | Admin sent feedback — student should revise and resubmit |
+
+### Admin Workflow
+
+Admins manage requests directly on the **detail page** (`/print-requests/<id>/`). An action panel appears at the bottom:
+
+| Current Status | Available Actions |
+| --- | --- |
+| `pending` / `revision_requested` | ✅ Approve (Ready to Print), ❌ Reject, 💬 Send Feedback |
+| `approved` / `in_progress` | ✅ Mark Completed, 🚫 Cancel |
+| `completed` / `rejected` / `cancelled` | No actions (read-only) |
+
+### Student Permissions
+
+Students can **delete** their own requests when the status is `pending`, `revision_requested`, or `rejected`.
 
 ---
 
@@ -187,8 +201,8 @@ where `speed_mm3_per_s` is the material-specific print speed from the table abov
 | `/accounts/signup/` | Sign up |
 | `/print-requests/` | My print requests |
 | `/print-requests/new/` | Submit new request |
-| `/print-requests/<id>/` | Request detail + Three.js STL preview + STL analysis |
-| `/print-requests/<id>/return/` | Admin: send feedback to student (sets status to `revision_requested`) |
+| `/print-requests/<id>/` | Request detail + Three.js STL preview + STL analysis + admin actions |
+| `/print-requests/<id>/return/` | Admin: send feedback (legacy, now integrated in detail page) |
 | `/admin/students/` | Admin-only student accounts list + delete |
 
 ---
@@ -224,7 +238,7 @@ where `speed_mm3_per_s` is the material-specific print speed from the table abov
 | DELETE | `/api/print-requests/upload-stl/<filename>` | Delete an uploaded STL file |
 | GET | `/api/print-requests/analyze-stl/<filename>` | Analyze STL: volume, weight, print time (accepts `?material=PLA&infill=0.2`) |
 | GET | `/api/print-requests/<id>` | Get single request details (includes `stl_file_path`) |
-| DELETE | `/api/print-requests/<id>` | Student: delete own **pending** or **revision_requested** request (also deletes uploaded STL) |
+| DELETE | `/api/print-requests/<id>` | Student: delete own **pending**, **revision_requested**, or **rejected** request (also deletes uploaded STL) |
 | GET | `/api/uploads/<filename>` | Serve uploaded STL files |
 | GET | `/api/admin/print-requests` | Admin: list all requests |
 | PATCH | `/api/admin/print-requests/<id>/status` | Admin: update request status |

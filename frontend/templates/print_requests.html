@@ -92,8 +92,7 @@ async function loadRequests(userType) {
           <td>${new Date(r.created_at).toLocaleDateString('en-US')}</td>
           <td style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
             <a href="/print-requests/${r.id}/" style="color:#e94560">Details</a>
-            ${userType !== 'admin' && (r.status === 'pending' || r.status === 'revision_requested') ? `<button onclick="deleteRequest(${r.id},'${r.project_name.replace(/'/g,"&#39;")}')" class="btn-delete">🗑 Delete</button>` : ''}
-            ${userType === 'admin' ? `<a href="/print-requests/${r.id}/return/" class="btn-return">💬 Feedback</a>` : ''}
+            ${userType !== 'admin' && (r.status === 'pending' || r.status === 'revision_requested' || r.status === 'rejected') ? `<button onclick="deleteRequest(${r.id},'${r.project_name.replace(/'/g,"&#39;")}')" class="btn-delete">🗑 Delete</button>` : ''}
           </td>
         </tr>`;
       return row + feedbackBanner;
