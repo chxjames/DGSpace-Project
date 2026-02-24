@@ -9,7 +9,8 @@ A web application for Donald's Garage that lets students submit 3D print request
 | Frontend | Django 5.2 (template rendering, port 8000) |
 | Backend API | Python Flask 3.0 (REST API, port 5000) |
 | Database | MySQL 8.0 (local) |
-| Auth | JWT tokens + bcrypt + Email verification |
+| Auth | JWT tokens + bcrypt + Email verification + TOTP 2FA |
+| STL Analysis | numpy-stl (volume, weight, print time estimation) |
 | Python env | virtualenv at `.venv/` |
 
 ---
@@ -25,9 +26,11 @@ DGSpace-Project-1/
 │   ├── auth_service.py        # Register / login / JWT logic
 │   ├── email_service.py       # Email verification (Gmail SMTP)
 │   ├── print_service.py       # Print request logic
-│   ├── totp_service.py        # 2FA - dormant, not yet in UI
+│   ├── stl_analysis.py        # STL file analysis (volume/weight/time)
+│   ├── totp_service.py        # 2FA (TOTP) — setup, verify, disable
 │   ├── database.py            # MySQL connection wrapper
 │   ├── config.py              # Loads settings from .env
+│   ├── uploads/               # Uploaded STL files (UUID-named)
 │   ├── .env                   # Local secrets (not committed)
 │   └── requirements.txt       # Python dependencies
 ├── frontend/                  # Django frontend (port 8000)
@@ -40,13 +43,16 @@ DGSpace-Project-1/
 │       ├── print_requests.html
 │       ├── print_request_new.html
 │       ├── print_request_detail.html  # Detail + Three.js STL viewer
+│       ├── print_request_return.html  # Admin: send feedback to student
+│       ├── admin_students.html        # Admin: student management
 │       └── registration/
 │           ├── login.html
 │           └── signup.html
 └── database/
     ├── schema.sql             # Full DB schema (7 tables)
     ├── migration_001_print_requests.sql
-    └── migration_002_stl_upload.sql   # Adds stl_file_path, stl_original_name
+    ├── migration_002_stl_upload.sql   # Adds stl_file_path, stl_original_name
+    └── migration_003_revision_requested.sql  # Adds revision_requested status
 ```
 
 ---
@@ -100,6 +106,39 @@ All browser JS uses relative URLs (`/api/...`) — everything routes through Dja
 
 ---
 
+## STL Analysis
+
+When a student uploads an `.stl` file, the backend automatically analyzes it using **numpy-stl** and returns:
+
+| Metric | Description |
+| --- | --- |
+| Volume (cm³) | Calculated via signed tetrahedra method |
+| Bounding box | X × Y × Z dimensions in mm |
+| Est. Weight (g) | Based on material density and infill |
+| Est. Print Time (h) | Based on deposited volume and print speed |
+
+**Supported materials:** PLA (1.24 g/cm³), ABS (1.04), PETG (1.27), TPU (1.21), Nylon (1.14), Resin (1.10)
+
+Students can adjust the **infill slider** (5–100%) on both the new request form and detail page — estimates update in real-time (on mouse release).
+
+The formula: `T = V × [0.30 + 0.70 × infill] / 5.0 mm³/s × 1.35 / 3600`
+
+---
+
+## Request Statuses
+
+| Status | Description |
+| --- | --- |
+| `pending` | Newly submitted, awaiting admin review |
+| `approved` | Admin approved the request |
+| `rejected` | Admin rejected the request |
+| `in_progress` | Print job is running |
+| `completed` | Print finished |
+| `cancelled` | Cancelled by admin |
+| `revision_requested` | Admin sent feedback — student should revise and resubmit |
+
+---
+
 ## Pages
 
 | URL | Description |
@@ -109,8 +148,8 @@ All browser JS uses relative URLs (`/api/...`) — everything routes through Dja
 | `/accounts/signup/` | Sign up |
 | `/print-requests/` | My print requests |
 | `/print-requests/new/` | Submit new request |
-| `/print-requests/<id>/` | Request detail + Three.js STL preview |
-| `/print-requests/<id>/return/` | Admin: send feedback to student (writes `admin_notes` and sets status to `pending`) |
+| `/print-requests/<id>/` | Request detail + Three.js STL preview + STL analysis |
+| `/print-requests/<id>/return/` | Admin: send feedback to student (sets status to `revision_requested`) |
 | `/admin/students/` | Admin-only student accounts list + delete |
 
 ---
@@ -142,12 +181,26 @@ All browser JS uses relative URLs (`/api/...`) — everything routes through Dja
 | --- | --- | --- |
 | GET | `/api/print-requests/my-requests` | Student: list own requests |
 | POST | `/api/print-requests` | Student: submit new request (includes optional STL info) |
-| POST | `/api/print-requests/upload-stl` | Student: upload `.stl` file, returns `filename` |
+| POST | `/api/print-requests/upload-stl` | Student: upload `.stl` file, returns `filename` + auto-analysis |
+| DELETE | `/api/print-requests/upload-stl/<filename>` | Delete an uploaded STL file |
+| GET | `/api/print-requests/analyze-stl/<filename>` | Analyze STL: volume, weight, print time (accepts `?material=PLA&infill=0.2`) |
 | GET | `/api/print-requests/<id>` | Get single request details (includes `stl_file_path`) |
-| DELETE | `/api/print-requests/<id>` | Student: delete own **pending** request (also deletes uploaded STL file from `backend/uploads/` when present) |
+| DELETE | `/api/print-requests/<id>` | Student: delete own **pending** or **revision_requested** request (also deletes uploaded STL) |
 | GET | `/api/uploads/<filename>` | Serve uploaded STL files |
 | GET | `/api/admin/print-requests` | Admin: list all requests |
-| POST | `/api/admin/print-requests/<id>/return` | Admin: send feedback to student (stores message in `admin_notes`, status set to `pending`) |
+| PATCH | `/api/admin/print-requests/<id>/status` | Admin: update request status |
+| POST | `/api/admin/print-requests/<id>/return` | Admin: send feedback (sets status to `revision_requested`) |
+| GET | `/api/admin/print-requests/statistics` | Admin: dashboard statistics |
+
+### 2FA (TOTP)
+
+| Method | Endpoint | Description |
+| --- | --- | --- |
+| GET | `/api/2fa/status` | Check if 2FA is enabled |
+| POST | `/api/2fa/setup` | Generate TOTP secret + QR code |
+| POST | `/api/2fa/confirm` | Confirm 2FA setup with a TOTP code |
+| POST | `/api/2fa/verify` | Verify TOTP code during login |
+| DELETE | `/api/2fa/disable` | Disable 2FA |
 
 ---
 
@@ -160,6 +213,7 @@ $mysql = "C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe"
 & $mysql -u root -p DGSpace < database/schema.sql
 & $mysql -u root -p DGSpace < database/migration_001_print_requests.sql
 & $mysql -u root -p DGSpace < database/migration_002_stl_upload.sql
+& $mysql -u root -p DGSpace < database/migration_003_revision_requested.sql
 ```
 
 Tables: `students`, `admins`, `email_verification_codes`, `password_reset_tokens`, `totp_secrets`, `print_requests`, `print_request_history`
@@ -248,4 +302,5 @@ print("Done")
 - Token expiry: 24 hours
 - Verification codes expire in 15 minutes
 - Passwords hashed with bcrypt (12 rounds)
-- TOTP 2FA is implemented in `totp_service.py` but not yet exposed in the UI
+- TOTP 2FA is implemented in `totp_service.py` with API endpoints for setup/verify/disable
+- STL files stored with UUID filenames to prevent path traversal
