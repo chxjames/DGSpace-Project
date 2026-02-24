@@ -132,25 +132,33 @@ Students can adjust the **infill slider** (5–100%) on both the new request for
 
 ### Estimation Formula
 
-**Step 1 — Model volume:** `numpy-stl` calculates the total enclosed volume ($V_{mm^3}$) using the signed tetrahedra method.
+**Step 1 — Model volume:** `numpy-stl` calculates the total enclosed volume (`V_mm3`) using the signed tetrahedra method.
 
 **Step 2 — Effective solid fraction:** A print is not 100% solid. The outer shell (~30%) is fully solid, while the interior is filled at the user-selected infill ratio:
 
-$$\text{effective\_solid} = 0.30 + 0.70 \times \text{infill}$$
+```
+effective_solid = 0.30 + 0.70 × infill
+```
 
 **Step 3 — Deposited volume:**
 
-$$\text{deposited\_mm}^3 = V_{mm^3} \times \text{effective\_solid}$$
+```
+deposited_mm3 = V_mm3 × effective_solid
+```
 
 **Step 4 — Weight estimate:**
 
-$$W_{grams} = \frac{\text{deposited\_mm}^3}{1000} \times \rho_{material}$$
+```
+W_grams = (deposited_mm3 / 1000) × density_g_per_cm3
+```
 
 **Step 5 — Print time estimate** (with 1.35× overhead for travel moves, retraction, homing, etc.):
 
-$$\boxed{T_{hours} = \frac{V_{mm^3} \times [0.30 + 0.70 \times infill]}{S_{material}} \times \frac{1.35}{3600}}$$
+```
+T_hours = (V_mm3 × [0.30 + 0.70 × infill]) / speed_mm3_per_s × 1.35 / 3600
+```
 
-where $S_{material}$ is the material-specific print speed in mm³/s.
+where `speed_mm3_per_s` is the material-specific print speed from the table above.
 
 > **⚠️ Limitations:** These are rough estimates. Actual values depend on slicer settings (Cura/PrusaSlicer), wall/infill speed differences, support structures, heating/cooling time, and printer kinematics.
 
