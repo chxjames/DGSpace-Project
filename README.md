@@ -115,13 +115,44 @@ When a student uploads an `.stl` file, the backend automatically analyzes it usi
 | Volume (cm³) | Calculated via signed tetrahedra method |
 | Bounding box | X × Y × Z dimensions in mm |
 | Est. Weight (g) | Based on material density and infill |
-| Est. Print Time (h) | Based on deposited volume and print speed |
+| Est. Print Time (h) | Based on deposited volume and material-specific print speed |
 
-**Supported materials:** PLA (1.24 g/cm³), ABS (1.04), PETG (1.27), TPU (1.21), Nylon (1.14), Resin (1.10)
+**Supported materials & print speeds:**
+
+| Material | Density (g/cm³) | Print Speed (mm³/s) |
+| --- | --- | --- |
+| PLA | 1.24 | 5.0 |
+| ABS | 1.04 | 4.5 |
+| PETG | 1.27 | 4.0 |
+| TPU | 1.21 | 2.5 |
+| Nylon | 1.14 | 3.5 |
+| Resin | 1.10 | 8.0 |
 
 Students can adjust the **infill slider** (5–100%) on both the new request form and detail page — estimates update in real-time (on mouse release).
 
-The formula: `T = V × [0.30 + 0.70 × infill] / 5.0 mm³/s × 1.35 / 3600`
+### Estimation Formula
+
+**Step 1 — Model volume:** `numpy-stl` calculates the total enclosed volume ($V_{mm^3}$) using the signed tetrahedra method.
+
+**Step 2 — Effective solid fraction:** A print is not 100% solid. The outer shell (~30%) is fully solid, while the interior is filled at the user-selected infill ratio:
+
+$$\text{effective\_solid} = 0.30 + 0.70 \times \text{infill}$$
+
+**Step 3 — Deposited volume:**
+
+$$\text{deposited\_mm}^3 = V_{mm^3} \times \text{effective\_solid}$$
+
+**Step 4 — Weight estimate:**
+
+$$W_{grams} = \frac{\text{deposited\_mm}^3}{1000} \times \rho_{material}$$
+
+**Step 5 — Print time estimate** (with 1.35× overhead for travel moves, retraction, homing, etc.):
+
+$$\boxed{T_{hours} = \frac{V_{mm^3} \times [0.30 + 0.70 \times infill]}{S_{material}} \times \frac{1.35}{3600}}$$
+
+where $S_{material}$ is the material-specific print speed in mm³/s.
+
+> **⚠️ Limitations:** These are rough estimates. Actual values depend on slicer settings (Cura/PrusaSlicer), wall/infill speed differences, support structures, heating/cooling time, and printer kinematics.
 
 ---
 
