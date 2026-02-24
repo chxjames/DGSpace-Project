@@ -23,15 +23,22 @@ MATERIAL_DENSITIES = {
     'Resin': 1.10,
 }
 
+# Typical print speeds in mm³/s per material (FDM, 0.2 mm layer, 0.4 mm nozzle)
+# TPU needs to be printed slowly; PLA can go faster; Resin is a different process.
+MATERIAL_PRINT_SPEEDS = {
+    'PLA':   5.0,
+    'ABS':   4.5,
+    'PETG':  4.0,
+    'TPU':   2.5,
+    'Nylon': 3.5,
+    'Resin': 8.0,   # SLA/DLP — generally faster deposition per layer
+}
+
 # Default infill percentage (typical for functional prints)
 DEFAULT_INFILL = 0.20       # 20 %
 
 # Wall / shell thickness contributes ~30 % solid volume on average
 SHELL_FRACTION = 0.30
-
-# Average print speed in mm³/s for FDM (varies by printer, layer height, etc.)
-# Conservative estimate for a typical desktop printer with 0.2 mm layer height.
-DEFAULT_PRINT_SPEED_MM3_PER_SEC = 5.0
 
 # Additional time multiplier to account for travel moves, retraction, homing, etc.
 TIME_OVERHEAD_FACTOR = 1.35
@@ -94,7 +101,8 @@ def analyze_stl(file_path: str, material: str = 'PLA', infill: float = DEFAULT_I
     # ── Print time estimate (hours) ────────────────────────
     # deposited volume in mm³
     deposited_mm3 = effective_volume_cm3 * 1000.0
-    time_seconds = (deposited_mm3 / DEFAULT_PRINT_SPEED_MM3_PER_SEC) * TIME_OVERHEAD_FACTOR
+    print_speed = MATERIAL_PRINT_SPEEDS.get(material, MATERIAL_PRINT_SPEEDS['PLA'])
+    time_seconds = (deposited_mm3 / print_speed) * TIME_OVERHEAD_FACTOR
     time_hours = time_seconds / 3600.0
 
     return {

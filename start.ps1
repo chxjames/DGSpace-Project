@@ -6,10 +6,10 @@ $backend = "E:\DGSpace-Project-1\backend\app.py"
 $frontend = "E:\DGSpace-Project-1\frontend\manage.py"
 
 Write-Host "Starting Flask backend on port 5000..." -ForegroundColor Cyan
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd E:\DGSpace-Project-1\backend; & '$venv' '$backend'"
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd E:\DGSpace-Project-1\backend; & `"$venv`" `"$backend`""
 
 Write-Host "Starting Django frontend on port 8000..." -ForegroundColor Cyan
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd E:\DGSpace-Project-1\frontend; & '$venv' '$frontend' runserver 8000 --noreload"
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd E:\DGSpace-Project-1\frontend; & `"$venv`" `"$frontend`" runserver 8000 --noreload"
 
 Write-Host ""
 Write-Host "Both servers are starting in separate windows." -ForegroundColor Green

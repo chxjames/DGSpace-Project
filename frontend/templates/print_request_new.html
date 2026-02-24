@@ -324,6 +324,12 @@ async function clearStlFile(event) {
     timeInput.dataset.autoFilled = '';
   }
 
+  // Clear auto-filled project name
+  const projectInput = document.getElementById('project_name');
+  if (projectInput && autoFilledProjectNameFromStl) {
+    projectInput.value = '';
+  }
+
   // Best-effort cleanup on the server.
   if (!filenameToDelete) return;
   try {
