@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS admins (
     password_hash VARCHAR(255) NOT NULL,
     full_name VARCHAR(100) NOT NULL,
     email_verified BOOLEAN DEFAULT FALSE,
-    role ENUM('super_admin', 'admin', 'moderator') DEFAULT 'admin',
+    role ENUM('super_admin', 'admin', 'moderator', 'professor', 'manager') DEFAULT 'admin',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     last_login TIMESTAMP NULL,

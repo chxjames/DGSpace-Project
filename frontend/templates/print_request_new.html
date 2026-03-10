@@ -84,7 +84,44 @@
   </div>
   <div class="form-group">
     <label>Color Preference</label>
-    <input type="text" id="color_preference" placeholder="White, Black, Any…">
+    <select id="color_preference">
+      <option value="Any">🎨 Any (let staff decide)</option>
+      <option value="White">⬜ White</option>
+      <option value="Black">⬛ Black</option>
+      <option value="Gray">🩶 Gray</option>
+      <option value="Red">🟥 Red</option>
+      <option value="Blue">🟦 Blue</option>
+      <option value="Green">🟩 Green</option>
+      <option value="Yellow">🟨 Yellow</option>
+      <option value="Orange">🟧 Orange</option>
+      <option value="Other">✏️ Other (specify in description)</option>
+    </select>
+  </div>
+
+  <!-- ── Project Classification ────────────────────────────────── -->
+  <div style="display:flex;gap:12px;flex-wrap:wrap">
+    <div class="form-group" style="flex:1;min-width:200px">
+      <label>Is this a Senior Design Project?</label>
+      <div style="display:flex;gap:10px;margin-top:6px">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-weight:400;font-size:0.95rem">
+          <input type="radio" name="is_senior_design" id="sd-yes" value="yes"
+                 style="accent-color:#e94560;width:16px;height:16px">
+          <span>🎓 Yes</span>
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-weight:400;font-size:0.95rem">
+          <input type="radio" name="is_senior_design" id="sd-no" value="no" checked
+                 style="accent-color:#e94560;width:16px;height:16px">
+          <span>No</span>
+        </label>
+      </div>
+    </div>
+    <div class="form-group" style="flex:1;min-width:200px">
+      <label>Project Type</label>
+      <select id="project_context">
+        <option value="individual">👤 Individual Project</option>
+        <option value="class">🏫 Class Assignment</option>
+      </select>
+    </div>
   </div>
   <div style="display:flex;gap:12px">
     <div class="form-group" style="flex:1">
@@ -114,6 +151,42 @@
       <option value="urgent">🔴 Urgent</option>
     </select>
   </div>
+
+  <!-- ── Cura Slicer Estimate (required) ──────────────────────────── -->
+  <div style="margin:20px 0;padding:16px;background:#fffbeb;border:1px solid #fcd34d;border-radius:8px">
+    <div style="font-weight:600;margin-bottom:4px">🔪 Cura Slicer Estimate <span style="color:#dc3545">*</span></div>
+    <p style="font-size:0.83rem;color:#92400e;margin:0 0 12px">
+      Open your STL in <strong>Cura</strong>, set material &amp; infill, then read the values from the bottom status bar before submitting.
+      <a href="#cura-help" onclick="document.getElementById('cura-help').style.display='block';return false;" style="color:#b45309">▸ Where to find this?</a>
+    </p>
+    <div id="cura-help" style="display:none;font-size:0.82rem;background:#fef9c3;border:1px solid #fde68a;border-radius:6px;padding:10px;margin-bottom:12px;color:#78350f">
+      📍 After slicing, look at the <strong>bottom-right corner</strong> of the Cura window.<br>
+      You'll see: <code>⏱ 2h 13min</code> and <code>⚖ 32 g</code> — enter those values below.
+    </div>
+    <div style="display:flex;gap:12px;flex-wrap:wrap">
+      <div class="form-group" style="flex:1;min-width:160px;margin-bottom:0">
+        <label style="font-size:0.9rem">Est. Print Time <span style="color:#dc3545">*</span></label>
+        <div style="display:flex;gap:6px;align-items:center;margin-top:4px">
+          <input type="number" id="slicer_hours" min="0" max="999" placeholder="0"
+                 style="width:64px;text-align:center" oninput="updateSlicerMinutes()">
+          <span style="color:#555;font-size:0.9rem">h</span>
+          <input type="number" id="slicer_mins" min="0" max="59" placeholder="0"
+                 style="width:64px;text-align:center" oninput="updateSlicerMinutes()">
+          <span style="color:#555;font-size:0.9rem">min</span>
+        </div>
+        <input type="hidden" id="slicer_time_minutes">
+      </div>
+      <div class="form-group" style="flex:1;min-width:140px;margin-bottom:0">
+        <label style="font-size:0.9rem">Est. Material <span style="color:#888;font-weight:400">(optional)</span></label>
+        <div style="display:flex;align-items:center;gap:6px;margin-top:4px">
+          <input type="number" id="slicer_material_g" min="0" step="0.1" placeholder="e.g. 32"
+                 style="width:96px">
+          <span style="color:#555;font-size:0.9rem">g</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- ── end Cura block ──────────────────────────────────────────── -->
 
   <button class="btn" onclick="doSubmit()">Submit Request</button>
   <a href="/print-requests/" style="display:block;text-align:center;margin-top:12px;font-size:0.9rem">← Back to List</a>
@@ -342,6 +415,14 @@ async function clearStlFile(event) {
   }
 }
 
+// ── Cura slicer helpers ───────────────────────────────────
+function updateSlicerMinutes() {
+  const h = parseInt(document.getElementById('slicer_hours').value, 10) || 0;
+  const m = parseInt(document.getElementById('slicer_mins').value,  10) || 0;
+  const total = h * 60 + m;
+  document.getElementById('slicer_time_minutes').value = total > 0 ? total : '';
+}
+
 // ── Form submit ───────────────────────────────────────────
 function showAlert(msg, type='error') {
   document.getElementById('alert-box').innerHTML =
@@ -354,16 +435,29 @@ async function doSubmit() {
   const project_name = document.getElementById('project_name').value.trim();
   if (!project_name) { showAlert('Project name is required.'); return; }
 
+  // Cura required field
+  const slicer_time_minutes = parseFloat(document.getElementById('slicer_time_minutes').value) || 0;
+  if (slicer_time_minutes <= 0) {
+    showAlert('Please enter the Cura estimated print time (hours / minutes). This is required.');
+    document.getElementById('slicer_hours').focus();
+    return;
+  }
+  const slicer_material_g = parseFloat(document.getElementById('slicer_material_g').value) || null;
+
   const body = {
     project_name,
     description:                document.getElementById('description').value.trim(),
     material_type:              document.getElementById('material_type').value,
-    color_preference:           document.getElementById('color_preference').value.trim(),
+    color_preference:           document.getElementById('color_preference').value,
+    is_senior_design:           document.getElementById('sd-yes').checked,
+    project_context:            document.getElementById('project_context').value,
     estimated_weight_grams:     parseFloat(document.getElementById('estimated_weight_grams').value) || null,
     estimated_print_time_hours: parseFloat(document.getElementById('estimated_print_time_hours').value) || null,
     priority:                   document.getElementById('priority').value,
     stl_file_path:              uploadedStlFilename    || null,
     stl_original_name:          uploadedStlOriginalName || null,
+    slicer_time_minutes,
+    slicer_material_g,
   };
 
   try {

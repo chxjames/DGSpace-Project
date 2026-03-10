@@ -7,6 +7,8 @@ from config import Config
 from print_service import PrintService
 from totp_service import TotpService
 from stl_analysis import analyze_stl
+from sheet_service import SheetService
+from report_service import ReportService
 import os
 import uuid
 
@@ -400,6 +402,15 @@ def create_print_request():
     
     if 'project_name' not in data:
         return jsonify({'success': False, 'message': 'Project name is required'}), 400
+
+    # Cura slicer time is required
+    slicer_time_minutes = data.get('slicer_time_minutes')
+    if slicer_time_minutes is None or float(slicer_time_minutes) <= 0:
+        return jsonify({
+            'success': False,
+            'message': 'slicer_time_minutes is required (Cura estimated print time). '
+                       'Please open the STL in Cura and enter the sliced time.'
+        }), 400
     
     result = PrintService.create_print_request(
         student_email=payload['email'],
@@ -407,11 +418,15 @@ def create_print_request():
         description=data.get('description'),
         material_type=data.get('material_type', 'PLA'),
         color_preference=data.get('color_preference'),
+        is_senior_design=bool(data.get('is_senior_design', False)),
+        project_context=data.get('project_context', 'individual'),
         estimated_weight_grams=data.get('estimated_weight_grams'),
         estimated_print_time_hours=data.get('estimated_print_time_hours'),
         priority=data.get('priority', 'normal'),
         stl_file_path=data.get('stl_file_path'),
-        stl_original_name=data.get('stl_original_name')
+        stl_original_name=data.get('stl_original_name'),
+        slicer_time_minutes=float(slicer_time_minutes),
+        slicer_material_g=float(data['slicer_material_g']) if data.get('slicer_material_g') else None,
     )
     
     if result['success']:
@@ -791,7 +806,22 @@ def verify_2fa():
         return jsonify(result), 401
 
     # TOTP 验证通过，颁发正式 JWT
-    token = AuthService.generate_jwt_token(email, user_type)
+    # If user_type is admin, include the admin role from the database so the
+    # frontend and backend can apply role-based permissions (e.g. professor).
+    if user_type == 'admin':
+        admin_row = db.fetch_one("SELECT role FROM admins WHERE email = %s", (email,))
+        role = admin_row.get('role') if admin_row else None
+        payload = {
+            'email': email,
+            'user_type': user_type,
+            'role': role,
+            'exp': __import__('datetime').datetime.utcnow() + __import__('datetime').timedelta(hours=Config.JWT_EXPIRATION_HOURS),
+            'iat': __import__('datetime').datetime.utcnow()
+        }
+        token = __import__('jwt').encode(payload, Config.JWT_SECRET_KEY, algorithm='HS256')
+    else:
+        token = AuthService.generate_jwt_token(email, user_type)
+
     return jsonify({
         'success': True,
         'message': '2FA 验证通过',
@@ -821,6 +851,203 @@ def disable_2fa():
 
     result = TotpService.disable_totp(payload['email'], payload['user_type'])
     return jsonify(result), 200
+
+
+# ===========================================================================
+# Weekly Report API  (admin only)
+# ===========================================================================
+
+_report_service = ReportService()
+
+
+@app.route('/api/reports/sync-google-sheet', methods=['POST'])
+def sync_google_sheet():
+    """
+    POST /api/reports/sync-google-sheet
+    Trigger a full sync: read all rows from the Google Sheet, normalise them,
+    and UPSERT into print_logs_raw + print_logs_normalized.
+    Requires admin / professor / manager JWT.
+    """
+    payload = _get_auth_payload()
+    if not payload or payload.get('user_type') not in ('admin', 'professor', 'manager'):
+        return jsonify({'success': False, 'message': 'Admin access required'}), 403
+
+    try:
+        sheet_svc = SheetService()
+        rows = sheet_svc.fetch_sheet_rows()
+
+        # Build slicer_map from print_requests table
+        slicer_map = _report_service.get_slicer_map()
+
+        # Normalize each row (row_index=2 for the first data row)
+        normalized = [
+            sheet_svc.normalize_row(row, i + 2, slicer_map)
+            for i, row in enumerate(rows)
+        ]
+
+        result = _report_service.import_from_sheet(normalized)
+        return jsonify({'success': True, **result}), 200
+
+    except FileNotFoundError as e:
+        return jsonify({
+            'success': False,
+            'message': f'Service Account JSON not found: {e}. '
+                       f'Check SERVICE_ACCOUNT_JSON_PATH in .env'
+        }), 500
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'success': False,
+            'message': f'Google Sheet sync failed: {str(e)}',
+            'detail': traceback.format_exc()
+        }), 500
+
+
+@app.route('/api/reports/weekly', methods=['GET'])
+def get_weekly_report():
+    """
+    GET /api/reports/weekly?week=YYYY-WW
+    Return aggregated KPI metrics for the given ISO week.
+    Defaults to last week if ?week is omitted.
+    Requires admin / professor / manager JWT.
+    """
+    payload = _get_auth_payload()
+    if not payload or payload.get('user_type') not in ('admin', 'professor', 'manager'):
+        return jsonify({'success': False, 'message': 'Admin access required'}), 403
+
+    week = request.args.get('week', '').strip() or None
+
+    try:
+        data = _report_service.get_weekly_report(week)
+        return jsonify({'success': True, 'report': data}), 200
+    except ValueError as e:
+        return jsonify({'success': False, 'message': str(e)}), 400
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Report error: {str(e)}'}), 500
+
+
+@app.route('/api/reports/raw', methods=['GET'])
+def get_raw_logs():
+    """
+    GET /api/reports/raw?week=YYYY-WW
+    Return raw log rows (with error_flag) for admin inspection.
+    Defaults to last week if ?week is omitted.
+    Requires admin / professor / manager JWT.
+    """
+    payload = _get_auth_payload()
+    if not payload or payload.get('user_type') not in ('admin', 'professor', 'manager'):
+        return jsonify({'success': False, 'message': 'Admin access required'}), 403
+
+    week = request.args.get('week', '').strip() or None
+
+    try:
+        rows = _report_service.get_raw_logs(week)
+        return jsonify({'success': True, 'logs': rows, 'count': len(rows)}), 200
+    except ValueError as e:
+        return jsonify({'success': False, 'message': str(e)}), 400
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Raw log error: {str(e)}'}), 500
+
+
+# ---------------------------------------------------------------------------
+# Sub-report detail endpoints
+# ---------------------------------------------------------------------------
+
+@app.route('/api/reports/printer/<path:printer_name>', methods=['GET'])
+def get_printer_detail(printer_name):
+    """
+    GET /api/reports/printer/<printer_name>?week=YYYY-WW
+    Return detail report for a single printer.
+    """
+    payload = _get_auth_payload()
+    if not payload or payload.get('user_type') not in ('admin', 'professor', 'manager'):
+        return jsonify({'success': False, 'message': 'Admin access required'}), 403
+    week = request.args.get('week', '').strip() or None
+    try:
+        data = _report_service.get_printer_detail(printer_name, week)
+        return jsonify({'success': True, 'data': data}), 200
+    except ValueError as e:
+        return jsonify({'success': False, 'message': str(e)}), 400
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/reports/operator/<path:operator_name>', methods=['GET'])
+def get_operator_detail(operator_name):
+    """
+    GET /api/reports/operator/<operator_name>?week=YYYY-WW
+    Return detail report for a single operator.
+    """
+    payload = _get_auth_payload()
+    if not payload or payload.get('user_type') not in ('admin', 'professor', 'manager'):
+        return jsonify({'success': False, 'message': 'Admin access required'}), 403
+    week = request.args.get('week', '').strip() or None
+    try:
+        data = _report_service.get_operator_detail(operator_name, week)
+        return jsonify({'success': True, 'data': data}), 200
+    except ValueError as e:
+        return jsonify({'success': False, 'message': str(e)}), 400
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/reports/materials', methods=['GET'])
+def get_materials_report():
+    """
+    GET /api/reports/materials?week=YYYY-WW
+    Return material usage breakdown.
+    """
+    payload = _get_auth_payload()
+    if not payload or payload.get('user_type') not in ('admin', 'professor', 'manager'):
+        return jsonify({'success': False, 'message': 'Admin access required'}), 403
+    week = request.args.get('week', '').strip() or None
+    try:
+        data = _report_service.get_materials_report(week)
+        return jsonify({'success': True, 'data': data}), 200
+    except ValueError as e:
+        return jsonify({'success': False, 'message': str(e)}), 400
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/reports/errors', methods=['GET'])
+def get_errors_report():
+    """
+    GET /api/reports/errors?week=YYYY-WW
+    Return error summary across all printers.
+    """
+    payload = _get_auth_payload()
+    if not payload or payload.get('user_type') not in ('admin', 'professor', 'manager'):
+        return jsonify({'success': False, 'message': 'Admin access required'}), 403
+    week = request.args.get('week', '').strip() or None
+    try:
+        data = _report_service.get_errors_report(week)
+        return jsonify({'success': True, 'data': data}), 200
+    except ValueError as e:
+        return jsonify({'success': False, 'message': str(e)}), 400
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/reports/monthly', methods=['GET'])
+def get_monthly_report():
+    """
+    GET /api/reports/monthly?month=YYYY-MM
+    Return aggregated monthly stats (week-by-week, by printer, by operator).
+    Defaults to last month if ?month is omitted.
+    Requires admin / professor / manager JWT.
+    """
+    payload = _get_auth_payload()
+    if not payload or payload.get('user_type') not in ('admin', 'professor', 'manager'):
+        return jsonify({'success': False, 'message': 'Admin access required'}), 403
+    month = request.args.get('month', '').strip() or None
+    try:
+        data = _report_service.get_monthly_report(month)
+        return jsonify({'success': True, 'data': data}), 200
+    except ValueError as e:
+        return jsonify({'success': False, 'message': str(e)}), 400
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
 
 
 # Error handlers

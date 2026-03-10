@@ -33,6 +33,38 @@ class AdminStudentsView(TemplateView):
     template_name = "admin_students.html"
 
 
+class WeeklyReportView(TemplateView):
+    template_name = "weekly_report.html"
+
+
+class ReportSyncView(TemplateView):
+    template_name = "report_sync.html"
+
+
+class ReportRawView(TemplateView):
+    template_name = "report_raw.html"
+
+
+class PrinterDetailView(TemplateView):
+    template_name = "printer_detail.html"
+
+
+class OperatorDetailView(TemplateView):
+    template_name = "operator_detail.html"
+
+
+class MaterialsReportView(TemplateView):
+    template_name = "materials_report.html"
+
+
+class ErrorsReportView(TemplateView):
+    template_name = "errors_report.html"
+
+
+class MonthlyReportView(TemplateView):
+    template_name = "monthly_report.html"
+
+
 @method_decorator(csrf_exempt, name='dispatch')
 class ApiProxyView(View):
     """Forward every /api/... request to the Flask backend transparently."""
@@ -40,7 +72,8 @@ class ApiProxyView(View):
     http_method_names = ["get", "post", "put", "patch", "delete", "options"]
 
     def dispatch(self, request, path, *args, **kwargs):
-        url = f"{FLASK_BASE}/api/{path}"
+        # Use the raw encoded path from request to preserve %20 etc.
+        url = f"{FLASK_BASE}{request.path}"
 
         # Forward headers (strip host and content-length — requests recalculates it)
         forward_headers = {

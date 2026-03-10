@@ -357,3 +357,120 @@ print("Done")
 - Passwords hashed with bcrypt (12 rounds)
 - TOTP 2FA is implemented in `totp_service.py` with API endpoints for setup/verify/disable
 - STL files stored with UUID filenames to prevent path traversal
+
+---
+
+## Weekly Report — Google Sheet Integration
+
+### How It Works
+
+The manager can sync the Google Sheet (where staff record print jobs) directly into the database and view aggregated weekly KPI reports.
+
+**Data flow:**
+```
+Google Sheet → /api/reports/sync-google-sheet → print_logs_raw + print_logs_normalized → /reports/weekly/
+```
+
+**Report pages:**
+| URL | Description |
+|-----|-------------|
+| `/reports/weekly/` | Weekly KPI dashboard (Volume / Material / Capacity / Staffing) |
+| `/reports/sync/` | Trigger a Sheet sync |
+| `/reports/raw/` | Inspect raw imported rows, see parse warnings |
+
+---
+
+### Setting Up Google Service Account (One-Time)
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com/) → **APIs & Services** → **Credentials**
+2. Click **Create Credentials → Service Account**, give it any name
+3. Open the new Service Account → **Keys** tab → **Add Key → Create new key (JSON)**
+4. Download the JSON file. Save it somewhere safe (e.g. `backend/service_account.json`)
+5. **Enable the Google Sheets API** in **APIs & Services → Library**
+
+---
+
+### Sharing the Sheet with the Service Account
+
+1. Open the JSON key file, find the `"client_email"` field — it looks like:
+   `dgspace-reports@your-project.iam.gserviceaccount.com`
+2. Open your Google Sheet → **Share** → paste that email → set permission to **Viewer**
+3. Copy the Sheet ID from the URL:
+   `https://docs.google.com/spreadsheets/d/**<SHEET_ID>**/edit`
+
+---
+
+### Environment Variables (`.env`)
+
+Add these to your `.env` file:
+
+```ini
+# Google Sheets
+GOOGLE_SHEET_ID=your_sheet_id_here
+GOOGLE_SHEET_TAB_NAME=Sheet1
+SERVICE_ACCOUNT_JSON_PATH=backend/service_account.json
+```
+
+---
+
+### Expected Sheet Column Headers
+
+The Sheet must contain these exact column headers (order doesn't matter):
+
+| Column | Header | Notes |
+|--------|--------|-------|
+| A | `Timestamp` | Auto-filled by Google Forms |
+| B | `Email address` | Student email |
+| C | `Name` | Student name |
+| N | `Operator` | Staff member who handled the job |
+| O | `Printer` | Printer name (e.g. "Bambu X1C") |
+| P | `Print time (HH:MM)` | Actual print time — any format accepted |
+| Q | `Print Consumables (g)` | Material used in grams |
+| R | `Date Started` | When printing began |
+| S | `Finished?` | Yes/No/True/False/1/0 |
+| T | `Error 1` | Optional error note |
+| U | `Error 2` | Optional error note |
+| — | `Actual Finish` | Optional — staff hand-fills this; highest priority for finished_at |
+| — | `File Name` | Optional |
+
+**Print time accepted formats:**
+- `8:13:00` → H:MM:SS (493 min)
+- `2:05` → H:MM (125 min)
+- `:26` → :MM only (26 min)
+- `32` → plain number = minutes
+- `1 hour 13` → text format (73 min)
+
+---
+
+### Installing New Dependencies
+
+After pulling this update, run:
+
+```bash
+pip install -r backend/requirements.txt
+```
+
+New packages: `gspread>=6.0.0`, `google-auth>=2.0.0`
+
+---
+
+### Running Database Migrations
+
+```sql
+-- Run in order:
+SOURCE database/migration_006_add_print_logs.sql;
+SOURCE database/migration_007_add_slicer_fields.sql;
+```
+
+---
+
+### Cura Slicer Time Field (Students)
+
+The print request form now requires a **Cura Slicer Estimate**:
+
+- **How to find it**: Open the STL file in Cura, apply your material and infill settings, click **Slice**, then read the time and material estimate from the **bottom-right corner** of the Cura window.
+- **Estimated Print Time** (required): Enter hours and minutes — e.g. 2 h 13 min
+- **Estimated Material** (optional): Enter grams — e.g. 32 g
+
+This value is used to calculate `finished_at` when actual Sheet data is missing.
+

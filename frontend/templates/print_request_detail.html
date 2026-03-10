@@ -316,6 +316,13 @@ async function fetchAnalysis(filename, material, infill) {
       const bb = a.bounding_box;
       document.getElementById('d-a-bbox').textContent   = bb.x_mm + ' × ' + bb.y_mm + ' × ' + bb.z_mm + ' mm';
       document.getElementById('d-analysis-block').style.display = 'block';
+
+      // Sync the top Request Details section with analysis values
+      // Only override if student didn't manually enter values (shows '—')
+      const weightEl = document.getElementById('d-weight');
+      const timeEl   = document.getElementById('d-time');
+      if (weightEl.textContent === '—') weightEl.textContent = a.estimated_weight_grams + ' g';
+      if (timeEl.textContent === '—')   timeEl.textContent   = a.estimated_print_time_hours + ' h';
     }
   } catch(e) {
     // Analysis is optional — silently ignore errors

@@ -1,0 +1,559 @@
+{% extends "base.html" %}
+{% block title %}Report — DGSpace{% endblock %}
+
+{% block content %}
+<div style="max-width:960px;margin:0 auto">
+
+  <!-- Top toolbar -->
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px">
+    <h2 style="color:#1a1a2e;margin:0">📊 Report</h2>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <button id="btn-export" onclick="exportCSV()" style="padding:7px 14px;background:#fff;border:1px solid #ddd;border-radius:4px;cursor:pointer;font-size:0.85rem">⬇ CSV</button>
+      <a href="/reports/sync/" style="padding:7px 14px;background:#fff;border:1px solid #ddd;border-radius:4px;font-size:0.85rem;text-decoration:none;color:#333">🔄 Sync</a>
+      <a href="/reports/raw/" style="padding:7px 14px;background:#fff;border:1px solid #ddd;border-radius:4px;font-size:0.85rem;text-decoration:none;color:#333">🔍 Raw Logs</a>
+      <a href="/reports/materials/" style="padding:7px 14px;background:#fff;border:1px solid #ddd;border-radius:4px;font-size:0.85rem;text-decoration:none;color:#333">🧱 Materials</a>
+      <a href="/reports/errors/" style="padding:7px 14px;background:#fff;border:1px solid #ddd;border-radius:4px;font-size:0.85rem;text-decoration:none;color:#333">⚠️ Errors</a>
+    </div>
+  </div>
+
+  <!-- Tab + Picker row -->
+  <div style="display:flex;align-items:center;gap:16px;margin-bottom:24px;flex-wrap:wrap">
+    <div style="display:flex;background:#f0f0f5;border-radius:8px;padding:3px;gap:2px">
+      <button id="tab-weekly"  onclick="switchTab('weekly')"  style="padding:7px 22px;border:none;border-radius:6px;cursor:pointer;font-size:0.9rem;font-weight:600">Week</button>
+      <button id="tab-monthly" onclick="switchTab('monthly')" style="padding:7px 22px;border:none;border-radius:6px;cursor:pointer;font-size:0.9rem;font-weight:600">Month</button>
+    </div>
+    <input type="week"  id="week-picker"  style="padding:6px 10px;border:1px solid #ddd;border-radius:4px;font-size:0.9rem">
+    <input type="month" id="month-picker" style="padding:6px 10px;border:1px solid #ddd;border-radius:4px;font-size:0.9rem;display:none">
+    <button class="btn" style="width:auto;padding:8px 20px" onclick="loadReport()">Load</button>
+  </div>
+
+  <div id="alert-box"></div>
+  <div id="period-label" style="color:#888;font-size:0.9rem;margin-bottom:20px"></div>
+
+  <!-- ═══════════════════════════ WEEKLY CONTENT -->
+  <div id="weekly-content" style="display:none">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:28px">
+      <div class="card" style="padding:20px;text-align:center">
+        <div style="font-size:2rem;font-weight:bold;color:#e94560" id="w-total-jobs">—</div>
+        <div style="color:#666;font-size:0.9rem;margin-top:4px">Total Jobs</div>
+      </div>
+      <div class="card" style="padding:20px;text-align:center">
+        <div style="font-size:2rem;font-weight:bold;color:#28a745" id="w-finished">—</div>
+        <div style="color:#666;font-size:0.9rem;margin-top:4px">Finished</div>
+      </div>
+      <div class="card" style="padding:20px;text-align:center">
+        <div style="font-size:2rem;font-weight:bold;color:#007bff" id="w-hours">—</div>
+        <div style="color:#666;font-size:0.9rem;margin-top:4px">Print Hours</div>
+      </div>
+      <div class="card" style="padding:20px;text-align:center">
+        <div style="font-size:2rem;font-weight:bold;color:#fd7e14" id="w-material">—</div>
+        <div style="color:#666;font-size:0.9rem;margin-top:4px">Material (g)</div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:24px">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap">
+        <h3 style="margin:0;color:#1a1a2e">🍩 Distribution</h3>
+        <select id="w-donut-group" onchange="refreshDonut('w')"
+          style="padding:5px 10px;border:1px solid #ddd;border-radius:4px;font-size:0.85rem;cursor:pointer">
+          <option value="printer">By Printer</option>
+          <option value="operator">By Staff</option>
+        </select>
+        <select id="w-donut-metric" onchange="refreshDonut('w')"
+          style="padding:5px 10px;border:1px solid #ddd;border-radius:4px;font-size:0.85rem;cursor:pointer">
+          <option value="material">Material (g)</option>
+          <option value="hours">Print Hours</option>
+          <option value="jobs">Jobs</option>
+        </select>
+      </div>
+      <div style="display:flex;justify-content:center">
+        <div style="position:relative;width:440px;max-width:100%;height:300px">
+          <canvas id="w-donut"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:24px">
+      <h3 style="margin-bottom:16px;color:#1a1a2e">🖨️ Printer Breakdown</h3>
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:0.9rem">
+          <thead>
+            <tr style="background:#f8f9fa">
+              <th style="padding:10px;text-align:left;border-bottom:2px solid #dee2e6">Printer</th>
+              <th style="padding:10px;text-align:right;border-bottom:2px solid #dee2e6">Jobs</th>
+              <th style="padding:10px;text-align:right;border-bottom:2px solid #dee2e6">Print Hours</th>
+              <th style="padding:10px;text-align:right;border-bottom:2px solid #dee2e6">Avg Min/Job</th>
+              <th style="padding:10px;text-align:right;border-bottom:2px solid #dee2e6">Material (g)</th>
+            </tr>
+          </thead>
+          <tbody id="w-printer-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-bottom:16px;color:#1a1a2e">👤 Staff Scheduling</h3>
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:0.9rem">
+          <thead>
+            <tr style="background:#f8f9fa">
+              <th style="padding:10px;text-align:left;border-bottom:2px solid #dee2e6">Operator</th>
+              <th style="padding:10px;text-align:right;border-bottom:2px solid #dee2e6">Jobs Handled</th>
+              <th style="padding:10px;text-align:right;border-bottom:2px solid #dee2e6">Print Hours</th>
+              <th style="padding:10px;text-align:right;border-bottom:2px solid #dee2e6">Material (g)</th>
+            </tr>
+          </thead>
+          <tbody id="w-operator-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════ MONTHLY CONTENT -->
+  <div id="monthly-content" style="display:none">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;margin-bottom:28px">
+      <div class="card" style="padding:20px;text-align:center">
+        <div style="font-size:2rem;font-weight:bold;color:#e94560" id="m-total-jobs">—</div>
+        <div style="color:#666;font-size:0.9rem;margin-top:4px">Total Jobs</div>
+      </div>
+      <div class="card" style="padding:20px;text-align:center">
+        <div style="font-size:2rem;font-weight:bold;color:#28a745" id="m-finished">—</div>
+        <div style="color:#666;font-size:0.9rem;margin-top:4px">Finished</div>
+      </div>
+      <div class="card" style="padding:20px;text-align:center">
+        <div style="font-size:2rem;font-weight:bold;color:#007bff" id="m-hours">—</div>
+        <div style="color:#666;font-size:0.9rem;margin-top:4px">Print Hours</div>
+      </div>
+      <div class="card" style="padding:20px;text-align:center">
+        <div style="font-size:2rem;font-weight:bold;color:#fd7e14" id="m-material">—</div>
+        <div style="color:#666;font-size:0.9rem;margin-top:4px">Material (g)</div>
+      </div>
+      <div class="card" style="padding:20px;text-align:center">
+        <div style="font-size:2rem;font-weight:bold;color:#dc3545" id="m-errors">—</div>
+        <div style="color:#666;font-size:0.9rem;margin-top:4px">Errors</div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:24px">
+      <h3 style="margin-bottom:16px;color:#1a1a2e">📈 Week-by-Week Breakdown</h3>
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:0.9rem">
+          <thead>
+            <tr style="background:#f8f9fa">
+              <th style="padding:10px;text-align:left;border-bottom:2px solid #dee2e6">Week</th>
+              <th style="padding:10px;text-align:right;border-bottom:2px solid #dee2e6">Jobs</th>
+              <th style="padding:10px;text-align:right;border-bottom:2px solid #dee2e6">Finished</th>
+              <th style="padding:10px;text-align:right;border-bottom:2px solid #dee2e6">Print Hours</th>
+              <th style="padding:10px;text-align:right;border-bottom:2px solid #dee2e6">Material (g)</th>
+              <th style="padding:10px;text-align:right;border-bottom:2px solid #dee2e6">Errors</th>
+              <th style="padding:10px;text-align:center;border-bottom:2px solid #dee2e6">Detail</th>
+            </tr>
+          </thead>
+          <tbody id="m-week-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:24px">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap">
+        <h3 style="margin:0;color:#1a1a2e">🍩 Distribution</h3>
+        <select id="m-donut-group" onchange="refreshDonut('m')"
+          style="padding:5px 10px;border:1px solid #ddd;border-radius:4px;font-size:0.85rem;cursor:pointer">
+          <option value="printer">By Printer</option>
+          <option value="operator">By Staff</option>
+        </select>
+        <select id="m-donut-metric" onchange="refreshDonut('m')"
+          style="padding:5px 10px;border:1px solid #ddd;border-radius:4px;font-size:0.85rem;cursor:pointer">
+          <option value="material">Material (g)</option>
+          <option value="hours">Print Hours</option>
+          <option value="jobs">Jobs</option>
+        </select>
+      </div>
+      <div style="display:flex;justify-content:center">
+        <div style="position:relative;width:440px;max-width:100%;height:300px">
+          <canvas id="m-donut"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:24px">
+      <h3 style="margin-bottom:16px;color:#1a1a2e">🖨️ Usage by Printer</h3>
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:0.9rem">
+          <thead>
+            <tr style="background:#f8f9fa">
+              <th style="padding:10px;text-align:left;border-bottom:2px solid #dee2e6">Printer</th>
+              <th style="padding:10px;text-align:right;border-bottom:2px solid #dee2e6">Jobs</th>
+              <th style="padding:10px;text-align:right;border-bottom:2px solid #dee2e6">Print Hours</th>
+              <th style="padding:10px;text-align:right;border-bottom:2px solid #dee2e6">Total Material (g)</th>
+              <th style="padding:10px;text-align:right;border-bottom:2px solid #dee2e6">Avg/Job (g)</th>
+              <th style="padding:10px;text-align:left;border-bottom:2px solid #dee2e6">Share</th>
+            </tr>
+          </thead>
+          <tbody id="m-printer-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-bottom:16px;color:#1a1a2e">👤 Usage by Staff</h3>
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:0.9rem">
+          <thead>
+            <tr style="background:#f8f9fa">
+              <th style="padding:10px;text-align:left;border-bottom:2px solid #dee2e6">Staff</th>
+              <th style="padding:10px;text-align:right;border-bottom:2px solid #dee2e6">Jobs</th>
+              <th style="padding:10px;text-align:right;border-bottom:2px solid #dee2e6">Print Hours</th>
+              <th style="padding:10px;text-align:right;border-bottom:2px solid #dee2e6">Total Material (g)</th>
+              <th style="padding:10px;text-align:left;border-bottom:2px solid #dee2e6">Share</th>
+            </tr>
+          </thead>
+          <tbody id="m-operator-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div id="empty-state" style="text-align:center;padding:60px;color:#aaa;display:none">No data found for this period.</div>
+  <div id="loading"     style="text-align:center;padding:60px;color:#aaa">Loading…</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+(function() {
+  const user = getUser();
+  if (!user || !['admin','professor','manager'].includes(user.user_type)) location.href='/accounts/login';
+})();
+
+/* ── shared state ────────────────────────────────────────────── */
+const CHART_COLORS = [
+  '#fd7e14','#e94560','#007bff','#6f42c1','#28a745',
+  '#17a2b8','#ffc107','#dc3545','#6c757d','#20c997','#e83e8c','#343a40'
+];
+let wDonut = null;
+let mDonut = null;
+let lastWeekReport = null;
+let lastMonthReport = null;
+let currentTab = 'weekly';
+
+function esc(s) {
+  if (s == null) return '<span style="color:#bbb">—</span>';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function showAlert(msg) {
+  document.getElementById('alert-box').innerHTML =
+    `<div style="padding:12px;background:#fee2e2;border:1px solid #fca5a5;border-radius:6px;color:#991b1b;margin-bottom:16px">${msg}</div>`;
+}
+
+/* ── date helpers ────────────────────────────────────────────── */
+function getLastWeekStr() {
+  const d = new Date(); d.setDate(d.getDate() - 7);
+  const tmp = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  tmp.setUTCDate(tmp.getUTCDate() + 4 - (tmp.getUTCDay() || 7));
+  const ys = new Date(Date.UTC(tmp.getUTCFullYear(), 0, 1));
+  const w  = Math.ceil((((tmp - ys) / 86400000) + 1) / 7);
+  return `${tmp.getUTCFullYear()}-W${String(w).padStart(2,'0')}`;
+}
+function getLastMonthStr() {
+  const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - 1);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+}
+
+/* ── tab styles ──────────────────────────────────────────────── */
+function _applyTabStyles() {
+  const isW = currentTab === 'weekly';
+  const aS  = 'background:#1a1a2e;color:#fff;';
+  const iS  = 'background:transparent;color:#555;';
+  document.getElementById('tab-weekly').style.cssText  = `padding:7px 22px;border:none;border-radius:6px;cursor:pointer;font-size:0.9rem;font-weight:600;transition:all .15s;${isW ? aS : iS}`;
+  document.getElementById('tab-monthly').style.cssText = `padding:7px 22px;border:none;border-radius:6px;cursor:pointer;font-size:0.9rem;font-weight:600;transition:all .15s;${!isW ? aS : iS}`;
+  document.getElementById('week-picker').style.display  = isW  ? '' : 'none';
+  document.getElementById('month-picker').style.display = !isW ? '' : 'none';
+  document.getElementById('btn-export').style.display   = isW  ? '' : 'none';
+}
+
+function switchTab(tab) {
+  currentTab = tab;
+  _applyTabStyles();
+  document.getElementById('weekly-content').style.display  = 'none';
+  document.getElementById('monthly-content').style.display = 'none';
+  document.getElementById('empty-state').style.display     = 'none';
+  document.getElementById('period-label').textContent      = '';
+  document.getElementById('alert-box').innerHTML           = '';
+  loadReport();
+}
+
+/* ── init ────────────────────────────────────────────────────── */
+document.addEventListener('DOMContentLoaded', () => {
+  const params     = new URLSearchParams(location.search);
+  const tabParam   = params.get('tab') || 'weekly';
+  const weekParam  = params.get('week');
+  const monthParam = params.get('month');
+
+  // Set week picker: URL gives YYYY-WW → input needs YYYY-WWW
+  if (weekParam && weekParam.match(/^\d{4}-\d{2}$/)) {
+    const [y,w] = weekParam.split('-');
+    document.getElementById('week-picker').value = `${y}-W${w}`;
+  } else {
+    document.getElementById('week-picker').value = getLastWeekStr();
+  }
+
+  document.getElementById('month-picker').value =
+    (monthParam && monthParam.match(/^\d{4}-\d{2}$/)) ? monthParam : getLastMonthStr();
+
+  currentTab = (tabParam === 'monthly') ? 'monthly' : 'weekly';
+  _applyTabStyles();
+  loadReport();
+});
+
+/* ── load dispatcher ─────────────────────────────────────────── */
+function loadReport() {
+  document.getElementById('loading').style.display         = 'block';
+  document.getElementById('weekly-content').style.display  = 'none';
+  document.getElementById('monthly-content').style.display = 'none';
+  document.getElementById('empty-state').style.display     = 'none';
+  document.getElementById('alert-box').innerHTML           = '';
+  if (currentTab === 'weekly') loadWeekly();
+  else                         loadMonthly();
+}
+
+/* ── WEEKLY ──────────────────────────────────────────────────── */
+async function loadWeekly() {
+  const raw = document.getElementById('week-picker').value;   // '2026-W09'
+  if (!raw) return;
+  const weekParam = raw.replace('W', '');                     // '2026-09'
+  try {
+    const res  = await apiFetch(`/api/reports/weekly?week=${weekParam}`);
+    const data = await res.json();
+    document.getElementById('loading').style.display = 'none';
+    if (!res.ok || !data.success) { showAlert(`Error ${res.status}: ${data.message}`); return; }
+
+    const r = data.report;
+    lastWeekReport = r;
+    if (r.volume.total_jobs === 0) { document.getElementById('empty-state').style.display = 'block'; return; }
+
+    document.getElementById('period-label').textContent = `📅 ${r.period.from}  →  ${r.period.to}`;
+    document.getElementById('w-total-jobs').textContent = r.volume.total_jobs;
+    document.getElementById('w-finished').textContent   = r.volume.finished_jobs;
+    document.getElementById('w-hours').textContent      = (parseFloat(r.capacity.total_print_hours)||0).toFixed(1);
+    document.getElementById('w-material').textContent   = (parseFloat(r.material.total_material_g)||0).toFixed(1);
+
+    const ptbody = document.getElementById('w-printer-tbody');
+    ptbody.innerHTML = '';
+    (r.capacity.by_printer || []).forEach(p => {
+      const link = `/reports/printer/${encodeURIComponent(p.printer_name)}/?week=${weekParam}`;
+      ptbody.innerHTML += `<tr>
+        <td style="padding:9px 10px;border-bottom:1px solid #f0f0f0"><a href="${link}" style="color:#007bff;text-decoration:none">${esc(p.printer_name)}</a></td>
+        <td style="padding:9px 10px;border-bottom:1px solid #f0f0f0;text-align:right">${p.jobs}</td>
+        <td style="padding:9px 10px;border-bottom:1px solid #f0f0f0;text-align:right">${(parseFloat(p.print_hours)||0).toFixed(1)}</td>
+        <td style="padding:9px 10px;border-bottom:1px solid #f0f0f0;text-align:right">${(parseFloat(p.avg_print_minutes)||0).toFixed(0)}</td>
+        <td style="padding:9px 10px;border-bottom:1px solid #f0f0f0;text-align:right">${(parseFloat(p.total_material_g)||0).toFixed(1)}</td>
+      </tr>`;
+    });
+
+    const otbody = document.getElementById('w-operator-tbody');
+    otbody.innerHTML = '';
+    (r.staffing.by_operator || []).forEach(o => {
+      const link = `/reports/operator/${encodeURIComponent(o.operator_name)}/?week=${weekParam}`;
+      otbody.innerHTML += `<tr>
+        <td style="padding:9px 10px;border-bottom:1px solid #f0f0f0"><a href="${link}" style="color:#007bff;text-decoration:none">${esc(o.operator_name)}</a></td>
+        <td style="padding:9px 10px;border-bottom:1px solid #f0f0f0;text-align:right">${o.jobs_handled}</td>
+        <td style="padding:9px 10px;border-bottom:1px solid #f0f0f0;text-align:right">${(parseFloat(o.print_hours_handled)||0).toFixed(1)}</td>
+        <td style="padding:9px 10px;border-bottom:1px solid #f0f0f0;text-align:right">${(parseFloat(o.material_used_g)||0).toFixed(1)}</td>
+      </tr>`;
+    });
+
+    refreshDonut('w');
+
+    document.getElementById('weekly-content').style.display = 'block';
+  } catch(e) {
+    document.getElementById('loading').style.display = 'none';
+    showAlert('Cannot reach server: ' + e.message);
+  }
+}
+
+/* ── MONTHLY ─────────────────────────────────────────────────── */
+async function loadMonthly() {
+  const mp = document.getElementById('month-picker').value;   // '2026-03'
+  if (!mp) return;
+  try {
+    const res  = await apiFetch(`/api/reports/monthly?month=${mp}`);
+    const json = await res.json();
+    document.getElementById('loading').style.display = 'none';
+    if (!res.ok || !json.success) { showAlert(`Error ${res.status}: ${json.message}`); return; }
+
+    const d = json.data;
+    if (d.totals.total_jobs === 0) { document.getElementById('empty-state').style.display = 'block'; return; }
+
+    document.getElementById('period-label').textContent = `📅 ${d.period.from}  →  ${d.period.to}`;
+    document.getElementById('m-total-jobs').textContent = d.totals.total_jobs;
+    document.getElementById('m-finished').textContent   = d.totals.finished_jobs;
+    document.getElementById('m-hours').textContent      = (parseFloat(d.totals.total_print_hours)||0).toFixed(1);
+    document.getElementById('m-material').textContent   = (parseFloat(d.totals.total_material_g)||0).toFixed(1);
+    document.getElementById('m-errors').textContent     = d.totals.total_errors;
+
+    // Week-by-week table — clicking a row switches to weekly tab for that week
+    const wtbody = document.getElementById('m-week-tbody');
+    wtbody.innerHTML = '';
+    d.by_week.forEach(w => {
+      wtbody.innerHTML += `<tr>
+        <td style="padding:9px 10px;border-bottom:1px solid #f0f0f0;white-space:nowrap">
+          <button onclick="jumpToWeek('${w.week}')" style="background:none;border:none;color:#007bff;cursor:pointer;font-size:0.9rem;padding:0;text-align:left">${esc(w.label)}</button>
+        </td>
+        <td style="padding:9px 10px;border-bottom:1px solid #f0f0f0;text-align:right">${w.total_jobs}</td>
+        <td style="padding:9px 10px;border-bottom:1px solid #f0f0f0;text-align:right">${w.finished_jobs}</td>
+        <td style="padding:9px 10px;border-bottom:1px solid #f0f0f0;text-align:right">${(parseFloat(w.print_hours)||0).toFixed(1)}</td>
+        <td style="padding:9px 10px;border-bottom:1px solid #f0f0f0;text-align:right">${(parseFloat(w.total_material_g)||0).toFixed(1)}</td>
+        <td style="padding:9px 10px;border-bottom:1px solid #f0f0f0;text-align:right">${w.errors>0?`<span style="color:#dc3545;font-weight:bold">${w.errors}</span>`:'0'}</td>
+        <td style="padding:9px 10px;border-bottom:1px solid #f0f0f0;text-align:center">
+          <button onclick="jumpToWeek('${w.week}')" style="background:none;border:none;color:#007bff;cursor:pointer;font-size:0.85rem;padding:0">View ›</button>
+        </td>
+      </tr>`;
+    });
+
+    // Printer table
+    const totalJobs = d.totals.total_jobs || 1;
+    const ptbody = document.getElementById('m-printer-tbody');
+    ptbody.innerHTML = '';
+    d.by_printer.forEach(p => {
+      const pct = Math.round((p.jobs / totalJobs) * 100);
+      ptbody.innerHTML += `<tr>
+        <td style="padding:9px 10px;border-bottom:1px solid #f0f0f0">${esc(p.printer_name)}</td>
+        <td style="padding:9px 10px;border-bottom:1px solid #f0f0f0;text-align:right">${p.jobs}</td>
+        <td style="padding:9px 10px;border-bottom:1px solid #f0f0f0;text-align:right">${(parseFloat(p.print_hours)||0).toFixed(1)}</td>
+        <td style="padding:9px 10px;border-bottom:1px solid #f0f0f0;text-align:right">${(parseFloat(p.total_material_g)||0).toFixed(1)}</td>
+        <td style="padding:9px 10px;border-bottom:1px solid #f0f0f0;text-align:right">${(parseFloat(p.avg_material_g)||0).toFixed(1)}</td>
+        <td style="padding:9px 10px;border-bottom:1px solid #f0f0f0;min-width:120px">
+          <div style="background:#e9ecef;border-radius:4px;height:8px"><div style="background:#fd7e14;border-radius:4px;height:8px;width:${pct}%"></div></div>
+          <span style="font-size:0.75rem;color:#888">${pct}%</span>
+        </td>
+      </tr>`;
+    });
+
+    // Operator table
+    const otbody = document.getElementById('m-operator-tbody');
+    otbody.innerHTML = '';
+    d.by_operator.forEach(o => {
+      const pct = Math.round((o.jobs / totalJobs) * 100);
+      otbody.innerHTML += `<tr>
+        <td style="padding:9px 10px;border-bottom:1px solid #f0f0f0">${esc(o.operator_name)}</td>
+        <td style="padding:9px 10px;border-bottom:1px solid #f0f0f0;text-align:right">${o.jobs}</td>
+        <td style="padding:9px 10px;border-bottom:1px solid #f0f0f0;text-align:right">${(parseFloat(o.print_hours)||0).toFixed(1)}</td>
+        <td style="padding:9px 10px;border-bottom:1px solid #f0f0f0;text-align:right">${(parseFloat(o.total_material_g)||0).toFixed(1)}</td>
+        <td style="padding:9px 10px;border-bottom:1px solid #f0f0f0;min-width:120px">
+          <div style="background:#e9ecef;border-radius:4px;height:8px"><div style="background:#6f42c1;border-radius:4px;height:8px;width:${pct}%"></div></div>
+          <span style="font-size:0.75rem;color:#888">${pct}%</span>
+        </td>
+      </tr>`;
+    });
+
+    lastMonthReport = d;
+    refreshDonut('m');
+
+    document.getElementById('monthly-content').style.display = 'block';
+  } catch(e) {
+    document.getElementById('loading').style.display = 'none';
+    showAlert('Cannot reach server: ' + e.message);
+  }
+}
+
+/* Clicking a week row in monthly view → switch to weekly tab */
+function jumpToWeek(weekStr) {           // weekStr = '2026-10'
+  const [y, w] = weekStr.split('-');
+  document.getElementById('week-picker').value = `${y}-W${w}`;
+  currentTab = 'weekly';
+  loadReport();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/* ── donut chart ─────────────────────────────────────────────── */
+/* unit: 'g' | 'h' | 'jobs' — controls legend suffix */
+function renderDonut(canvasId, rows, nameKey, valueKey, unit, onCreated) {
+  const labels = rows.map(r => r[nameKey]);
+  const values = rows.map(r => parseFloat(r[valueKey]) || 0);
+  const colors = labels.map((_, i) => CHART_COLORS[i % CHART_COLORS.length]);
+  const fmt = v => unit === 'g' ? `${v.toFixed(1)}g` : unit === 'h' ? `${v.toFixed(1)}h` : `${Math.round(v)}`;
+  const chart = new Chart(document.getElementById(canvasId).getContext('2d'), {
+    type: 'doughnut',
+    data: { labels, datasets: [{ data: values, backgroundColor: colors, borderColor:'#fff', borderWidth:2, hoverOffset:8 }] },
+    options: {
+      cutout: '60%',
+      plugins: {
+        legend: {
+          position: 'right',
+          labels: {
+            boxWidth:14, padding:12, font:{size:12},
+            generateLabels(chart) {
+              const meta = chart.getDatasetMeta(0);
+              return chart.data.labels.map((label, i) => {
+                const total = chart.data.datasets[0].data.reduce((a,b)=>a+b, 0);
+                const val   = chart.data.datasets[0].data[i];
+                const pct   = total > 0 ? (val/total*100).toFixed(1) : '0.0';
+                return { text:`${label}  ${fmt(val)} (${pct}%)`, fillStyle:chart.data.datasets[0].backgroundColor[i], strokeStyle:'#fff', lineWidth:1, hidden:meta.data[i]?.hidden, index:i };
+              });
+            }
+          }
+        },
+        tooltip: { callbacks: { label(ctx) { const t=ctx.dataset.data.reduce((a,b)=>a+b,0); return ` ${fmt(ctx.parsed)}  (${t>0?(ctx.parsed/t*100).toFixed(1):0}%)`; } } }
+      }
+    }
+  });
+  onCreated(chart);
+}
+
+/* refreshDonut('w') or refreshDonut('m') — reads dropdowns, picks data, re-renders */
+function refreshDonut(prefix) {
+  const group  = document.getElementById(`${prefix}-donut-group`).value;   // 'printer' | 'operator'
+  const metric = document.getElementById(`${prefix}-donut-metric`).value;  // 'material' | 'hours' | 'jobs'
+  const report = prefix === 'w' ? lastWeekReport : lastMonthReport;
+  if (!report) return;
+
+  // ── pick rows & field names ──────────────────────────────────
+  let rows, nameKey, valueKey, unit;
+  if (prefix === 'w') {
+    // weekly API shape
+    rows    = group === 'printer' ? (report.capacity.by_printer || []) : (report.staffing.by_operator || []);
+    nameKey = group === 'printer' ? 'printer_name' : 'operator_name';
+    if (metric === 'material') { valueKey = group === 'printer' ? 'total_material_g' : 'material_used_g'; unit = 'g'; }
+    else if (metric === 'hours') { valueKey = group === 'printer' ? 'print_hours' : 'print_hours_handled'; unit = 'h'; }
+    else                         { valueKey = 'jobs'; unit = 'jobs';
+      // weekly printer uses 'jobs', operator uses 'jobs_handled'
+      if (group === 'operator') valueKey = 'jobs_handled';
+    }
+  } else {
+    // monthly API shape
+    rows    = group === 'printer' ? (report.by_printer || []) : (report.by_operator || []);
+    nameKey = group === 'printer' ? 'printer_name' : 'operator_name';
+    if (metric === 'material') { valueKey = 'total_material_g'; unit = 'g'; }
+    else if (metric === 'hours') { valueKey = 'print_hours'; unit = 'h'; }
+    else                         { valueKey = 'jobs'; unit = 'jobs'; }
+  }
+
+  if (prefix === 'w') {
+    if (wDonut) { wDonut.destroy(); wDonut = null; }
+    renderDonut('w-donut', rows, nameKey, valueKey, unit, c => wDonut = c);
+  } else {
+    if (mDonut) { mDonut.destroy(); mDonut = null; }
+    renderDonut('m-donut', rows, nameKey, valueKey, unit, c => mDonut = c);
+  }
+}
+
+/* ── CSV export (weekly only) ───────────────────────────────── */
+function exportCSV() {
+  if (!lastWeekReport) return;
+  const r = lastWeekReport;
+  const rows = [
+    ['Week', r.week], ['Period', `${r.period.from} to ${r.period.to}`], [],
+    ['--- Volume ---'], ['Total Jobs', r.volume.total_jobs], ['Finished', r.volume.finished_jobs], ['Unfinished', r.volume.unfinished_jobs], [],
+    ['--- Material ---'], ['Total Material (g)', r.material.total_material_g], ['Avg per Job (g)', r.material.avg_material_per_job_g], [],
+    ['--- Printer Breakdown ---'], ['Printer','Jobs','Print Hours','Avg Min/Job','Material (g)'],
+    ...(r.capacity.by_printer||[]).map(p=>[p.printer_name,p.jobs,p.print_hours,p.avg_print_minutes,p.total_material_g]),
+    [],['--- Staff ---'],['Operator','Jobs','Print Hours','Material (g)'],
+    ...(r.staffing.by_operator||[]).map(o=>[o.operator_name,o.jobs_handled,o.print_hours_handled,o.material_used_g]),
+  ];
+  const csv = rows.map(r=>r.map(v=>`"${String(v??'').replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));
+  a.download = `weekly_report_${r.week}.csv`; a.click();
+}
+</script>
+{% endblock %}

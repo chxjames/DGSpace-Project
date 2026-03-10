@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}Sync Google Sheet — DGSpace{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width:600px;margin:0 auto">
+  <h2>🔄 Sync Google Sheet</h2>
+  <p style="color:#666;margin-bottom:24px;font-size:0.9rem">
+    Reads all rows from the configured Google Sheet and imports them into the database.
+    Existing rows are updated (keyed by sheet row number); no duplicates are created.
+  </p>
+
+  <div id="alert-box"></div>
+
+  <div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:16px;margin-bottom:24px;font-size:0.85rem;color:#92400e">
+    <strong>⚠️ Prerequisites</strong><br>
+    Make sure the Service Account JSON file is in place and
+    <code>SERVICE_ACCOUNT_JSON_PATH</code> is set in <code>.env</code>.<br>
+    The Service Account must have <strong>read access</strong> to the Sheet.
+  </div>
+
+  <button id="sync-btn" class="btn" onclick="doSync()" style="margin-bottom:16px">
+    🔄 Start Sync
+  </button>
+  <a href="/reports/weekly/" style="display:block;text-align:center;font-size:0.9rem;color:#555">
+    ← Back to Weekly Report
+  </a>
+
+  <!-- Result card -->
+  <div id="result-card" style="display:none;margin-top:24px;padding:20px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px">
+    <div style="font-weight:600;color:#166534;margin-bottom:12px">✅ Sync Complete</div>
+    <table style="font-size:0.9rem;border-collapse:collapse;width:100%">
+      <tr><td style="padding:4px 0;color:#555;width:140px">Batch ID</td><td id="r-batch" style="font-family:monospace;font-size:0.8rem"></td></tr>
+      <tr><td style="padding:4px 0;color:#555">Total rows</td><td id="r-total"></td></tr>
+      <tr><td style="padding:4px 0;color:#28a745">Imported OK</td><td id="r-success" style="color:#28a745;font-weight:600"></td></tr>
+      <tr><td style="padding:4px 0;color:#dc3545">DB failures</td><td id="r-failed" style="color:#dc3545;font-weight:600"></td></tr>
+      <tr><td style="padding:4px 0;color:#fd7e14">Parse warnings</td><td id="r-warnings" style="color:#fd7e14;font-weight:600"></td></tr>
+    </table>
+    <div style="margin-top:12px;font-size:0.85rem;color:#555">
+      Rows with parse warnings were still written — check
+      <a href="/reports/raw/" style="color:#007bff">Raw Logs</a> for details.
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  const user = getUser();
+  const allowed = ['admin', 'professor', 'manager'];
+  if (!user || !allowed.includes(user.user_type)) {
+    location.href = '/accounts/login';
+  }
+})();
+
+async function doSync() {
+  const btn = document.getElementById('sync-btn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Syncing…';
+  document.getElementById('alert-box').innerHTML = '';
+  document.getElementById('result-card').style.display = 'none';
+
+  try {
+    const res  = await apiFetch('/api/reports/sync-google-sheet', { method: 'POST' });
+    const data = await res.json();
+
+    if (data.success) {
+      document.getElementById('r-batch').textContent    = data.batch_id;
+      document.getElementById('r-total').textContent    = data.total;
+      document.getElementById('r-success').textContent  = data.success_count ?? data.success;
+      document.getElementById('r-failed').textContent   = data.failed;
+      document.getElementById('r-warnings').textContent = data.warnings;
+      document.getElementById('result-card').style.display = 'block';
+    } else {
+      document.getElementById('alert-box').innerHTML =
+        `<div style="padding:12px;background:#fee2e2;border:1px solid #fca5a5;border-radius:6px;color:#991b1b;margin-bottom:16px;font-size:0.9rem">
+          ❌ ${data.message || 'Sync failed.'}
+          ${data.detail ? `<pre style="margin-top:8px;font-size:0.75rem;white-space:pre-wrap;overflow:auto;max-height:200px">${data.detail}</pre>` : ''}
+        </div>`;
+    }
+  } catch(e) {
+    document.getElementById('alert-box').innerHTML =
+      `<div style="padding:12px;background:#fee2e2;border:1px solid #fca5a5;border-radius:6px;color:#991b1b;margin-bottom:16px">
+        Cannot reach backend server.
+      </div>`;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '🔄 Start Sync';
+  }
+}
+</script>
+{% endblock %}

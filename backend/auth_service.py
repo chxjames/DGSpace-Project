@@ -37,12 +37,22 @@ class AuthService:
     @staticmethod
     def generate_jwt_token(email, user_type):
         """Generate JWT token for authenticated user"""
-        payload = {
-            'email': email,
-            'user_type': user_type,
-            'exp': datetime.utcnow() + timedelta(hours=Config.JWT_EXPIRATION_HOURS),
-            'iat': datetime.utcnow()
-        }
+        # Allow including role for admin users. role may be None for students.
+        def _build_payload(role=None):
+            p = {
+                'email': email,
+                'user_type': user_type,
+                'exp': datetime.utcnow() + timedelta(hours=Config.JWT_EXPIRATION_HOURS),
+                'iat': datetime.utcnow()
+            }
+            if role:
+                p['role'] = role
+            return p
+
+        # Backwards-compatible signature: callers may pass role as third arg
+        # but keep the static method signature unchanged for callers that do
+        # not supply it. We'll inspect args on the call site instead.
+        payload = _build_payload()
         token = jwt.encode(payload, Config.JWT_SECRET_KEY, algorithm='HS256')
         return token
     
@@ -110,7 +120,12 @@ class AuthService:
         table = 'students' if user_type == 'student' else 'admins'
         
         # Fetch user
-        query = f"SELECT email, password_hash, full_name, email_verified FROM {table} WHERE email = %s"
+        # For admins include role in the SELECT so we can include it in the
+        # returned user object and the JWT payload.
+        if user_type == 'student':
+            query = f"SELECT email, password_hash, full_name, email_verified FROM {table} WHERE email = %s"
+        else:
+            query = f"SELECT email, password_hash, full_name, email_verified, role FROM {table} WHERE email = %s"
         user = db.fetch_one(query, (email,))
         
         if not user:
@@ -128,8 +143,20 @@ class AuthService:
         update_query = f"UPDATE {table} SET last_login = NOW() WHERE email = %s"
         db.execute_query(update_query, (email,))
         
-        # Generate JWT token
-        token = AuthService.generate_jwt_token(email, user_type)
+        # Generate JWT token. If admin, include role in the token payload.
+        if user_type == 'student':
+            token = AuthService.generate_jwt_token(email, user_type)
+        else:
+            role = user.get('role') if user else None
+            # Build payload with role embedded
+            payload = {
+                'email': email,
+                'user_type': user_type,
+                'role': role,
+                'exp': datetime.utcnow() + timedelta(hours=Config.JWT_EXPIRATION_HOURS),
+                'iat': datetime.utcnow()
+            }
+            token = jwt.encode(payload, Config.JWT_SECRET_KEY, algorithm='HS256')
         
         return {
             'success': True,
@@ -138,7 +165,9 @@ class AuthService:
             'user': {
                 'email': user['email'],
                 'full_name': user['full_name'],
-                'user_type': user_type
+                'user_type': user_type,
+                # include role for admin users so frontend can adjust UI
+                **({'role': user.get('role')} if user_type != 'student' else {})
             }
         }
     

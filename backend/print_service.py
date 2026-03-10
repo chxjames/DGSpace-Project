@@ -18,11 +18,15 @@ class PrintService:
         description: Optional[str] = None,
         material_type: str = 'PLA',
         color_preference: Optional[str] = None,
+        is_senior_design: bool = False,
+        project_context: str = 'individual',
         estimated_weight_grams: Optional[float] = None,
         estimated_print_time_hours: Optional[float] = None,
         priority: str = 'normal',
         stl_file_path: Optional[str] = None,
-        stl_original_name: Optional[str] = None
+        stl_original_name: Optional[str] = None,
+        slicer_time_minutes: Optional[float] = None,
+        slicer_material_g: Optional[float] = None,
     ) -> Dict:
         """
         Create a new 3D print request
@@ -33,6 +37,8 @@ class PrintService:
             description: Detailed description of the request
             material_type: Type of material (PLA, ABS, PETG, TPU, Nylon, Other)
             color_preference: Preferred color for the print
+            is_senior_design: Whether this is a Senior Design project
+            project_context: 'class' or 'individual'
             estimated_weight_grams: Estimated weight in grams
             estimated_print_time_hours: Estimated print time in hours
             priority: Priority level (low, normal, high, urgent)
@@ -55,14 +61,16 @@ class PrintService:
             query = """
                 INSERT INTO print_requests 
                 (student_email, project_name, description, material_type, 
-                color_preference, estimated_weight_grams, estimated_print_time_hours, priority,
-                stl_file_path, stl_original_name)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                color_preference, is_senior_design, project_context,
+                estimated_weight_grams, estimated_print_time_hours, priority,
+                stl_file_path, stl_original_name, slicer_time_minutes, slicer_material_g)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """
             values = (
                 student_email, project_name, description, material_type,
-                color_preference, estimated_weight_grams, estimated_print_time_hours, priority,
-                stl_file_path, stl_original_name
+                color_preference, is_senior_design, project_context,
+                estimated_weight_grams, estimated_print_time_hours, priority,
+                stl_file_path, stl_original_name, slicer_time_minutes, slicer_material_g
             )
             
             db.execute_query(query, values)
