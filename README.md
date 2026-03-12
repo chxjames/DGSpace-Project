@@ -385,4 +385,4 @@ SERVICE_ACCOUNT_JSON_PATH=backend/service_account.json
 
 ## License
 
-This project is developed for Donald's Garage at the University of Tampa.
+This project is developed for Donald's Garage at the University of San Diego.
