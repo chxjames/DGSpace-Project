@@ -33,8 +33,7 @@
         <table style="width:100%;border-collapse:collapse;font-size:0.9rem">
           <tr><td style="padding:6px 0;color:#888;width:44%">Material</td>      <td id="d-material"></td></tr>
           <tr><td style="padding:6px 0;color:#888">Color</td>                   <td id="d-color"></td></tr>
-          <tr><td style="padding:6px 0;color:#888">Est. Weight</td>             <td id="d-weight"></td></tr>
-          <tr><td style="padding:6px 0;color:#888">Est. Print Time</td>         <td id="d-time"></td></tr>
+          <tr id="d-deadline-row" style="display:none"><td style="padding:6px 0;color:#888">📅 Deadline</td>      <td id="d-deadline" style="font-weight:600"></td></tr>
           <tr><td style="padding:6px 0;color:#888">Submitted by</td>            <td id="d-student"></td></tr>
           <tr id="d-email-row" style="display:none"><td style="padding:6px 0;color:#888">Student Email</td>  <td><a id="d-student-email" href="#" style="color:#e94560;font-size:0.9rem"></a></td></tr>
         </table>
@@ -52,32 +51,6 @@
           </div>
         </div>
 
-        <!-- STL Analysis -->
-        <div id="d-analysis-block" style="margin-top:16px;padding:12px 14px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;display:none">
-          <div style="font-size:0.85rem;font-weight:600;color:#166534;margin-bottom:8px">📊 STL Analysis</div>
-          <table style="width:100%;font-size:0.85rem;border-collapse:collapse">
-            <tr>
-              <td style="padding:3px 0;color:#555;width:40%">Volume</td>
-              <td id="d-a-volume" style="font-weight:500"></td>
-            </tr>
-            <tr>
-              <td style="padding:3px 0;color:#555">Dimensions</td>
-              <td id="d-a-bbox" style="font-weight:500"></td>
-            </tr>
-            <tr>
-              <td style="padding:3px 0;color:#555">Est. Weight</td>
-              <td id="d-a-weight" style="font-weight:500"></td>
-            </tr>
-            <tr>
-              <td style="padding:3px 0;color:#555">Est. Print Time</td>
-              <td id="d-a-time" style="font-weight:500"></td>
-            </tr>
-          </table>
-          <div style="margin-top:8px;font-size:0.85rem;color:#555">
-            <span style="font-weight:500">Infill:</span> <span id="d-infill-display" style="font-weight:600">20</span>%
-          </div>
-          <div style="margin-top:6px;font-size:0.78rem;color:#888">⚠️ Estimates are approximate. Actual values depend on slicer settings.</div>
-        </div>
       </div>
 
       <!-- Right: STL viewer -->
@@ -89,19 +62,15 @@
           </svg>
           <span style="font-size:0.85rem">No STL file attached</span>
         </div>
-
         <!-- Three.js canvas container -->
         <div id="stl-viewer-wrap" style="display:none;position:relative">
           <canvas id="stl-canvas" style="width:100%;height:320px;display:block"></canvas>
-          <!-- Controls hint -->
           <div style="position:absolute;bottom:8px;right:10px;font-size:0.72rem;color:#aaa;pointer-events:none">
             🖱 Drag to rotate · Scroll to zoom
           </div>
-          <!-- Loading spinner while STL parses -->
           <div id="stl-loading" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.85);font-size:0.85rem;color:#888">
             Loading 3D model…
           </div>
-          <!-- Download link -->
           <a id="stl-download" href="#" download
              style="position:absolute;top:8px;right:10px;font-size:0.75rem;color:#007bff;text-decoration:none;background:rgba(255,255,255,0.9);padding:3px 8px;border-radius:4px">
             ⬇ Download STL
@@ -117,42 +86,111 @@
         <h3 style="margin:0 0 16px;font-size:1rem;color:#444">🛠 Admin Actions</h3>
         <div id="admin-alert-box"></div>
 
-        <!-- Status info for non-pending -->
+        <!-- Status info for non-pending (completed / rejected / cancelled) -->
         <div id="admin-status-info" style="display:none;font-size:0.9rem;color:#555"></div>
 
-        <!-- Action buttons (shown for pending / revision_requested) -->
-        <div id="admin-btn-group" style="display:none;display:flex;gap:12px;flex-wrap:wrap">
-          <button id="btn-approve" class="btn" onclick="adminApprove()"
-                  style="width:auto;padding:10px 24px;background:#28a745;font-size:0.95rem">
-            ✅ Approve — Ready to Print
-          </button>
-          <button id="btn-reject" class="btn" onclick="adminReject()"
-                  style="width:auto;padding:10px 24px;background:#dc3545;font-size:0.95rem">
-            ❌ Reject
-          </button>
-          <button id="btn-feedback-toggle" class="btn" onclick="toggleFeedbackForm()"
-                  style="width:auto;padding:10px 24px;background:#f39c12;font-size:0.95rem">
-            💬 Send Feedback
-          </button>
-        </div>
+        <!-- ── Review panel (shown for pending / revision_requested) ── -->
+        <div id="admin-review-panel" style="display:none">
 
-        <!-- Inline feedback form (hidden by default) -->
-        <div id="feedback-form" style="display:none;margin-top:16px">
-          <label style="font-weight:600;font-size:0.9rem;color:#333;display:block;margin-bottom:6px">
-            Feedback for Student <span style="color:#e94560">*</span>
-          </label>
-          <p style="font-size:0.82rem;color:#888;margin:0 0 8px">
-            The student will see this message. Explain what needs to be changed.
-          </p>
-          <textarea id="feedback-text" rows="4" placeholder="e.g. The STL file has non-manifold geometry. Please repair and re-upload…"
-                    style="width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid #ddd;border-radius:8px;font-size:0.9rem;resize:vertical;font-family:inherit"></textarea>
-          <div style="display:flex;gap:10px;margin-top:12px;justify-content:flex-end">
-            <button class="btn" onclick="toggleFeedbackForm()" style="width:auto;padding:8px 18px;background:#6c757d">Cancel</button>
-            <button id="btn-send-feedback" class="btn" onclick="adminSendFeedback()" style="width:auto;padding:8px 18px;background:#f39c12">💬 Send Feedback</button>
+          <!-- Step 1: Download STL -->
+          <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:16px">
+            <div style="min-width:26px;height:26px;background:#007bff;color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.85rem;flex-shrink:0">1</div>
+            <div>
+              <div style="font-weight:600;font-size:0.9rem;color:#333;margin-bottom:4px">Download &amp; slice the STL file</div>
+              <div style="font-size:0.85rem;color:#666;margin-bottom:6px">Open in Cura, slice it, then save as <code>.ufp</code> via <em>File → Save to Disk</em>.</div>
+              <a id="ufp-stl-link" href="#" download
+                 style="display:inline-flex;align-items:center;gap:6px;font-size:0.85rem;color:#007bff;text-decoration:none;border:1px solid #007bff;padding:5px 12px;border-radius:6px">
+                ⬇ Download STL
+              </a>
+              <span id="ufp-no-stl-msg" style="display:none;font-size:0.85rem;color:#dc3545">⚠️ No STL file attached to this request.</span>
+            </div>
+          </div>
+
+          <!-- Step 2: Upload UFP -->
+          <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:16px">
+            <div style="min-width:26px;height:26px;background:#007bff;color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.85rem;flex-shrink:0">2</div>
+            <div style="flex:1">
+              <div style="font-weight:600;font-size:0.9rem;color:#333;margin-bottom:4px">Upload the sliced <code>.ufp</code> file</div>
+              <div style="font-size:0.85rem;color:#666;margin-bottom:8px">If the model looks good, upload the sliced file to approve. Otherwise skip this step and send feedback below.</div>
+
+              <!-- Drop zone -->
+              <div id="ufp-dropzone"
+                   style="border:2px dashed #adb5bd;border-radius:8px;padding:24px;text-align:center;cursor:pointer;transition:border-color 0.2s,background 0.2s;background:#fafafa"
+                   ondragover="event.preventDefault();this.style.borderColor='#007bff';this.style.background='#e8f4ff'"
+                   ondragleave="this.style.borderColor='#adb5bd';this.style.background='#fafafa'"
+                   ondrop="event.preventDefault();this.style.borderColor='#adb5bd';this.style.background='#fafafa';handleUfpUpload(event.dataTransfer.files[0])"
+                   onclick="document.getElementById('ufp-file-input').click()">
+                <div style="font-size:1.5rem;margin-bottom:6px">📦</div>
+                <div style="font-size:0.9rem;color:#555">Drop <strong>.ufp</strong> here or click to browse</div>
+                <div style="font-size:0.78rem;color:#999;margin-top:4px">Max 100 MB</div>
+              </div>
+              <input id="ufp-file-input" type="file" accept=".ufp" style="display:none"
+                     onchange="handleUfpUpload(this.files[0])">
+
+              <!-- Upload progress -->
+              <div id="ufp-uploading" style="display:none;margin-top:10px;font-size:0.88rem;color:#007bff;text-align:center">
+                ⏳ Uploading and reading slice data…
+              </div>
+            </div>
+          </div>
+
+          <!-- Parsed data card (hidden until upload succeeds) -->
+          <div id="ufp-parsed-card" style="display:none;margin-bottom:16px">
+            <div style="display:flex;align-items:flex-start;gap:12px">
+              <div style="min-width:26px;height:26px;background:#28a745;color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.85rem;flex-shrink:0">✓</div>
+              <div style="flex:1;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:14px">
+                <div style="font-weight:600;font-size:0.9rem;color:#166534;margin-bottom:10px">✅ Slice data loaded from Cura</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:0.88rem">
+                  <div>
+                    <div style="color:#888;margin-bottom:2px">Print Time</div>
+                    <div id="ufp-disp-time" style="font-weight:600;color:#333;font-size:1rem"></div>
+                  </div>
+                  <div>
+                    <div style="color:#888;margin-bottom:2px">Material</div>
+                    <div id="ufp-disp-material" style="font-weight:600;color:#333;font-size:1rem"></div>
+                  </div>
+                  <div>
+                    <div style="color:#888;margin-bottom:2px">Layer Height</div>
+                    <div id="ufp-disp-layer" style="font-weight:600;color:#333"></div>
+                  </div>
+                  <div>
+                    <div style="color:#888;margin-bottom:2px">Infill</div>
+                    <div id="ufp-disp-infill" style="font-weight:600;color:#333"></div>
+                  </div>
+                </div>
+                <div style="margin-top:10px;font-size:0.8rem;color:#555">
+                  File: <span id="ufp-disp-filename" style="color:#166534"></span>
+                  <a href="#" onclick="cancelUfpUpload();return false" style="margin-left:12px;color:#dc3545;font-size:0.78rem">✕ Remove</a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Admin Notes (shared for approve and send-back) -->
+          <div style="margin-bottom:16px">
+            <label style="font-size:0.85rem;font-weight:600;color:#555;display:block;margin-bottom:4px">Admin Notes / Feedback</label>
+            <textarea id="admin-notes-input" rows="3" placeholder="Write feedback here if sending back, or add notes for the approval…"
+                      style="width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:0.88rem;resize:vertical;font-family:inherit"></textarea>
+          </div>
+
+          <!-- Action buttons — always visible -->
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <button id="btn-confirm-approve" class="btn" onclick="adminApproveWithUfp()" disabled
+                    style="width:auto;padding:10px 24px;background:#28a745;font-size:0.95rem;opacity:0.55;cursor:not-allowed">
+              ✅ Approve
+            </button>
+            <button id="btn-send-back" class="btn" onclick="adminSendBack()"
+                    style="width:auto;padding:10px 24px;background:#f39c12;font-size:0.95rem">
+              ↩ Send Back
+            </button>
+            <button id="btn-reject" class="btn" onclick="adminReject()"
+                    style="width:auto;padding:10px 24px;background:#dc3545;font-size:0.95rem">
+              ❌ Reject
+            </button>
           </div>
         </div>
 
-        <!-- Status update buttons for in_progress -->
+        <!-- Status update buttons for in_progress / approved -->
         <div id="admin-progress-group" style="display:none;margin-top:12px;display:flex;gap:12px;flex-wrap:wrap">
           <button class="btn" onclick="adminSetStatus('completed')"
                   style="width:auto;padding:10px 24px;background:#28a745;font-size:0.95rem">
@@ -184,7 +222,6 @@ import * as THREE from 'three';
 import { STLLoader }     from 'three/addons/loaders/STLLoader.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
-// ── helpers (from base.html, already in window scope) ──────
 const requestId = parseInt(location.pathname.split('/').filter(Boolean).pop());
 
 // ── fetch request data ──────────────────────────────────────
@@ -227,9 +264,22 @@ function renderDetail(r) {
   document.getElementById('d-created-at').textContent    = new Date(r.created_at).toLocaleDateString('en-US');
   document.getElementById('d-material').textContent      = r.material_type || '—';
   document.getElementById('d-color').textContent         = r.color_preference || '—';
-  document.getElementById('d-weight').textContent        = r.estimated_weight_grams ? r.estimated_weight_grams + ' g' : '—';
-  document.getElementById('d-time').textContent          = r.estimated_print_time_hours ? r.estimated_print_time_hours + ' h' : '—';
-  document.getElementById('d-student').textContent       = r.student_name || r.student_email || '—';
+  document.getElementById('d-student').textContent         = r.student_name || r.student_email || '—';
+
+  // Deadline
+  if (r.deadline_date) {
+    const dl      = new Date(r.deadline_date + 'T00:00:00');
+    const today   = new Date(); today.setHours(0,0,0,0);
+    const daysLeft = Math.round((dl - today) / (1000 * 60 * 60 * 24));
+    const dlStr   = dl.toLocaleDateString('en-US', { year:'numeric', month:'short', day:'numeric' });
+    let badge = '';
+    if (daysLeft < 0)      badge = ` <span style="color:#dc3545;font-size:0.8rem">(overdue)</span>`;
+    else if (daysLeft <= 3) badge = ` <span style="color:#dc3545;font-size:0.8rem">(${daysLeft}d left ⚠️)</span>`;
+    else if (daysLeft <= 7) badge = ` <span style="color:#fd7e14;font-size:0.8rem">(${daysLeft}d left)</span>`;
+    else                    badge = ` <span style="color:#888;font-size:0.8rem">(${daysLeft}d left)</span>`;
+    document.getElementById('d-deadline').innerHTML = dlStr + badge;
+    document.getElementById('d-deadline-row').style.display = '';
+  }
 
   // Show student email only to admins
   const currentUser = window.getUser ? window.getUser() : null;
@@ -260,18 +310,11 @@ function renderDetail(r) {
   // STL viewer
   if (r.stl_file_path) {
     const stlUrl = `/api/uploads/${r.stl_file_path}`;
-    document.getElementById('stl-placeholder').style.display  = 'none';
-    document.getElementById('stl-viewer-wrap').style.display  = 'block';
-    document.getElementById('stl-download').href              = stlUrl;
-    document.getElementById('stl-download').download          = r.stl_original_name || r.stl_file_path;
+    document.getElementById('stl-placeholder').style.display = 'none';
+    document.getElementById('stl-viewer-wrap').style.display = 'block';
+    document.getElementById('stl-download').href     = stlUrl;
+    document.getElementById('stl-download').download = r.stl_original_name || r.stl_file_path;
     initViewer(stlUrl);
-
-    // Store for re-analysis
-    window._detailStlFile = r.stl_file_path;
-    window._detailMaterial = r.material_type || 'PLA';
-
-    // Fetch live STL analysis
-    fetchAnalysis(r.stl_file_path, r.material_type || 'PLA', 0.20);
   }
 
   // ── Admin actions panel ──────────────────────────────────
@@ -279,18 +322,32 @@ function renderDetail(r) {
     document.getElementById('admin-actions').style.display = 'block';
     window._currentRequestId = r.id || requestId;
     window._currentStatus = r.status;
+    window._currentRequest = r;
 
-    const btnGroup      = document.getElementById('admin-btn-group');
+    const reviewPanel   = document.getElementById('admin-review-panel');
     const progressGroup = document.getElementById('admin-progress-group');
     const statusInfo    = document.getElementById('admin-status-info');
 
     // Reset visibility
-    btnGroup.style.display      = 'none';
+    reviewPanel.style.display   = 'none';
     progressGroup.style.display = 'none';
     statusInfo.style.display    = 'none';
 
     if (r.status === 'pending' || r.status === 'revision_requested') {
-      btnGroup.style.display = 'flex';
+      reviewPanel.style.display = 'block';
+
+      // Set up the STL download link
+      const stlLink  = document.getElementById('ufp-stl-link');
+      const noStlMsg = document.getElementById('ufp-no-stl-msg');
+      if (r.stl_file_path) {
+        stlLink.href     = `/api/uploads/${r.stl_file_path}`;
+        stlLink.download = r.stl_original_name || r.stl_file_path;
+        stlLink.style.display  = 'inline-flex';
+        noStlMsg.style.display = 'none';
+      } else {
+        stlLink.style.display  = 'none';
+        noStlMsg.style.display = 'inline';
+      }
     } else if (r.status === 'approved' || r.status === 'in_progress') {
       progressGroup.style.display = 'flex';
     } else {
@@ -301,43 +358,27 @@ function renderDetail(r) {
   }
 }
 
-async function fetchAnalysis(filename, material, infill) {
-  try {
-    const res = await window.apiFetch(
-      `/api/print-requests/analyze-stl/${encodeURIComponent(filename)}?material=${encodeURIComponent(material)}&infill=${infill}`
-    );
-    const data = await res.json();
-    if (data.success && data.analysis) {
-      const a = data.analysis;
-      document.getElementById('d-a-volume').textContent = a.volume_cm3 + ' cm³';
-      document.getElementById('d-a-weight').textContent = a.estimated_weight_grams + ' g';
-      document.getElementById('d-a-time').textContent   = a.estimated_print_time_hours + ' h';
-      document.getElementById('d-infill-display').textContent = a.infill_percent;
-      const bb = a.bounding_box;
-      document.getElementById('d-a-bbox').textContent   = bb.x_mm + ' × ' + bb.y_mm + ' × ' + bb.z_mm + ' mm';
-      document.getElementById('d-analysis-block').style.display = 'block';
-
-      // Sync the top Request Details section with analysis values
-      // Only override if student didn't manually enter values (shows '—')
-      const weightEl = document.getElementById('d-weight');
-      const timeEl   = document.getElementById('d-time');
-      if (weightEl.textContent === '—') weightEl.textContent = a.estimated_weight_grams + ' g';
-      if (timeEl.textContent === '—')   timeEl.textContent   = a.estimated_print_time_hours + ' h';
-    }
-  } catch(e) {
-    // Analysis is optional — silently ignore errors
-  }
-}
-
 // ── Three.js STL viewer ─────────────────────────────────────
 function initViewer(stlUrl) {
   const canvas = document.getElementById('stl-canvas');
   const wrap   = document.getElementById('stl-viewer-wrap');
 
-  // Renderer
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
   renderer.setPixelRatio(window.devicePixelRatio);
   renderer.setClearColor(0xf8f9fa, 1);
+
+  const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 10000);
+  camera.position.set(0, 0, 200);
+
+  const scene = new THREE.Scene();
+  const ambient  = new THREE.AmbientLight(0xffffff, 0.6);
+  const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
+  dirLight.position.set(1, 2, 3);
+  scene.add(ambient, dirLight);
+
+  const controls = new OrbitControls(camera, renderer.domElement);
+  controls.enableDamping  = true;
+  controls.dampingFactor  = 0.08;
 
   function resize() {
     const w = wrap.clientWidth;
@@ -347,30 +388,11 @@ function initViewer(stlUrl) {
     camera.updateProjectionMatrix();
   }
 
-  // Camera
-  const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 10000);
-  camera.position.set(0, 0, 200);
-
-  // Scene + lights
-  const scene = new THREE.Scene();
-  const ambient = new THREE.AmbientLight(0xffffff, 0.6);
-  const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
-  dirLight.position.set(1, 2, 3);
-  scene.add(ambient, dirLight);
-
-  // OrbitControls
-  const controls = new OrbitControls(camera, renderer.domElement);
-  controls.enableDamping = true;
-  controls.dampingFactor = 0.08;
-
-  // Load STL
   const loader = new STLLoader();
   loader.load(
     stlUrl,
     (geometry) => {
-      // Hide loading overlay
       document.getElementById('stl-loading').style.display = 'none';
-
       geometry.computeBoundingBox();
       const box    = geometry.boundingBox;
       const center = new THREE.Vector3();
@@ -378,20 +400,12 @@ function initViewer(stlUrl) {
       const size   = new THREE.Vector3();
       box.getSize(size);
       const maxDim = Math.max(size.x, size.y, size.z);
-
-      // Center the geometry
       geometry.translate(-center.x, -center.y, -center.z);
-
       const material = new THREE.MeshPhongMaterial({
-        color: 0x4a90d9,
-        specular: 0x222222,
-        shininess: 40,
-        side: THREE.DoubleSide,
+        color: 0x4a90d9, specular: 0x222222, shininess: 40, side: THREE.DoubleSide,
       });
       const mesh = new THREE.Mesh(geometry, material);
       scene.add(mesh);
-
-      // Fit camera
       const dist = maxDim * 1.6;
       camera.position.set(dist * 0.6, dist * 0.4, dist);
       camera.near = dist * 0.001;
@@ -399,7 +413,6 @@ function initViewer(stlUrl) {
       camera.updateProjectionMatrix();
       controls.target.set(0, 0, 0);
       controls.update();
-
       resize();
     },
     undefined,
@@ -409,11 +422,9 @@ function initViewer(stlUrl) {
     }
   );
 
-  // Resize observer
   new ResizeObserver(resize).observe(wrap);
   resize();
 
-  // Render loop
   (function animate() {
     requestAnimationFrame(animate);
     controls.update();
@@ -423,20 +434,132 @@ function initViewer(stlUrl) {
 
 // ── Admin action functions ──────────────────────────────────
 // Expose to global scope so onclick handlers in HTML can call them
-window.adminApprove = adminApprove;
 window.adminReject = adminReject;
 window.adminSetStatus = adminSetStatus;
-window.toggleFeedbackForm = toggleFeedbackForm;
-window.adminSendFeedback = adminSendFeedback;
+window.adminSendBack = adminSendBack;
+window.handleUfpUpload = handleUfpUpload;
+window.adminApproveWithUfp = adminApproveWithUfp;
+window.cancelUfpUpload = cancelUfpUpload;
 
 function adminShowAlert(msg, type='error') {
   document.getElementById('admin-alert-box').innerHTML =
     `<div class="alert alert-${type}">${msg}</div>`;
 }
 
-async function adminApprove() {
-  if (!confirm('Approve this request and mark it as ready to print?')) return;
-  await adminSetStatus('approved');
+// Stored UFP upload result
+let _ufpUploadResult = null;
+
+function cancelUfpUpload() {
+  _ufpUploadResult = null;
+  document.getElementById('ufp-parsed-card').style.display  = 'none';
+  document.getElementById('ufp-dropzone').style.display     = 'block';
+  document.getElementById('ufp-file-input').value           = '';
+  const btn = document.getElementById('btn-confirm-approve');
+  btn.disabled = true;
+  btn.style.opacity = '0.55';
+  btn.style.cursor  = 'not-allowed';
+}
+
+async function handleUfpUpload(file) {
+  if (!file) return;
+  if (!file.name.toLowerCase().endsWith('.ufp')) {
+    adminShowAlert('Please upload a <strong>.ufp</strong> file (generated by Cura).');
+    return;
+  }
+
+  document.getElementById('ufp-uploading').style.display = 'block';
+  document.getElementById('ufp-dropzone').style.display  = 'none';
+  document.getElementById('admin-alert-box').innerHTML   = '';
+
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const token = window.getToken ? window.getToken() : localStorage.getItem('dg_token');
+    const res = await fetch('/api/print-requests/upload-ufp', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}` },
+      body: formData
+    });
+    const data = await res.json();
+
+    document.getElementById('ufp-uploading').style.display = 'none';
+
+    if (!data.success) {
+      document.getElementById('ufp-dropzone').style.display = 'block';
+      adminShowAlert(data.message || 'Failed to upload UFP file.');
+      return;
+    }
+
+    // Store for confirm step
+    _ufpUploadResult = {
+      filename:      data.filename,
+      original_name: data.original_name,
+      analysis:      data.analysis
+    };
+
+    // Populate the parsed data card
+    const a = data.analysis;
+    const pt = a.print_time;
+    document.getElementById('ufp-disp-time').textContent     = `${pt.hours}h ${pt.minutes}m`;
+    document.getElementById('ufp-disp-material').textContent = a.material_weight_g != null ? `${a.material_weight_g} g` : '—';
+    document.getElementById('ufp-disp-layer').textContent    = a.layer_height != null ? `${a.layer_height} mm` : '—';
+    document.getElementById('ufp-disp-infill').textContent   = a.infill_sparse_density != null ? `${a.infill_sparse_density}%` : '—';
+    document.getElementById('ufp-disp-filename').textContent = data.original_name;
+
+    document.getElementById('ufp-parsed-card').style.display = 'block';
+
+    // Enable Confirm button
+    const btn = document.getElementById('btn-confirm-approve');
+    btn.disabled = false;
+    btn.style.opacity = '1';
+    btn.style.cursor  = 'pointer';
+
+  } catch(e) {
+    document.getElementById('ufp-uploading').style.display = 'none';
+    document.getElementById('ufp-dropzone').style.display  = 'block';
+    adminShowAlert('Network error during upload. Check that the backend is running.');
+  }
+}
+
+async function adminApproveWithUfp() {
+  if (!_ufpUploadResult) {
+    adminShowAlert('Please upload a UFP file first.');
+    return;
+  }
+
+  const btn = document.getElementById('btn-confirm-approve');
+  btn.disabled = true;
+  btn.textContent = 'Approving…';
+
+  const a = _ufpUploadResult.analysis;
+  const body = {
+    ufp_filename:           _ufpUploadResult.filename,
+    ufp_original_name:      _ufpUploadResult.original_name,
+    ufp_print_time_minutes: a.print_time.total_minutes,
+    ufp_material_g:         a.material_weight_g,
+    admin_notes:            document.getElementById('admin-notes-input').value.trim()
+  };
+
+  try {
+    const res = await window.apiFetch(
+      `/api/admin/print-requests/${window._currentRequestId}/approve-with-ufp`,
+      { method: 'POST', body: JSON.stringify(body) }
+    );
+    const data = await res.json();
+    if (data.success) {
+      adminShowAlert('✅ Request approved with slice data. Reloading…', 'success');
+      setTimeout(() => location.reload(), 1200);
+    } else {
+      adminShowAlert(data.message || 'Approval failed.');
+      btn.disabled = false;
+      btn.textContent = '✅ Confirm Approval';
+    }
+  } catch(e) {
+    adminShowAlert('Network error. Make sure the backend is running.');
+    btn.disabled = false;
+    btn.textContent = '✅ Confirm Approval';
+  }
 }
 
 async function adminReject() {
@@ -462,28 +585,15 @@ async function adminSetStatus(newStatus) {
   }
 }
 
-function toggleFeedbackForm() {
-  const form = document.getElementById('feedback-form');
-  const btnGroup = document.getElementById('admin-btn-group');
-  if (form.style.display === 'none') {
-    form.style.display = 'block';
-    btnGroup.style.display = 'none';
-    document.getElementById('feedback-text').focus();
-  } else {
-    form.style.display = 'none';
-    btnGroup.style.display = 'flex';
-  }
-}
-
-async function adminSendFeedback() {
-  const reason = document.getElementById('feedback-text').value.trim();
+async function adminSendBack() {
+  const reason = document.getElementById('admin-notes-input').value.trim();
   if (!reason) {
-    adminShowAlert('Please enter feedback before sending.');
-    document.getElementById('feedback-text').focus();
+    adminShowAlert('Please write feedback in the notes field before sending back.');
+    document.getElementById('admin-notes-input').focus();
     return;
   }
 
-  const btn = document.getElementById('btn-send-feedback');
+  const btn = document.getElementById('btn-send-back');
   btn.disabled = true;
   btn.textContent = 'Sending…';
 
@@ -499,12 +609,12 @@ async function adminSendFeedback() {
     } else {
       adminShowAlert(data.message || 'Failed to send feedback.');
       btn.disabled = false;
-      btn.textContent = '💬 Send Feedback';
+      btn.textContent = '↩ Send Back';
     }
   } catch(e) {
     adminShowAlert('Network error. Make sure the backend is running.');
     btn.disabled = false;
-    btn.textContent = '💬 Send Feedback';
+    btn.textContent = '↩ Send Back';
   }
 }
 

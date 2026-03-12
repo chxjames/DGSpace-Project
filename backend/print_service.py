@@ -27,6 +27,7 @@ class PrintService:
         stl_original_name: Optional[str] = None,
         slicer_time_minutes: Optional[float] = None,
         slicer_material_g: Optional[float] = None,
+        deadline_date: Optional[str] = None,
     ) -> Dict:
         """
         Create a new 3D print request
@@ -63,14 +64,16 @@ class PrintService:
                 (student_email, project_name, description, material_type, 
                 color_preference, is_senior_design, project_context,
                 estimated_weight_grams, estimated_print_time_hours, priority,
-                stl_file_path, stl_original_name, slicer_time_minutes, slicer_material_g)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                stl_file_path, stl_original_name, slicer_time_minutes, slicer_material_g,
+                deadline_date)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """
             values = (
                 student_email, project_name, description, material_type,
                 color_preference, is_senior_design, project_context,
                 estimated_weight_grams, estimated_print_time_hours, priority,
-                stl_file_path, stl_original_name, slicer_time_minutes, slicer_material_g
+                stl_file_path, stl_original_name, slicer_time_minutes, slicer_material_g,
+                deadline_date or None
             )
             
             db.execute_query(query, values)
@@ -116,7 +119,7 @@ class PrintService:
                     SELECT request_id, project_name, description, material_type, 
                            color_preference, estimated_weight_grams, estimated_print_time_hours,
                            priority, status, admin_notes, reviewed_by, reviewed_at,
-                           created_at, updated_at, completed_at
+                           created_at, updated_at, completed_at, deadline_date
                     FROM print_requests 
                     WHERE student_email = %s AND status = %s
                     ORDER BY created_at DESC
@@ -127,7 +130,7 @@ class PrintService:
                     SELECT request_id, project_name, description, material_type, 
                            color_preference, estimated_weight_grams, estimated_print_time_hours,
                            priority, status, admin_notes, reviewed_by, reviewed_at,
-                           created_at, updated_at, completed_at
+                           created_at, updated_at, completed_at, deadline_date
                     FROM print_requests 
                     WHERE student_email = %s
                     ORDER BY created_at DESC
@@ -154,6 +157,7 @@ class PrintService:
                         'created_at': row['created_at'].isoformat() if row['created_at'] else None,
                         'updated_at': row['updated_at'].isoformat() if row['updated_at'] else None,
                         'completed_at': row['completed_at'].isoformat() if row['completed_at'] else None,
+                        'deadline_date': row['deadline_date'].isoformat() if row['deadline_date'] else None,
                     })
             
             return {
@@ -187,7 +191,7 @@ class PrintService:
                        pr.estimated_weight_grams, pr.estimated_print_time_hours,
                        pr.priority, pr.status, pr.admin_notes, pr.reviewed_by,
                        pr.reviewed_at, pr.created_at, pr.updated_at, pr.completed_at,
-                       pr.stl_file_path, pr.stl_original_name
+                       pr.stl_file_path, pr.stl_original_name, pr.deadline_date
                 FROM print_requests pr
                 JOIN students s ON pr.student_email = s.email
                 WHERE pr.request_id = %s
@@ -221,6 +225,7 @@ class PrintService:
                 'completed_at': result['completed_at'].isoformat() if result['completed_at'] else None,
                 'stl_file_path': result['stl_file_path'],
                 'stl_original_name': result['stl_original_name'],
+                'deadline_date': result['deadline_date'].isoformat() if result['deadline_date'] else None,
             }
             
             return {
@@ -316,7 +321,7 @@ class PrintService:
             query = """
                 SELECT pr.request_id, pr.student_email, s.full_name, pr.project_name,
                        pr.description, pr.material_type, pr.priority, pr.status,
-                       pr.created_at, pr.reviewed_by, pr.reviewed_at
+                       pr.created_at, pr.reviewed_by, pr.reviewed_at, pr.deadline_date
                 FROM print_requests pr
                 JOIN students s ON pr.student_email = s.email
                 WHERE 1=1
@@ -351,6 +356,7 @@ class PrintService:
                         'created_at': row['created_at'].isoformat() if row['created_at'] else None,
                         'reviewed_by': row['reviewed_by'],
                         'reviewed_at': row['reviewed_at'].isoformat() if row['reviewed_at'] else None,
+                        'deadline_date': row['deadline_date'].isoformat() if row['deadline_date'] else None,
                     })
             
             return {

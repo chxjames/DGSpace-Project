@@ -6,7 +6,7 @@ from email_service import EmailService, mail
 from config import Config
 from print_service import PrintService
 from totp_service import TotpService
-from stl_analysis import analyze_stl
+from ufp_analysis import analyze_ufp
 from sheet_service import SheetService
 from report_service import ReportService
 import os
@@ -281,33 +281,11 @@ def upload_stl():
     save_path = os.path.join(app.config['UPLOAD_FOLDER'], saved_name)
     file.save(save_path)
 
-    # Analyze the STL file for volume, weight, and print time estimates
-    material = request.form.get('material', 'PLA')
-    try:
-        infill = float(request.form.get('infill', 0.20))
-        infill = max(0.01, min(1.0, infill))   # clamp to valid range
-    except (ValueError, TypeError):
-        infill = 0.20
-    analysis = analyze_stl(save_path, material=material, infill=infill)
-
-    response = {
+    return jsonify({
         'success': True,
         'filename': saved_name,
         'original_name': original_name
-    }
-
-    if analysis.get('success'):
-        response['analysis'] = {
-            'volume_cm3':                analysis['volume_cm3'],
-            'bounding_box':              analysis['bounding_box'],
-            'estimated_weight_grams':    analysis['estimated_weight_grams'],
-            'estimated_print_time_hours': analysis['estimated_print_time_hours'],
-            'material':                  analysis['material'],
-            'infill_percent':            analysis['infill_percent'],
-        }
-
-    return jsonify(response), 201
-
+    }), 201
 
 @app.route('/api/print-requests/upload-stl/<filename>', methods=['DELETE'])
 def delete_uploaded_stl(filename: str):
@@ -349,39 +327,104 @@ def delete_uploaded_stl(filename: str):
         return jsonify({'success': False, 'message': 'Failed to delete file'}), 500
 
 
-@app.route('/api/uploads/<filename>', methods=['GET'])
-def serve_upload(filename: str):
-    """Serve uploaded STL files"""
-    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+@app.route('/api/print-requests/upload-ufp', methods=['POST'])
+def upload_ufp():
+    """Upload a .ufp (Ultimaker Format Package) file and return slicer estimates.
 
-
-@app.route('/api/print-requests/analyze-stl/<filename>', methods=['GET'])
-def analyze_stl_file(filename: str):
-    """Analyze an uploaded STL file and return volume / weight / time estimates."""
+    The .ufp is a ZIP archive produced by Cura. We extract print.json from it
+    to read the exact print time and material usage the slicer calculated.
+    The file is saved temporarily (same uploads folder) so the frontend can
+    reference it like an STL if needed.
+    """
     auth_header = request.headers.get('Authorization')
     if not auth_header or not auth_header.startswith('Bearer '):
         return jsonify({'success': False, 'message': 'No token provided'}), 401
 
     token = auth_header.split(' ')[1]
     payload = AuthService.verify_jwt_token(token)
-    if not payload:
-        return jsonify({'success': False, 'message': 'Invalid or expired token'}), 401
+    if not payload or payload.get('user_type') not in ('student', 'admin'):
+        return jsonify({'success': False, 'message': 'Invalid token'}), 401
+
+    if 'file' not in request.files:
+        return jsonify({'success': False, 'message': 'No file provided'}), 400
+
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'success': False, 'message': 'No file selected'}), 400
+
+    original_name = file.filename
+    if not original_name.lower().endswith('.ufp'):
+        return jsonify({'success': False, 'message': 'Only .ufp files are allowed'}), 400
+
+    # Size limit: 100 MB (UFP contains G-code which can be large)
+    file.seek(0, 2)
+    size = file.tell()
+    file.seek(0)
+    if size > 100 * 1024 * 1024:
+        return jsonify({'success': False, 'message': 'File exceeds 100 MB limit'}), 400
+
+    saved_name = f"{uuid.uuid4().hex}.ufp"
+    save_path = os.path.join(app.config['UPLOAD_FOLDER'], saved_name)
+    file.save(save_path)
+
+    result = analyze_ufp(save_path)
+
+    if not result.get('success'):
+        # Clean up on parse failure
+        try:
+            os.remove(save_path)
+        except OSError:
+            pass
+        return jsonify(result), 400
+
+    return jsonify({
+        'success':       True,
+        'filename':      saved_name,
+        'original_name': original_name,
+        'analysis': {
+            'print_time':            result['print_time'],           # {hours, minutes, total_minutes, total_hours}
+            'material_weight_g':     result['material_weight_g'],    # grams or None
+            'material_length_mm':    result['material_length_mm'],   # mm or None
+            'layer_height':          result['layer_height'],
+            'infill_sparse_density': result['infill_sparse_density'],
+            'material_type':         result['material_type'],
+            'printer_name':          result['printer_name'],
+        }
+    }), 201
+
+
+@app.route('/api/print-requests/upload-ufp/<filename>', methods=['DELETE'])
+def delete_uploaded_ufp(filename: str):
+    """Delete a previously uploaded UFP file."""
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({'success': False, 'message': 'No token provided'}), 401
+
+    token = auth_header.split(' ')[1]
+    payload = AuthService.verify_jwt_token(token)
+    if not payload or payload.get('user_type') != 'student':
+        return jsonify({'success': False, 'message': 'Invalid token or not a student'}), 401
 
     safe_name = os.path.basename(filename)
-    file_path = os.path.join(app.config['UPLOAD_FOLDER'], safe_name)
+    abs_upload_dir = os.path.abspath(app.config['UPLOAD_FOLDER'])
+    abs_file_path  = os.path.abspath(os.path.join(abs_upload_dir, safe_name))
+    if not abs_file_path.startswith(abs_upload_dir + os.sep):
+        return jsonify({'success': False, 'message': 'Invalid filename'}), 400
 
-    material = request.args.get('material', 'PLA')
+    if not os.path.exists(abs_file_path):
+        return jsonify({'success': True, 'message': 'File already deleted'}), 200
+
     try:
-        infill = float(request.args.get('infill', 0.20))
-        infill = max(0.01, min(1.0, infill))
-    except (ValueError, TypeError):
-        infill = 0.20
-    analysis = analyze_stl(file_path, material=material, infill=infill)
+        os.remove(abs_file_path)
+        return jsonify({'success': True, 'message': 'File deleted'}), 200
+    except OSError:
+        return jsonify({'success': False, 'message': 'Failed to delete file'}), 500
 
-    if not analysis.get('success'):
-        return jsonify(analysis), 400
 
-    return jsonify({'success': True, 'analysis': analysis}), 200
+@app.route('/api/uploads/<filename>', methods=['GET'])
+def serve_upload(filename: str):
+    """Serve uploaded STL files"""
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 
 @app.route('/api/print-requests', methods=['POST'])
@@ -403,15 +446,6 @@ def create_print_request():
     if 'project_name' not in data:
         return jsonify({'success': False, 'message': 'Project name is required'}), 400
 
-    # Cura slicer time is required
-    slicer_time_minutes = data.get('slicer_time_minutes')
-    if slicer_time_minutes is None or float(slicer_time_minutes) <= 0:
-        return jsonify({
-            'success': False,
-            'message': 'slicer_time_minutes is required (Cura estimated print time). '
-                       'Please open the STL in Cura and enter the sliced time.'
-        }), 400
-    
     result = PrintService.create_print_request(
         student_email=payload['email'],
         project_name=data['project_name'],
@@ -425,8 +459,9 @@ def create_print_request():
         priority=data.get('priority', 'normal'),
         stl_file_path=data.get('stl_file_path'),
         stl_original_name=data.get('stl_original_name'),
-        slicer_time_minutes=float(slicer_time_minutes),
+        slicer_time_minutes=float(data['slicer_time_minutes']) if data.get('slicer_time_minutes') else None,
         slicer_material_g=float(data['slicer_material_g']) if data.get('slicer_material_g') else None,
+        deadline_date=data.get('deadline_date') or None,
     )
     
     if result['success']:
@@ -702,6 +737,100 @@ def admin_return_request(request_id):
         return jsonify(result), 404
     else:
         return jsonify(result), 400
+
+
+@app.route('/api/admin/print-requests/<int:request_id>/approve-with-ufp', methods=['POST'])
+def admin_approve_with_ufp(request_id):
+    """Approve a print request and attach UFP slicer data (Admin only).
+
+    Body JSON:
+        ufp_filename          – saved filename in uploads folder (from upload-ufp response)
+        ufp_original_name     – original filename uploaded by admin
+        ufp_print_time_minutes – total print time in minutes (decimal)
+        ufp_material_g        – material weight in grams (decimal)
+        admin_notes           – optional text note
+    """
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({'success': False, 'message': 'No token provided'}), 401
+
+    token = auth_header.split(' ')[1]
+    payload = AuthService.verify_jwt_token(token)
+    if not payload or payload.get('user_type') != 'admin':
+        return jsonify({'success': False, 'message': 'Admin access required'}), 403
+
+    data = request.json or {}
+    ufp_filename           = data.get('ufp_filename', '').strip()
+    ufp_original_name      = data.get('ufp_original_name', '').strip()
+    ufp_print_time_minutes = data.get('ufp_print_time_minutes')
+    ufp_material_g         = data.get('ufp_material_g')
+    admin_notes            = data.get('admin_notes', '').strip()
+
+    if not ufp_filename:
+        return jsonify({'success': False, 'message': 'ufp_filename is required'}), 400
+
+    # Verify the UFP file actually exists in the uploads folder
+    ufp_path = os.path.join(app.config['UPLOAD_FOLDER'], os.path.basename(ufp_filename))
+    if not os.path.exists(ufp_path):
+        return jsonify({'success': False, 'message': 'UFP file not found on server'}), 400
+
+    try:
+        # Verify the request exists and is in an approvable state
+        rows = db.fetch_all(
+            "SELECT status FROM print_requests WHERE request_id = %s",
+            (request_id,)
+        )
+        if not rows:
+            return jsonify({'success': False, 'message': 'Print request not found'}), 404
+
+        current_status = rows[0]['status']
+        if current_status not in ('pending', 'revision_requested'):
+            return jsonify({
+                'success': False,
+                'message': f'Request cannot be approved from status: {current_status}'
+            }), 400
+
+        # Update the record: status + UFP fields
+        db.execute_query(
+            """UPDATE print_requests
+               SET status                 = 'approved',
+                   ufp_file_path          = %s,
+                   ufp_original_name      = %s,
+                   ufp_print_time_minutes = %s,
+                   ufp_material_g         = %s,
+                   admin_notes            = %s,
+                   reviewed_by            = %s,
+                   reviewed_at            = NOW()
+               WHERE request_id = %s""",
+            (
+                ufp_filename,
+                ufp_original_name or None,
+                ufp_print_time_minutes,
+                ufp_material_g,
+                admin_notes or None,
+                payload['email'],
+                request_id
+            )
+        )
+
+        # Record history
+        db.execute_query(
+            """INSERT INTO print_request_history
+               (request_id, old_status, new_status, changed_by, change_reason)
+               VALUES (%s, %s, 'approved', %s, %s)""",
+            (
+                request_id,
+                current_status,
+                payload['email'],
+                f'Approved with UFP: {ufp_original_name or ufp_filename}'
+                + (f' | Notes: {admin_notes}' if admin_notes else '')
+            )
+        )
+
+        return jsonify({'success': True, 'message': 'Request approved with UFP data'}), 200
+
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Database error: {str(e)}'}), 500
 
 
 @app.route('/api/admin/print-requests/statistics', methods=['GET'])

@@ -8,60 +8,31 @@
 
   <div id="alert-box"></div>
 
+  <!-- ── File Upload: STL ─────────────────────────────────────────── -->
   <div class="form-group">
-    <label>STL File * <span style="color:#888;font-weight:400">(Project name, weight & time will be auto-filled — please review before submitting)</span></label>
-    <div id="stl-drop-zone" style="
-        border: 2px dashed #ccc;
-        border-radius: 8px;
-        padding: 24px;
-        text-align: center;
-        cursor: pointer;
-        transition: border-color 0.2s, background 0.2s;
-      "
-      onclick="document.getElementById('stl-file-input').click()"
-      ondragover="event.preventDefault(); this.style.borderColor='#007bff'; this.style.background='#f0f7ff';"
-      ondragleave="this.style.borderColor='#ccc'; this.style.background='';"
-      ondrop="handleDrop(event)">
-      <div id="stl-drop-label">
-        <svg width="32" height="32" fill="none" stroke="#aaa" stroke-width="1.5" viewBox="0 0 24 24" style="margin-bottom:8px">
-          <path d="M12 16V8m0 0-3 3m3-3 3 3M6 20h12a2 2 0 0 0 2-2V8l-6-6H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2z"/>
-        </svg>
-        <p style="margin:0;color:#888;font-size:0.9rem">Drag &amp; drop your <strong>.stl</strong> file here, or <span style="color:#007bff">click to browse</span></p>
-        <p style="margin:4px 0 0;color:#bbb;font-size:0.8rem">Max 50 MB</p>
-      </div>
-      <div id="stl-file-selected" style="display:none">
-        <p style="margin:0;font-size:0.9rem;color:#333">📎 <span id="stl-filename-display"></span></p>
-        <button type="button" onclick="clearStlFile(event)" style="margin-top:6px;font-size:0.8rem;color:#dc3545;background:none;border:none;cursor:pointer">✕ Remove</button>
-      </div>
-    </div>
-    <input type="file" id="stl-file-input" accept=".stl" style="display:none" onchange="handleFileSelect(this.files[0])">
-    <div id="stl-upload-status" style="margin-top:6px;font-size:0.85rem"></div>
+    <label>Upload File *</label>
 
-    <!-- STL Analysis Results -->
-    <div id="stl-analysis-card" style="display:none;margin-top:12px;padding:14px 16px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px">
-      <div style="font-size:0.85rem;font-weight:600;color:#166534;margin-bottom:8px">📊 STL Analysis</div>
-      <table style="width:100%;font-size:0.85rem;border-collapse:collapse">
-        <tr>
-          <td style="padding:3px 0;color:#555">Volume</td>
-          <td id="stl-a-volume" style="font-weight:500"></td>
-          <td style="padding:3px 0;color:#555;padding-left:16px">Dimensions</td>
-          <td id="stl-a-bbox" style="font-weight:500"></td>
-        </tr>
-        <tr>
-          <td style="padding:3px 0;color:#555">Est. Weight</td>
-          <td id="stl-a-weight" style="font-weight:500"></td>
-          <td style="padding:3px 0;color:#555;padding-left:16px">Est. Print Time</td>
-          <td id="stl-a-time" style="font-weight:500"></td>
-        </tr>
-        <tr>
-          <td style="padding:3px 0;color:#555">Material</td>
-          <td id="stl-a-material" style="font-weight:500"></td>
-          <td style="padding:3px 0;color:#555;padding-left:16px">Infill</td>
-          <td id="stl-a-infill" style="font-weight:500"></td>
-        </tr>
-      </table>
-      <div style="margin-top:6px;font-size:0.78rem;color:#888">⚠️ Estimates are approximate. Actual values depend on slicer settings.</div>
-    </div>
+      <p style="font-size:0.82rem;color:#888;margin:0 0 8px">Upload your raw <strong>.stl</strong> model. Weight &amp; time will be estimated automatically.</p>
+      <div id="stl-drop-zone" style="border:2px dashed #ccc;border-radius:8px;padding:24px;text-align:center;cursor:pointer;transition:border-color 0.2s,background 0.2s"
+        onclick="document.getElementById('stl-file-input').click()"
+        ondragover="event.preventDefault();this.style.borderColor='#007bff';this.style.background='#f0f7ff';"
+        ondragleave="this.style.borderColor='#ccc';this.style.background='';"
+        ondrop="handleDrop(event)">
+        <div id="stl-drop-label">
+          <svg width="32" height="32" fill="none" stroke="#aaa" stroke-width="1.5" viewBox="0 0 24 24" style="margin-bottom:8px">
+            <path d="M12 16V8m0 0-3 3m3-3 3 3M6 20h12a2 2 0 0 0 2-2V8l-6-6H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2z"/>
+          </svg>
+          <p style="margin:0;color:#888;font-size:0.9rem">Drag &amp; drop your <strong>.stl</strong> file here, or <span style="color:#007bff">click to browse</span></p>
+          <p style="margin:4px 0 0;color:#bbb;font-size:0.8rem">Max 50 MB</p>
+        </div>
+        <div id="stl-file-selected" style="display:none">
+          <p style="margin:0;font-size:0.9rem;color:#333">📎 <span id="stl-filename-display"></span></p>
+          <button type="button" onclick="clearStlFile(event)" style="margin-top:6px;font-size:0.8rem;color:#dc3545;background:none;border:none;cursor:pointer">✕ Remove</button>
+        </div>
+      </div>
+      <input type="file" id="stl-file-input" accept=".stl" style="display:none" onchange="handleFileSelect(this.files[0])">
+      <div id="stl-upload-status" style="margin-top:6px;font-size:0.85rem"></div>
+
   </div>
 
   <div class="form-group">
@@ -123,70 +94,20 @@
       </select>
     </div>
   </div>
-  <div style="display:flex;gap:12px">
-    <div class="form-group" style="flex:1">
-      <label>Est. Weight (g) <span style="color:#888;font-weight:400">(auto-filled)</span></label>
-      <input type="number" id="estimated_weight_grams" min="1" placeholder="50">
-    </div>
-    <div class="form-group" style="flex:1">
-      <label>Est. Print Time (h) <span style="color:#888;font-weight:400">(auto-filled)</span></label>
-      <input type="number" id="estimated_print_time_hours" min="0.5" step="0.5" placeholder="2">
-    </div>
-  </div>
-  <div class="form-group">
-    <label>Infill: <span id="infill-display">20</span>%</label>
-    <input type="range" id="infill_percent" min="5" max="100" step="5" value="20"
-           style="width:100%;accent-color:#e94560"
-           oninput="document.getElementById('infill-display').textContent=this.value;"
-           onchange="onInfillChange();">
-    <div style="display:flex;justify-content:space-between;font-size:0.75rem;color:#aaa;margin-top:2px">
-      <span>5%</span><span>Hollow → Solid</span><span>100%</span>
-    </div>
-  </div>
-  <div class="form-group">
-    <label>Priority</label>
-    <select id="priority">
-      <option value="normal">🟢 Normal</option>
-      <option value="high">🟠 High</option>
-      <option value="urgent">🔴 Urgent</option>
-    </select>
-  </div>
 
-  <!-- ── Cura Slicer Estimate (required) ──────────────────────────── -->
-  <div style="margin:20px 0;padding:16px;background:#fffbeb;border:1px solid #fcd34d;border-radius:8px">
-    <div style="font-weight:600;margin-bottom:4px">🔪 Cura Slicer Estimate <span style="color:#dc3545">*</span></div>
-    <p style="font-size:0.83rem;color:#92400e;margin:0 0 12px">
-      Open your STL in <strong>Cura</strong>, set material &amp; infill, then read the values from the bottom status bar before submitting.
-      <a href="#cura-help" onclick="document.getElementById('cura-help').style.display='block';return false;" style="color:#b45309">▸ Where to find this?</a>
+  <!-- ── Deadline ──────────────────────────────────────────────── -->
+  <div class="form-group">
+    <label>Project Deadline <span style="color:#888;font-weight:400">(optional)</span></label>
+    <p style="font-size:0.82rem;color:#888;margin:2px 0 8px">
+      If you have a hard deadline (e.g. presentation day), let us know so staff can prioritise accordingly.
     </p>
-    <div id="cura-help" style="display:none;font-size:0.82rem;background:#fef9c3;border:1px solid #fde68a;border-radius:6px;padding:10px;margin-bottom:12px;color:#78350f">
-      📍 After slicing, look at the <strong>bottom-right corner</strong> of the Cura window.<br>
-      You'll see: <code>⏱ 2h 13min</code> and <code>⚖ 32 g</code> — enter those values below.
-    </div>
-    <div style="display:flex;gap:12px;flex-wrap:wrap">
-      <div class="form-group" style="flex:1;min-width:160px;margin-bottom:0">
-        <label style="font-size:0.9rem">Est. Print Time <span style="color:#dc3545">*</span></label>
-        <div style="display:flex;gap:6px;align-items:center;margin-top:4px">
-          <input type="number" id="slicer_hours" min="0" max="999" placeholder="0"
-                 style="width:64px;text-align:center" oninput="updateSlicerMinutes()">
-          <span style="color:#555;font-size:0.9rem">h</span>
-          <input type="number" id="slicer_mins" min="0" max="59" placeholder="0"
-                 style="width:64px;text-align:center" oninput="updateSlicerMinutes()">
-          <span style="color:#555;font-size:0.9rem">min</span>
-        </div>
-        <input type="hidden" id="slicer_time_minutes">
-      </div>
-      <div class="form-group" style="flex:1;min-width:140px;margin-bottom:0">
-        <label style="font-size:0.9rem">Est. Material <span style="color:#888;font-weight:400">(optional)</span></label>
-        <div style="display:flex;align-items:center;gap:6px;margin-top:4px">
-          <input type="number" id="slicer_material_g" min="0" step="0.1" placeholder="e.g. 32"
-                 style="width:96px">
-          <span style="color:#555;font-size:0.9rem">g</span>
-        </div>
-      </div>
+    <input type="date" id="deadline_date"
+           style="max-width:220px"
+           min="">
+    <div id="deadline-warn" style="display:none;margin-top:6px;font-size:0.82rem;color:#dc3545">
+      ⚠️ Deadline is very soon — please also consider setting Priority to <strong>High</strong> or <strong>Urgent</strong>.
     </div>
   </div>
-  <!-- ── end Cura block ──────────────────────────────────────────── -->
 
   <button class="btn" onclick="doSubmit()">Submit Request</button>
   <a href="/print-requests/" style="display:block;text-align:center;margin-top:12px;font-size:0.9rem">← Back to List</a>
@@ -230,49 +151,25 @@ function maybeAutoFillProjectNameFromStl(originalName) {
 
 // If the user types, stop auto-overwriting.
 document.addEventListener('DOMContentLoaded', () => {
+  // Set deadline min to today
+  const deadlineInput = document.getElementById('deadline_date');
+  if (deadlineInput) {
+    const today = new Date().toISOString().split('T')[0];
+    deadlineInput.min = today;
+    deadlineInput.addEventListener('change', () => {
+      const warn = document.getElementById('deadline-warn');
+      if (!deadlineInput.value) { warn.style.display = 'none'; return; }
+      const daysUntil = (new Date(deadlineInput.value) - new Date()) / (1000 * 60 * 60 * 24);
+      warn.style.display = daysUntil <= 7 ? 'block' : 'none';
+    });
+  }
+
   const input = document.getElementById('project_name');
   if (!input) return;
   input.addEventListener('input', () => {
     autoFilledProjectNameFromStl = false;
   });
-
-  // Re-analyze when material changes
-  const materialSelect = document.getElementById('material_type');
-  if (materialSelect) {
-    materialSelect.addEventListener('change', () => {
-      if (!uploadedStlFilename) return;
-      reanalyzeStl();
-    });
-  }
-
-  // Stop auto-overwrite on manual weight/time input
-  const weightInput = document.getElementById('estimated_weight_grams');
-  const timeInput   = document.getElementById('estimated_print_time_hours');
-  if (weightInput) weightInput.addEventListener('input', () => { weightInput.dataset.autoFilled = ''; });
-  if (timeInput)   timeInput.addEventListener('input', () => { timeInput.dataset.autoFilled = ''; });
 });
-
-async function reanalyzeStl() {
-  const material = document.getElementById('material_type').value || 'PLA';
-  const infill   = (document.getElementById('infill_percent').value || 20) / 100;
-  try {
-    const res = await fetch(
-      `/api/print-requests/analyze-stl/${encodeURIComponent(uploadedStlFilename)}?material=${material}&infill=${infill}`,
-      { headers: { 'Authorization': 'Bearer ' + getToken() } }
-    );
-    const data = await res.json();
-    if (data.success && data.analysis) {
-      showAnalysis(data.analysis);
-    }
-  } catch(e) {
-    // silently ignore — analysis is a nice-to-have
-  }
-}
-
-function onInfillChange() {
-  if (!uploadedStlFilename) return;
-  reanalyzeStl();
-}
 
 function setStlStatus(msg, color) {
   const el = document.getElementById('stl-upload-status');
@@ -307,11 +204,6 @@ async function uploadStlFile(file) {
 
   const formData = new FormData();
   formData.append('file', file);
-  // Pass selected material and infill so analysis uses correct parameters
-  const material = document.getElementById('material_type').value || 'PLA';
-  const infill   = (document.getElementById('infill_percent').value || 20) / 100;
-  formData.append('material', material);
-  formData.append('infill', infill);
 
   try {
     const res = await fetch('/api/print-requests/upload-stl', {
@@ -331,42 +223,11 @@ async function uploadStlFile(file) {
       document.getElementById('stl-file-selected').style.display = 'block';
       document.getElementById('stl-filename-display').textContent = data.original_name;
       setStlStatus('File uploaded successfully.', '#28a745');
-
-      // Show analysis results if available
-      if (data.analysis) {
-        showAnalysis(data.analysis);
-      }
     } else {
       setStlStatus(data.message || 'Upload failed.', '#dc3545');
     }
   } catch(e) {
     setStlStatus('Upload failed — cannot reach server.', '#dc3545');
-  }
-}
-
-function showAnalysis(a) {
-  document.getElementById('stl-a-volume').textContent   = a.volume_cm3 + ' cm³';
-  document.getElementById('stl-a-weight').textContent   = a.estimated_weight_grams + ' g';
-  document.getElementById('stl-a-time').textContent     = a.estimated_print_time_hours + ' h';
-  document.getElementById('stl-a-material').textContent = a.material;
-  document.getElementById('stl-a-infill').textContent   = a.infill_percent + '%';
-
-  const bb = a.bounding_box;
-  document.getElementById('stl-a-bbox').textContent =
-    bb.x_mm + ' × ' + bb.y_mm + ' × ' + bb.z_mm + ' mm';
-
-  document.getElementById('stl-analysis-card').style.display = 'block';
-
-  // Auto-fill Est. Weight and Est. Print Time
-  const weightInput = document.getElementById('estimated_weight_grams');
-  const timeInput   = document.getElementById('estimated_print_time_hours');
-  if (weightInput && (!weightInput.value || weightInput.dataset.autoFilled === 'true')) {
-    weightInput.value = a.estimated_weight_grams;
-    weightInput.dataset.autoFilled = 'true';
-  }
-  if (timeInput && (!timeInput.value || timeInput.dataset.autoFilled === 'true')) {
-    timeInput.value = a.estimated_print_time_hours;
-    timeInput.dataset.autoFilled = 'true';
   }
 }
 
@@ -382,20 +243,7 @@ async function clearStlFile(event) {
   document.getElementById('stl-file-input').value = '';
   document.getElementById('stl-drop-label').style.display   = 'block';
   document.getElementById('stl-file-selected').style.display = 'none';
-  document.getElementById('stl-analysis-card').style.display = 'none';
   setStlStatus('');
-
-  // Clear auto-filled weight / time
-  const weightInput = document.getElementById('estimated_weight_grams');
-  const timeInput   = document.getElementById('estimated_print_time_hours');
-  if (weightInput && weightInput.dataset.autoFilled === 'true') {
-    weightInput.value = '';
-    weightInput.dataset.autoFilled = '';
-  }
-  if (timeInput && timeInput.dataset.autoFilled === 'true') {
-    timeInput.value = '';
-    timeInput.dataset.autoFilled = '';
-  }
 
   // Clear auto-filled project name
   const projectInput = document.getElementById('project_name');
@@ -415,14 +263,6 @@ async function clearStlFile(event) {
   }
 }
 
-// ── Cura slicer helpers ───────────────────────────────────
-function updateSlicerMinutes() {
-  const h = parseInt(document.getElementById('slicer_hours').value, 10) || 0;
-  const m = parseInt(document.getElementById('slicer_mins').value,  10) || 0;
-  const total = h * 60 + m;
-  document.getElementById('slicer_time_minutes').value = total > 0 ? total : '';
-}
-
 // ── Form submit ───────────────────────────────────────────
 function showAlert(msg, type='error') {
   document.getElementById('alert-box').innerHTML =
@@ -435,29 +275,16 @@ async function doSubmit() {
   const project_name = document.getElementById('project_name').value.trim();
   if (!project_name) { showAlert('Project name is required.'); return; }
 
-  // Cura required field
-  const slicer_time_minutes = parseFloat(document.getElementById('slicer_time_minutes').value) || 0;
-  if (slicer_time_minutes <= 0) {
-    showAlert('Please enter the Cura estimated print time (hours / minutes). This is required.');
-    document.getElementById('slicer_hours').focus();
-    return;
-  }
-  const slicer_material_g = parseFloat(document.getElementById('slicer_material_g').value) || null;
-
   const body = {
     project_name,
-    description:                document.getElementById('description').value.trim(),
-    material_type:              document.getElementById('material_type').value,
-    color_preference:           document.getElementById('color_preference').value,
-    is_senior_design:           document.getElementById('sd-yes').checked,
-    project_context:            document.getElementById('project_context').value,
-    estimated_weight_grams:     parseFloat(document.getElementById('estimated_weight_grams').value) || null,
-    estimated_print_time_hours: parseFloat(document.getElementById('estimated_print_time_hours').value) || null,
-    priority:                   document.getElementById('priority').value,
-    stl_file_path:              uploadedStlFilename    || null,
-    stl_original_name:          uploadedStlOriginalName || null,
-    slicer_time_minutes,
-    slicer_material_g,
+    description:      document.getElementById('description').value.trim(),
+    material_type:    document.getElementById('material_type').value,
+    color_preference: document.getElementById('color_preference').value,
+    is_senior_design: document.getElementById('sd-yes').checked,
+    project_context:  document.getElementById('project_context').value,
+    deadline_date:    document.getElementById('deadline_date').value || null,
+    stl_file_path:    uploadedStlFilename     || null,
+    stl_original_name: uploadedStlOriginalName || null,
   };
 
   try {
