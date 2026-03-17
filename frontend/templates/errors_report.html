@@ -20,7 +20,7 @@
 
   <div id="content-section" style="display:none">
     <!-- Summary Cards -->
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:28px">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;margin-bottom:28px">
       <div class="card" style="padding:20px;text-align:center">
         <div style="font-size:2rem;font-weight:bold;color:#333" id="s-total">—</div>
         <div style="color:#666;font-size:0.9rem;margin-top:4px">Total Jobs</div>
@@ -36,6 +36,10 @@
       <div class="card" style="padding:20px;text-align:center">
         <div style="font-size:2rem;font-weight:bold;color:#6f42c1" id="s-e2">—</div>
         <div style="color:#666;font-size:0.9rem;margin-top:4px">Error 2 Count</div>
+      </div>
+      <div class="card" style="padding:20px;text-align:center">
+        <div style="font-size:2rem;font-weight:bold;color:#e67e22" id="s-incomplete">—</div>
+        <div style="color:#666;font-size:0.9rem;margin-top:4px">Incomplete Jobs</div>
       </div>
     </div>
 
@@ -59,7 +63,7 @@
     </div>
 
     <!-- Error Job List -->
-    <div class="card">
+    <div class="card" style="margin-bottom:24px">
       <h3 style="margin-bottom:16px;color:#1a1a2e">📋 Jobs with Errors</h3>
       <div style="overflow-x:auto">
         <table style="width:100%;border-collapse:collapse;font-size:0.9rem">
@@ -73,10 +77,33 @@
               <th style="padding:10px;text-align:center;border-bottom:2px solid #dee2e6">Error 1</th>
               <th style="padding:10px;text-align:center;border-bottom:2px solid #dee2e6">Error 2</th>
               <th style="padding:10px;text-align:center;border-bottom:2px solid #dee2e6">Done?</th>
-              <th style="padding:10px;text-align:center;border-bottom:2px solid #dee2e6">Details</th>
             </tr>
           </thead>
           <tbody id="error-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Incomplete Jobs (not finished, no error flag — may be fixable) -->
+    <div class="card" id="incomplete-card" style="display:none">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+        <h3 style="margin:0;color:#1a1a2e">🔄 Incomplete Jobs</h3>
+        <span style="font-size:0.82rem;color:#888;background:#fff3cd;border:1px solid #ffc107;border-radius:10px;padding:2px 10px">Not finished · No error flag · May be reprinted</span>
+      </div>
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:0.9rem">
+          <thead>
+            <tr style="background:#fffbf0">
+              <th style="padding:10px;text-align:left;border-bottom:2px solid #ffc107">Student</th>
+              <th style="padding:10px;text-align:left;border-bottom:2px solid #ffc107">Printer</th>
+              <th style="padding:10px;text-align:left;border-bottom:2px solid #ffc107">Operator</th>
+              <th style="padding:10px;text-align:left;border-bottom:2px solid #ffc107">File</th>
+              <th style="padding:10px;text-align:left;border-bottom:2px solid #ffc107">Started</th>
+              <th style="padding:10px;text-align:right;border-bottom:2px solid #ffc107">Print Time</th>
+              <th style="padding:10px;text-align:right;border-bottom:2px solid #ffc107">Material (g)</th>
+            </tr>
+          </thead>
+          <tbody id="incomplete-tbody"></tbody>
         </table>
       </div>
     </div>
@@ -127,6 +154,7 @@ async function loadReport() {
   document.getElementById('content-section').style.display='none';
   document.getElementById('empty-state').style.display='none';
   document.getElementById('no-errors').style.display='none';
+  document.getElementById('incomplete-card').style.display='none';
   document.getElementById('alert-box').innerHTML='';
   try {
     const res = await apiFetch(`/api/reports/errors?week=${wp}`);
@@ -138,10 +166,11 @@ async function loadReport() {
     if (d.totals.total_jobs===0) { document.getElementById('empty-state').style.display='block'; return; }
 
     document.getElementById('period-label').textContent = `📅 ${d.period.from}  →  ${d.period.to}`;
-    document.getElementById('s-total').textContent  = d.totals.total_jobs;
-    document.getElementById('s-errors').textContent = d.totals.jobs_with_error;
-    document.getElementById('s-e1').textContent     = d.totals.error_1_count;
-    document.getElementById('s-e2').textContent     = d.totals.error_2_count;
+    document.getElementById('s-total').textContent      = d.totals.total_jobs;
+    document.getElementById('s-errors').textContent     = d.totals.jobs_with_error;
+    document.getElementById('s-e1').textContent         = d.totals.error_1_count;
+    document.getElementById('s-e2').textContent         = d.totals.error_2_count;
+    document.getElementById('s-incomplete').textContent = d.totals.incomplete_count;
 
     // Printer summary table
     const ptbody = document.getElementById('printer-tbody');
@@ -169,21 +198,40 @@ async function loadReport() {
       const etbody = document.getElementById('error-tbody');
       etbody.innerHTML='';
       d.error_jobs.forEach(j => {
-        const link = j.request_id
-          ? `<a href="/print-requests/${j.request_id}/" style="color:#007bff;font-size:0.85rem">View</a>`
-          : '<span style="color:#bbb">—</span>';
         etbody.innerHTML += `<tr style="background:#fff5f5">
           <td style="padding:9px 10px;border-bottom:1px solid #f0f0f0">${esc(j.student_name)}</td>
           <td style="padding:9px 10px;border-bottom:1px solid #f0f0f0">${esc(j.printer_name)}</td>
           <td style="padding:9px 10px;border-bottom:1px solid #f0f0f0">${esc(j.operator_name)}</td>
           <td style="padding:9px 10px;border-bottom:1px solid #f0f0f0;font-size:0.82rem;color:#555">${esc(j.file_name)}</td>
           <td style="padding:9px 10px;border-bottom:1px solid #f0f0f0;font-size:0.85rem">${j.started_at?j.started_at.split('T')[0]:'—'}</td>
-          <td style="padding:9px 10px;border-bottom:1px solid #f0f0f0;text-align:center">${j.error_1==='TRUE'||j.error_1==='1'?'<span style="color:#dc3545">●</span>':''}</td>
-          <td style="padding:9px 10px;border-bottom:1px solid #f0f0f0;text-align:center">${j.error_2==='TRUE'||j.error_2==='1'?'<span style="color:#dc3545">●</span>':''}</td>
+          <td style="padding:9px 10px;border-bottom:1px solid #f0f0f0;text-align:center">${j.error_1==='TRUE'||j.error_1==='1'?'<span style="color:#dc3545;font-size:1.1rem">●</span>':''}</td>
+          <td style="padding:9px 10px;border-bottom:1px solid #f0f0f0;text-align:center">${j.error_2==='TRUE'||j.error_2==='1'?'<span style="color:#dc3545;font-size:1.1rem">●</span>':''}</td>
           <td style="padding:9px 10px;border-bottom:1px solid #f0f0f0;text-align:center">${j.is_finished===1?'✅':j.is_finished===0?'❌':'—'}</td>
-          <td style="padding:9px 10px;border-bottom:1px solid #f0f0f0;text-align:center">${link}</td>
         </tr>`;
       });
+    }
+
+    // Incomplete jobs table (not finished, no error — may be reprinted)
+    const incCard  = document.getElementById('incomplete-card');
+    const incTbody = document.getElementById('incomplete-tbody');
+    if (d.incomplete_jobs && d.incomplete_jobs.length > 0) {
+      incCard.style.display = 'block';
+      incTbody.innerHTML = '';
+      d.incomplete_jobs.forEach(j => {
+        const mins = j.print_time_minutes != null ? `${Math.round(j.print_time_minutes)} min` : '—';
+        const mat  = j.material_used_g    != null ? `${parseFloat(j.material_used_g).toFixed(1)} g` : '—';
+        incTbody.innerHTML += `<tr style="background:#fffdf0">
+          <td style="padding:9px 10px;border-bottom:1px solid #fdeaa7">${esc(j.student_name)}</td>
+          <td style="padding:9px 10px;border-bottom:1px solid #fdeaa7">${esc(j.printer_name)}</td>
+          <td style="padding:9px 10px;border-bottom:1px solid #fdeaa7">${esc(j.operator_name)}</td>
+          <td style="padding:9px 10px;border-bottom:1px solid #fdeaa7;font-size:0.82rem;color:#555">${esc(j.file_name)}</td>
+          <td style="padding:9px 10px;border-bottom:1px solid #fdeaa7;font-size:0.85rem">${j.started_at?j.started_at.split('T')[0]:'—'}</td>
+          <td style="padding:9px 10px;border-bottom:1px solid #fdeaa7;text-align:right;color:#555">${mins}</td>
+          <td style="padding:9px 10px;border-bottom:1px solid #fdeaa7;text-align:right;color:#555">${mat}</td>
+        </tr>`;
+      });
+    } else {
+      incCard.style.display = 'none';
     }
 
     document.getElementById('content-section').style.display='block';

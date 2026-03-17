@@ -306,13 +306,18 @@ class PrintService:
             return {'success': False, 'message': f'Failed to delete request: {str(e)}'}
 
     @staticmethod
-    def get_all_requests(status: Optional[str] = None, priority: Optional[str] = None) -> Dict:
+    def get_all_requests(status: Optional[str] = None, priority: Optional[str] = None,
+                         week: Optional[str] = None,
+                         from_date: Optional[str] = None, to_date: Optional[str] = None) -> Dict:
         """
         Get all print requests (admin view)
         
         Args:
-            status: Optional filter by status
-            priority: Optional filter by priority
+            status:    Optional filter by status
+            priority:  Optional filter by priority
+            week:      Optional ISO week string 'YYYY-WW' — filters by created_at falling in that week
+            from_date: Optional start date 'YYYY-MM-DD' for custom date range
+            to_date:   Optional end date 'YYYY-MM-DD' for custom date range
         
         Returns:
             Dict with success status and list of all requests
@@ -335,7 +340,20 @@ class PrintService:
             if priority:
                 query += " AND pr.priority = %s"
                 params.append(priority)
-            
+
+            if from_date and to_date:
+                # Custom date range takes priority over week param
+                query += " AND DATE(pr.created_at) BETWEEN %s AND %s"
+                params.extend([from_date, to_date])
+            elif week:
+                # week is 'YYYY-WW'; derive the Monday–Sunday boundaries
+                import datetime
+                year, wnum = int(week.split('-')[0]), int(week.split('-')[1])
+                monday = datetime.datetime.strptime(f'{year}-W{wnum:02d}-1', '%G-W%V-%u').date()
+                sunday = monday + datetime.timedelta(days=6)
+                query += " AND DATE(pr.created_at) BETWEEN %s AND %s"
+                params.extend([monday.isoformat(), sunday.isoformat()])
+
             query += " ORDER BY pr.created_at DESC"
             
             results = db.fetch_all(query, tuple(params) if params else None)

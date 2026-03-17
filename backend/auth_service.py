@@ -123,7 +123,7 @@ class AuthService:
         # For admins include role in the SELECT so we can include it in the
         # returned user object and the JWT payload.
         if user_type == 'student':
-            query = f"SELECT email, password_hash, full_name, email_verified FROM {table} WHERE email = %s"
+            query = f"SELECT email, password_hash, full_name, email_verified, role FROM {table} WHERE email = %s"
         else:
             query = f"SELECT email, password_hash, full_name, email_verified, role FROM {table} WHERE email = %s"
         user = db.fetch_one(query, (email,))
@@ -144,9 +144,13 @@ class AuthService:
         db.execute_query(update_query, (email,))
         
         # Generate JWT token. If admin, include role in the token payload.
+        # For students with role='student_staff', emit user_type='student_staff'.
         if user_type == 'student':
-            token = AuthService.generate_jwt_token(email, user_type)
+            student_role = user.get('role') or 'student'
+            effective_type = student_role  # 'student' or 'student_staff'
+            token = AuthService.generate_jwt_token(email, effective_type)
         else:
+            effective_type = user_type
             role = user.get('role') if user else None
             # Build payload with role embedded
             payload = {
@@ -157,7 +161,7 @@ class AuthService:
                 'iat': datetime.utcnow()
             }
             token = jwt.encode(payload, Config.JWT_SECRET_KEY, algorithm='HS256')
-        
+
         return {
             'success': True,
             'message': 'Login successful',
@@ -165,7 +169,7 @@ class AuthService:
             'user': {
                 'email': user['email'],
                 'full_name': user['full_name'],
-                'user_type': user_type,
+                'user_type': effective_type,
                 # include role for admin users so frontend can adjust UI
                 **({'role': user.get('role')} if user_type != 'student' else {})
             }

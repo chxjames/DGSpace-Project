@@ -283,7 +283,7 @@ function renderDetail(r) {
 
   // Show student email only to admins
   const currentUser = window.getUser ? window.getUser() : null;
-  if (currentUser && currentUser.user_type === 'admin' && r.student_email) {
+  if (currentUser && (currentUser.user_type === 'admin' || currentUser.user_type === 'student_staff') && r.student_email) {
     const emailEl = document.getElementById('d-student-email');
     emailEl.textContent = r.student_email;
     emailEl.href = `mailto:${r.student_email}`;
@@ -298,7 +298,7 @@ function renderDetail(r) {
     document.getElementById('d-admin-notes').textContent = r.admin_notes;
     document.getElementById('d-admin-notes-block').style.display = 'block';
     const user = window.getUser ? window.getUser() : null;
-    if (user && user.user_type !== 'admin') {
+    if (user && user.user_type !== 'admin' && user.user_type !== 'student_staff') {
       document.getElementById('d-admin-notes-hint').style.display = 'block';
     }
   }
@@ -318,7 +318,7 @@ function renderDetail(r) {
   }
 
   // ── Admin actions panel ──────────────────────────────────
-  if (currentUser && currentUser.user_type === 'admin') {
+  if (currentUser && (currentUser.user_type === 'admin' || currentUser.user_type === 'student_staff')) {
     document.getElementById('admin-actions').style.display = 'block';
     window._currentRequestId = r.id || requestId;
     window._currentStatus = r.status;
@@ -449,7 +449,20 @@ function adminShowAlert(msg, type='error') {
 // Stored UFP upload result
 let _ufpUploadResult = null;
 
-function cancelUfpUpload() {
+async function cancelUfpUpload() {
+  // Delete the uploaded file from the server before clearing UI
+  if (_ufpUploadResult && _ufpUploadResult.filename) {
+    try {
+      const token = window.getToken ? window.getToken() : localStorage.getItem('dg_token');
+      await fetch(`/api/print-requests/upload-ufp/${_ufpUploadResult.filename}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+    } catch(e) {
+      console.warn('Could not delete UFP from server:', e);
+    }
+  }
+
   _ufpUploadResult = null;
   document.getElementById('ufp-parsed-card').style.display  = 'none';
   document.getElementById('ufp-dropzone').style.display     = 'block';

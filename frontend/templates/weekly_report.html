@@ -22,7 +22,14 @@
       <button id="tab-weekly"  onclick="switchTab('weekly')"  style="padding:7px 22px;border:none;border-radius:6px;cursor:pointer;font-size:0.9rem;font-weight:600">Week</button>
       <button id="tab-monthly" onclick="switchTab('monthly')" style="padding:7px 22px;border:none;border-radius:6px;cursor:pointer;font-size:0.9rem;font-weight:600">Month</button>
     </div>
-    <input type="week"  id="week-picker"  style="padding:6px 10px;border:1px solid #ddd;border-radius:4px;font-size:0.9rem">
+    <!-- Weekly: custom date-range pickers -->
+    <div id="week-picker-wrap" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <input type="date" id="date-from" style="padding:6px 10px;border:1px solid #ddd;border-radius:4px;font-size:0.9rem">
+      <span style="color:#888;font-size:0.9rem">→</span>
+      <input type="date" id="date-to"   style="padding:6px 10px;border:1px solid #ddd;border-radius:4px;font-size:0.9rem">
+      <button onclick="setThisWeek()" style="padding:5px 12px;background:#f0f0f5;border:1px solid #ddd;border-radius:4px;font-size:0.82rem;cursor:pointer;color:#555">This Week</button>
+      <button onclick="setLastWeek()" style="padding:5px 12px;background:#f0f0f5;border:1px solid #ddd;border-radius:4px;font-size:0.82rem;cursor:pointer;color:#555">Last Week</button>
+    </div>
     <input type="month" id="month-picker" style="padding:6px 10px;border:1px solid #ddd;border-radius:4px;font-size:0.9rem;display:none">
     <button class="btn" style="width:auto;padding:8px 20px" onclick="loadReport()">Load</button>
   </div>
@@ -67,7 +74,7 @@
         </select>
       </div>
       <div style="display:flex;justify-content:center">
-        <div style="position:relative;width:440px;max-width:100%;height:300px">
+        <div style="position:relative;width:100%;height:300px">
           <canvas id="w-donut"></canvas>
         </div>
       </div>
@@ -104,6 +111,33 @@
             </tr>
           </thead>
           <tbody id="w-operator-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Job Request List for the week -->
+    <div class="card" style="margin-top:24px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+        <h3 style="margin:0;color:#1a1a2e">📋 Job Requests This Week</h3>
+        <span id="w-req-count" style="font-size:0.85rem;color:#888"></span>
+      </div>
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:0.88rem">
+          <thead>
+            <tr style="background:#f8f9fa">
+              <th style="padding:9px 10px;text-align:left;border-bottom:2px solid #dee2e6">#</th>
+              <th style="padding:9px 10px;text-align:left;border-bottom:2px solid #dee2e6">Student</th>
+              <th style="padding:9px 10px;text-align:left;border-bottom:2px solid #dee2e6">Project</th>
+              <th style="padding:9px 10px;text-align:left;border-bottom:2px solid #dee2e6">Material</th>
+              <th style="padding:9px 10px;text-align:left;border-bottom:2px solid #dee2e6">Status</th>
+              <th style="padding:9px 10px;text-align:left;border-bottom:2px solid #dee2e6">Submitted</th>
+              <th style="padding:9px 10px;text-align:left;border-bottom:2px solid #dee2e6">Deadline</th>
+              <th style="padding:9px 10px;text-align:center;border-bottom:2px solid #dee2e6">View</th>
+            </tr>
+          </thead>
+          <tbody id="w-requests-tbody">
+            <tr><td colspan="8" style="padding:20px;text-align:center;color:#aaa">Loading…</td></tr>
+          </tbody>
         </table>
       </div>
     </div>
@@ -170,7 +204,7 @@
         </select>
       </div>
       <div style="display:flex;justify-content:center">
-        <div style="position:relative;width:440px;max-width:100%;height:300px">
+        <div style="position:relative;width:100%;height:300px">
           <canvas id="m-donut"></canvas>
         </div>
       </div>
@@ -246,13 +280,32 @@ function showAlert(msg) {
 }
 
 /* ── date helpers ────────────────────────────────────────────── */
-function getLastWeekStr() {
-  const d = new Date(); d.setDate(d.getDate() - 7);
-  const tmp = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-  tmp.setUTCDate(tmp.getUTCDate() + 4 - (tmp.getUTCDay() || 7));
-  const ys = new Date(Date.UTC(tmp.getUTCFullYear(), 0, 1));
-  const w  = Math.ceil((((tmp - ys) / 86400000) + 1) / 7);
-  return `${tmp.getUTCFullYear()}-W${String(w).padStart(2,'0')}`;
+function _isoDate(d) {
+  // Returns 'YYYY-MM-DD' in LOCAL time (avoids UTC-shift issues)
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+function _weekBounds(offset = 0) {
+  // offset=0 → this week (Mon–Sun), offset=-1 → last week, etc.
+  const today = new Date();
+  const dow   = today.getDay() || 7;            // Mon=1 … Sun=7
+  const mon   = new Date(today);
+  mon.setDate(today.getDate() - dow + 1 + offset * 7);
+  const sun   = new Date(mon);
+  sun.setDate(mon.getDate() + 6);
+  return { from: _isoDate(mon), to: _isoDate(sun) };
+}
+function setThisWeek() {
+  const b = _weekBounds(0);
+  document.getElementById('date-from').value = b.from;
+  document.getElementById('date-to').value   = b.to;
+}
+function setLastWeek() {
+  const b = _weekBounds(-1);
+  document.getElementById('date-from').value = b.from;
+  document.getElementById('date-to').value   = b.to;
 }
 function getLastMonthStr() {
   const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - 1);
@@ -266,9 +319,9 @@ function _applyTabStyles() {
   const iS  = 'background:transparent;color:#555;';
   document.getElementById('tab-weekly').style.cssText  = `padding:7px 22px;border:none;border-radius:6px;cursor:pointer;font-size:0.9rem;font-weight:600;transition:all .15s;${isW ? aS : iS}`;
   document.getElementById('tab-monthly').style.cssText = `padding:7px 22px;border:none;border-radius:6px;cursor:pointer;font-size:0.9rem;font-weight:600;transition:all .15s;${!isW ? aS : iS}`;
-  document.getElementById('week-picker').style.display  = isW  ? '' : 'none';
-  document.getElementById('month-picker').style.display = !isW ? '' : 'none';
-  document.getElementById('btn-export').style.display   = isW  ? '' : 'none';
+  document.getElementById('week-picker-wrap').style.display = isW  ? 'flex' : 'none';
+  document.getElementById('month-picker').style.display     = !isW ? ''     : 'none';
+  document.getElementById('btn-export').style.display       = isW  ? ''     : 'none';
 }
 
 function switchTab(tab) {
@@ -286,15 +339,16 @@ function switchTab(tab) {
 document.addEventListener('DOMContentLoaded', () => {
   const params     = new URLSearchParams(location.search);
   const tabParam   = params.get('tab') || 'weekly';
-  const weekParam  = params.get('week');
+  const fromParam  = params.get('from');
+  const toParam    = params.get('to');
   const monthParam = params.get('month');
 
-  // Set week picker: URL gives YYYY-WW → input needs YYYY-WWW
-  if (weekParam && weekParam.match(/^\d{4}-\d{2}$/)) {
-    const [y,w] = weekParam.split('-');
-    document.getElementById('week-picker').value = `${y}-W${w}`;
+  // Set date pickers: URL params take priority, otherwise last week
+  if (fromParam && toParam) {
+    document.getElementById('date-from').value = fromParam;
+    document.getElementById('date-to').value   = toParam;
   } else {
-    document.getElementById('week-picker').value = getLastWeekStr();
+    setLastWeek();
   }
 
   document.getElementById('month-picker').value =
@@ -318,11 +372,13 @@ function loadReport() {
 
 /* ── WEEKLY ──────────────────────────────────────────────────── */
 async function loadWeekly() {
-  const raw = document.getElementById('week-picker').value;   // '2026-W09'
-  if (!raw) return;
-  const weekParam = raw.replace('W', '');                     // '2026-09'
+  const fromVal = document.getElementById('date-from').value;  // 'YYYY-MM-DD'
+  const toVal   = document.getElementById('date-to').value;
+  if (!fromVal || !toVal) return;
+  if (fromVal > toVal) { showAlert('Start date must be on or before end date.'); return; }
+  const weekParam = fromVal;  // kept for the job-requests sub-call (uses its own week derivation)
   try {
-    const res  = await apiFetch(`/api/reports/weekly?week=${weekParam}`);
+    const res  = await apiFetch(`/api/reports/weekly?from=${fromVal}&to=${toVal}`);
     const data = await res.json();
     document.getElementById('loading').style.display = 'none';
     if (!res.ok || !data.success) { showAlert(`Error ${res.status}: ${data.message}`); return; }
@@ -340,7 +396,7 @@ async function loadWeekly() {
     const ptbody = document.getElementById('w-printer-tbody');
     ptbody.innerHTML = '';
     (r.capacity.by_printer || []).forEach(p => {
-      const link = `/reports/printer/${encodeURIComponent(p.printer_name)}/?week=${weekParam}`;
+      const link = `/reports/printer/${encodeURIComponent(p.printer_name)}/?from=${fromVal}&to=${toVal}`;
       ptbody.innerHTML += `<tr>
         <td style="padding:9px 10px;border-bottom:1px solid #f0f0f0"><a href="${link}" style="color:#007bff;text-decoration:none">${esc(p.printer_name)}</a></td>
         <td style="padding:9px 10px;border-bottom:1px solid #f0f0f0;text-align:right">${p.jobs}</td>
@@ -353,7 +409,7 @@ async function loadWeekly() {
     const otbody = document.getElementById('w-operator-tbody');
     otbody.innerHTML = '';
     (r.staffing.by_operator || []).forEach(o => {
-      const link = `/reports/operator/${encodeURIComponent(o.operator_name)}/?week=${weekParam}`;
+      const link = `/reports/operator/${encodeURIComponent(o.operator_name)}/?from=${fromVal}&to=${toVal}`;
       otbody.innerHTML += `<tr>
         <td style="padding:9px 10px;border-bottom:1px solid #f0f0f0"><a href="${link}" style="color:#007bff;text-decoration:none">${esc(o.operator_name)}</a></td>
         <td style="padding:9px 10px;border-bottom:1px solid #f0f0f0;text-align:right">${o.jobs_handled}</td>
@@ -364,10 +420,71 @@ async function loadWeekly() {
 
     refreshDonut('w');
 
+    // Load job requests for this date range
+    loadWeeklyRequests(fromVal, toVal);
+
     document.getElementById('weekly-content').style.display = 'block';
   } catch(e) {
     document.getElementById('loading').style.display = 'none';
     showAlert('Cannot reach server: ' + e.message);
+  }
+}
+
+/* ── WEEKLY REQUESTS TABLE ───────────────────────────────────── */
+const STATUS_BADGE = {
+  pending:            'background:#fff3cd;color:#856404;border:1px solid #ffc107',
+  approved:           'background:#d1e7dd;color:#0a3622;border:1px solid #a3cfbb',
+  in_progress:        'background:#cfe2ff;color:#084298;border:1px solid #9ec5fe',
+  completed:          'background:#d1e7dd;color:#0a3622;border:1px solid #a3cfbb',
+  rejected:           'background:#f8d7da;color:#842029;border:1px solid #f1aeb5',
+  cancelled:          'background:#e2e3e5;color:#41464b;border:1px solid #c4c8cb',
+  revision_requested: 'background:#fff3cd;color:#664d03;border:1px solid #ffda6a',
+};
+
+async function loadWeeklyRequests(fromVal, toVal) {
+  const tbody = document.getElementById('w-requests-tbody');
+  tbody.innerHTML = '<tr><td colspan="8" style="padding:20px;text-align:center;color:#aaa">Loading…</td></tr>';
+  document.getElementById('w-req-count').textContent = '';
+  try {
+    const res  = await apiFetch(`/api/admin/print-requests?from=${fromVal}&to=${toVal}`);
+    const data = await res.json();
+    if (!data.success) {
+      tbody.innerHTML = `<tr><td colspan="8" style="padding:16px;text-align:center;color:#dc3545">${esc(data.message)}</td></tr>`;
+      return;
+    }
+    const reqs = data.requests || [];
+    document.getElementById('w-req-count').textContent = `${reqs.length} request${reqs.length !== 1 ? 's' : ''}`;
+    if (reqs.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="8" style="padding:20px;text-align:center;color:#aaa">No requests submitted in this period.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = reqs.map(r => {
+      const badgeStyle = STATUS_BADGE[r.status] || 'background:#e2e3e5;color:#41464b';
+      const statusLabel = r.status.replace(/_/g, ' ');
+      const submitted = r.created_at ? r.created_at.slice(0, 10) : '—';
+      const deadline  = r.deadline_date || '—';
+      return `<tr>
+        <td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;color:#888;font-size:0.8rem">${r.request_id}</td>
+        <td style="padding:8px 10px;border-bottom:1px solid #f0f0f0">
+          <div style="font-weight:500">${esc(r.student_name)}</div>
+          <div style="font-size:0.78rem;color:#888">${esc(r.student_email)}</div>
+        </td>
+        <td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;max-width:180px">
+          <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${esc(r.project_name)}">${esc(r.project_name)}</div>
+        </td>
+        <td style="padding:8px 10px;border-bottom:1px solid #f0f0f0">${esc(r.material_type)}</td>
+        <td style="padding:8px 10px;border-bottom:1px solid #f0f0f0">
+          <span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:0.78rem;font-weight:600;white-space:nowrap;${badgeStyle}">${statusLabel}</span>
+        </td>
+        <td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;white-space:nowrap;color:#555">${submitted}</td>
+        <td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;white-space:nowrap;color:#555">${deadline}</td>
+        <td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;text-align:center">
+          <a href="/print-requests/${r.request_id}/" style="color:#007bff;font-size:0.85rem;text-decoration:none">View ›</a>
+        </td>
+      </tr>`;
+    }).join('');
+  } catch(e) {
+    tbody.innerHTML = `<tr><td colspan="8" style="padding:16px;text-align:center;color:#dc3545">Failed to load requests: ${esc(e.message)}</td></tr>`;
   }
 }
 
@@ -477,11 +594,13 @@ function renderDonut(canvasId, rows, nameKey, valueKey, unit, onCreated) {
     data: { labels, datasets: [{ data: values, backgroundColor: colors, borderColor:'#fff', borderWidth:2, hoverOffset:8 }] },
     options: {
       cutout: '60%',
+      maintainAspectRatio: false,
+      layout: { padding: { right: 10 } },
       plugins: {
         legend: {
           position: 'right',
           labels: {
-            boxWidth:14, padding:12, font:{size:12},
+            boxWidth:14, padding:10, font:{size:11},
             generateLabels(chart) {
               const meta = chart.getDatasetMeta(0);
               return chart.data.labels.map((label, i) => {

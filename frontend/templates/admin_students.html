@@ -12,13 +12,15 @@
 <div class="card">
   <div id="loading" style="text-align:center;padding:32px;color:#888">Loading…</div>
 
-  <table id="students-table" style="display:none">
+  <div style="overflow-x:auto">
+  <table id="students-table" style="display:none;width:100%">
     <thead>
       <tr>
         <th>#</th>
         <th>Email</th>
         <th>Name</th>
         <th>Department</th>
+        <th>Role</th>
         <th>Verified</th>
         <th>Created</th>
         <th>Last Login</th>
@@ -27,6 +29,7 @@
     </thead>
     <tbody id="students-body"></tbody>
   </table>
+  </div>
 
   <p id="no-data" style="display:none;text-align:center;color:#888;padding:32px">
     No students found.
@@ -34,6 +37,7 @@
 
   <div style="margin-top:12px;color:#999;font-size:0.85rem">
     <strong>Note:</strong> Deleting a student will also delete all of their print requests.
+    Student Staff can manage print requests but cannot view weekly reports.
   </div>
 </div>
 
@@ -47,11 +51,19 @@
 
 function showAlert(msg, type='error') {
   document.getElementById('alert-box').innerHTML = `<div class="alert alert-${type}">${msg}</div>`;
+  setTimeout(() => { document.getElementById('alert-box').innerHTML = ''; }, 4000);
 }
 
 function fmtDate(s) {
   if (!s) return '—';
   try { return new Date(s).toLocaleDateString('en-US'); } catch { return '—'; }
+}
+
+function roleBadge(role) {
+  if (role === 'student_staff') {
+    return '<span style="background:#1976d2;color:#fff;padding:2px 10px;border-radius:12px;font-size:0.78rem;font-weight:600;white-space:nowrap;display:inline-block">⭐ Staff</span>';
+  }
+  return '<span style="background:#e0e0e0;color:#555;padding:2px 10px;border-radius:12px;font-size:0.78rem;font-weight:600;white-space:nowrap;display:inline-block">Student</span>';
 }
 
 async function loadStudents() {
@@ -82,17 +94,28 @@ async function loadStudents() {
       const safeEmail = String(s.email || '');
       const safeName  = String(s.full_name || '');
       const safeDept  = String(s.department || '');
+      const role      = s.role || 'student';
       const verified  = s.email_verified ? '✅' : '—';
+      const isStaff   = role === 'student_staff';
+      const promoteLabel = isStaff
+        ? '↩ Demote to Student'
+        : '⭐ Make Staff';
+      const promoteStyle = isStaff
+        ? 'background:#f0f0f0;color:#555;border:1px solid #ccc;padding:3px 8px;border-radius:6px;cursor:pointer;font-size:0.75rem;margin-right:4px;white-space:nowrap'
+        : 'background:#1976d2;color:#fff;border:none;padding:3px 8px;border-radius:6px;cursor:pointer;font-size:0.75rem;margin-right:4px;white-space:nowrap';
+      const newRole = isStaff ? 'student' : 'student_staff';
       return `
         <tr>
           <td>${idx + 1}</td>
           <td>${safeEmail}</td>
           <td>${safeName}</td>
           <td>${safeDept || '—'}</td>
+          <td style="text-align:center;min-width:90px">${roleBadge(role)}</td>
           <td style="text-align:center">${verified}</td>
           <td>${fmtDate(s.created_at)}</td>
           <td>${fmtDate(s.last_login)}</td>
-          <td>
+          <td style="white-space:nowrap">
+            <button style="${promoteStyle}" onclick="promoteStudent('${safeEmail.replace(/'/g, "&#39;")}','${newRole}')">${promoteLabel}</button>
             <button class="btn-delete" onclick="deleteStudent('${safeEmail.replace(/'/g, "&#39;")}')">🗑 Delete</button>
           </td>
         </tr>`;
@@ -102,6 +125,33 @@ async function loadStudents() {
   } catch(e) {
     document.getElementById('loading').innerHTML =
       '<span style="color:#c0392b">Failed to load. Make sure the backend is running.</span>';
+  }
+}
+
+async function promoteStudent(email, newRole) {
+  if (!email) return;
+  const label = newRole === 'student_staff' ? 'promote to Student Staff' : 'demote back to Student';
+  if (!confirm(`Are you sure you want to ${label}?\n\n${email}`)) return;
+
+  try {
+    const res  = await apiFetch(`/api/admin/students/${encodeURIComponent(email)}/role`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ role: newRole })
+    });
+    const data = await res.json();
+
+    if (data.success) {
+      const msg = newRole === 'student_staff'
+        ? `${email} has been promoted to Student Staff.`
+        : `${email} has been demoted back to Student.`;
+      showAlert(msg, 'success');
+      loadStudents();
+    } else {
+      showAlert(data.message || 'Failed to update role.');
+    }
+  } catch (e) {
+    showAlert('Failed to update role. Make sure the backend is running.');
   }
 }
 

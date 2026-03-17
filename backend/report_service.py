@@ -47,6 +47,24 @@ def _week_bounds(week_str: str) -> tuple[datetime, datetime]:
     return monday, sunday
 
 
+def _custom_bounds(from_date: str, to_date: str) -> tuple[datetime, datetime]:
+    """
+    Convert 'YYYY-MM-DD' strings to (start_00:00:00, end_23:59:59).
+    Raises ValueError on bad format or if from > to.
+    """
+    try:
+        start = datetime.strptime(from_date, '%Y-%m-%d')
+        end   = datetime.strptime(to_date,   '%Y-%m-%d')
+    except Exception:
+        raise ValueError(
+            f"Invalid date format. Expected 'YYYY-MM-DD', got '{from_date}' / '{to_date}'."
+        )
+    if start > end:
+        raise ValueError('from_date must be on or before to_date.')
+    end = end.replace(hour=23, minute=59, second=59)
+    return start, end
+
+
 def _current_week_str() -> str:
     """Return the current ISO week as 'YYYY-WW'."""
     now = datetime.utcnow()
@@ -255,10 +273,16 @@ class ReportService:
     # get_weekly_report
     # ------------------------------------------------------------------
 
-    def get_weekly_report(self, week: Optional[str] = None) -> dict:
+    def get_weekly_report(self, week: Optional[str] = None,
+                          from_date: Optional[str] = None,
+                          to_date: Optional[str] = None) -> dict:
         """
-        Return aggregated KPI data for the given ISO week ('YYYY-WW').
-        Defaults to last week if not provided.
+        Return aggregated KPI data for a date range.
+
+        Priority:
+          1. Custom range: from_date + to_date ('YYYY-MM-DD')
+          2. ISO week:     week ('YYYY-WW')
+          3. Default:      last week
 
         Returns a dict with 4 KPI groups:
             volume    — total jobs, finished/unfinished counts
@@ -266,10 +290,12 @@ class ReportService:
             capacity  — total print hours, per-printer breakdown
             staffing  — jobs per operator, hours per operator
         """
-        if not week:
-            week = _last_week_str()
-
-        monday, sunday = _week_bounds(week)
+        if from_date and to_date:
+            monday, sunday = _custom_bounds(from_date, to_date)
+        else:
+            if not week:
+                week = _last_week_str()
+            monday, sunday = _week_bounds(week)
         params = (monday, sunday)
 
         # ---- Volume KPIs ------------------------------------------------
@@ -796,12 +822,8 @@ class ReportService:
             SELECT
                 n.id, n.row_index, n.student_name, n.printer_name,
                 n.operator_name, n.started_at, n.print_time_minutes,
-                n.error_1, n.error_2, n.file_name, n.is_finished,
-                pr.request_id AS request_id
+                n.error_1, n.error_2, n.file_name, n.is_finished
             FROM print_logs_normalized n
-            LEFT JOIN print_requests pr
-                ON LOWER(pr.student_email) = LOWER(n.student_email)
-                AND DATE(pr.created_at) = DATE(n.started_at)
             WHERE n.started_at BETWEEN %s AND %s
               AND (n.error_1='TRUE' OR n.error_1='1'
                 OR n.error_2='TRUE' OR n.error_2='1')
@@ -810,17 +832,51 @@ class ReportService:
             params
         ) or []
 
+        # Incomplete jobs: started but NOT finished and no error flag
+        # These may be fixable/reprint candidates — tracked separately
+        incomplete_jobs = db.fetch_all(
+            """
+            SELECT
+                n.id, n.row_index, n.student_name, n.printer_name,
+                n.operator_name, n.started_at, n.print_time_minutes,
+                n.material_used_g, n.file_name,
+                n.error_1, n.error_2
+            FROM print_logs_normalized n
+            WHERE n.started_at BETWEEN %s AND %s
+              AND n.is_finished = 0
+              AND NOT (n.error_1='TRUE' OR n.error_1='1'
+                    OR n.error_2='TRUE' OR n.error_2='1')
+            ORDER BY n.started_at ASC
+            """,
+            params
+        ) or []
+
+        # Add incomplete count to totals
+        totals_row = db.fetch_one(
+            """
+            SELECT COUNT(*) AS incomplete_count
+            FROM print_logs_normalized
+            WHERE started_at BETWEEN %s AND %s
+              AND is_finished = 0
+              AND NOT (error_1='TRUE' OR error_1='1'
+                    OR error_2='TRUE' OR error_2='1')
+            """,
+            params
+        ) or {}
+
         return {
             'week': week,
             'period': {'from': monday.strftime('%Y-%m-%d'), 'to': sunday.strftime('%Y-%m-%d')},
             'totals': {
-                'total_jobs':     int(totals.get('total_jobs') or 0),
-                'jobs_with_error': int(totals.get('jobs_with_error') or 0),
-                'error_1_count':  int(totals.get('error_1_count') or 0),
-                'error_2_count':  int(totals.get('error_2_count') or 0),
+                'total_jobs':       int(totals.get('total_jobs') or 0),
+                'jobs_with_error':  int(totals.get('jobs_with_error') or 0),
+                'error_1_count':    int(totals.get('error_1_count') or 0),
+                'error_2_count':    int(totals.get('error_2_count') or 0),
+                'incomplete_count': int(totals_row.get('incomplete_count') or 0),
             },
-            'by_printer': [dict(r) for r in by_printer],
-            'error_jobs': [dict(r) for r in error_jobs],
+            'by_printer':       [dict(r) for r in by_printer],
+            'error_jobs':       [dict(r) for r in error_jobs],
+            'incomplete_jobs':  [dict(r) for r in incomplete_jobs],
         }
 
 

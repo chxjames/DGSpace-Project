@@ -12,7 +12,7 @@
   <div class="form-group">
     <label>Upload File *</label>
 
-      <p style="font-size:0.82rem;color:#888;margin:0 0 8px">Upload your raw <strong>.stl</strong> model. Weight &amp; time will be estimated automatically.</p>
+      <p style="font-size:0.82rem;color:#888;margin:0 0 8px">Upload your raw <strong>.stl</strong> model.</p>
       <div id="stl-drop-zone" style="border:2px dashed #ccc;border-radius:8px;padding:24px;text-align:center;cursor:pointer;transition:border-color 0.2s,background 0.2s"
         onclick="document.getElementById('stl-file-input').click()"
         ondragover="event.preventDefault();this.style.borderColor='#007bff';this.style.background='#f0f7ff';"
@@ -59,13 +59,12 @@
       <option value="Any">🎨 Any (let staff decide)</option>
       <option value="White">⬜ White</option>
       <option value="Black">⬛ Black</option>
-      <option value="Gray">🩶 Gray</option>
       <option value="Red">🟥 Red</option>
       <option value="Blue">🟦 Blue</option>
       <option value="Green">🟩 Green</option>
       <option value="Yellow">🟨 Yellow</option>
       <option value="Orange">🟧 Orange</option>
-      <option value="Other">✏️ Other (specify in description)</option>
+      <option value="I do not care">🤔 I do not care</option>
     </select>
   </div>
 
@@ -104,8 +103,6 @@
     <input type="date" id="deadline_date"
            style="max-width:220px"
            min="">
-    <div id="deadline-warn" style="display:none;margin-top:6px;font-size:0.82rem;color:#dc3545">
-      ⚠️ Deadline is very soon — please also consider setting Priority to <strong>High</strong> or <strong>Urgent</strong>.
     </div>
   </div>
 
@@ -116,7 +113,7 @@
 <script>
 (function() {
   const user = getUser();
-  if (!user || user.user_type !== 'student') {
+  if (!user || (user.user_type !== 'student' && user.user_type !== 'student_staff')) {
     location.href = '/accounts/login';
   }
 })();

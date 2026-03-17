@@ -255,14 +255,14 @@ def get_profile():
 
 @app.route('/api/print-requests/upload-stl', methods=['POST'])
 def upload_stl():
-    """Upload a .stl file before submitting a print request (Student)"""
+    """Upload a .stl file before submitting a print request (Student / Student Staff)"""
     auth_header = request.headers.get('Authorization')
     if not auth_header or not auth_header.startswith('Bearer '):
         return jsonify({'success': False, 'message': 'No token provided'}), 401
 
     token = auth_header.split(' ')[1]
     payload = AuthService.verify_jwt_token(token)
-    if not payload or payload.get('user_type') != 'student':
+    if not payload or payload.get('user_type') not in ('student', 'student_staff'):
         return jsonify({'success': False, 'message': 'Invalid token or not a student'}), 401
 
     if 'file' not in request.files:
@@ -289,7 +289,7 @@ def upload_stl():
 
 @app.route('/api/print-requests/upload-stl/<filename>', methods=['DELETE'])
 def delete_uploaded_stl(filename: str):
-    """Delete a previously uploaded STL file before submitting a print request (Student)
+    """Delete a previously uploaded STL file before submitting a print request (Student / Student Staff)
 
     This supports the frontend "Remove" button so mistaken uploads don't linger on disk.
     """
@@ -299,7 +299,7 @@ def delete_uploaded_stl(filename: str):
 
     token = auth_header.split(' ')[1]
     payload = AuthService.verify_jwt_token(token)
-    if not payload or payload.get('user_type') != 'student':
+    if not payload or payload.get('user_type') not in ('student', 'student_staff'):
         return jsonify({'success': False, 'message': 'Invalid token or not a student'}), 401
 
     # Basic path-traversal protection: only allow the basename.
@@ -342,7 +342,7 @@ def upload_ufp():
 
     token = auth_header.split(' ')[1]
     payload = AuthService.verify_jwt_token(token)
-    if not payload or payload.get('user_type') not in ('student', 'admin'):
+    if not payload or payload.get('user_type') not in ('student', 'admin', 'student_staff'):
         return jsonify({'success': False, 'message': 'Invalid token'}), 401
 
     if 'file' not in request.files:
@@ -402,8 +402,8 @@ def delete_uploaded_ufp(filename: str):
 
     token = auth_header.split(' ')[1]
     payload = AuthService.verify_jwt_token(token)
-    if not payload or payload.get('user_type') != 'student':
-        return jsonify({'success': False, 'message': 'Invalid token or not a student'}), 401
+    if not payload or payload.get('user_type') not in ('student', 'admin', 'student_staff'):
+        return jsonify({'success': False, 'message': 'Invalid token'}), 401
 
     safe_name = os.path.basename(filename)
     abs_upload_dir = os.path.abspath(app.config['UPLOAD_FOLDER'])
@@ -429,7 +429,7 @@ def serve_upload(filename: str):
 
 @app.route('/api/print-requests', methods=['POST'])
 def create_print_request():
-    """Create a new 3D print request (Student)"""
+    """Create a new 3D print request (Student / Student Staff)"""
     auth_header = request.headers.get('Authorization')
     
     if not auth_header or not auth_header.startswith('Bearer '):
@@ -438,7 +438,7 @@ def create_print_request():
     token = auth_header.split(' ')[1]
     payload = AuthService.verify_jwt_token(token)
     
-    if not payload or payload.get('user_type') != 'student':
+    if not payload or payload.get('user_type') not in ('student', 'student_staff'):
         return jsonify({'success': False, 'message': 'Invalid token or not a student'}), 401
     
     data = request.json
@@ -481,7 +481,7 @@ def get_my_requests():
     token = auth_header.split(' ')[1]
     payload = AuthService.verify_jwt_token(token)
     
-    if not payload or payload.get('user_type') != 'student':
+    if not payload or payload.get('user_type') not in ('student', 'student_staff'):
         return jsonify({'success': False, 'message': 'Invalid token or not a student'}), 401
     
     status = request.args.get('status')
@@ -515,6 +515,9 @@ def get_request_details(request_id):
     if payload.get('user_type') == 'student':
         if result['request']['student_email'] != payload['email']:
             return jsonify({'success': False, 'message': 'Unauthorized'}), 403
+    elif payload.get('user_type') == 'student_staff':
+        # student_staff can view their own requests and all requests (admin view handles the rest)
+        pass
     
     return jsonify(result), 200
 
@@ -533,7 +536,7 @@ def delete_print_request(request_id):
     if not payload:
         return jsonify({'success': False, 'message': 'Invalid token'}), 401
 
-    if payload.get('user_type') != 'student':
+    if payload.get('user_type') not in ('student', 'student_staff'):
         return jsonify({'success': False, 'message': 'Only students can delete requests'}), 403
 
     result = PrintService.delete_print_request(request_id, payload['email'])
@@ -599,7 +602,7 @@ def admin_list_students():
 
     students = db.fetch_all(
         """
-        SELECT email, full_name, department, email_verified, created_at, last_login
+        SELECT email, full_name, department, role, email_verified, created_at, last_login
         FROM students
         ORDER BY created_at DESC
         """
@@ -643,9 +646,35 @@ def admin_delete_student(email: str):
 
     return jsonify({'success': True, 'message': 'Student deleted'}), 200
 
+
+@app.route('/api/admin/students/<email>/role', methods=['PATCH'])
+def admin_update_student_role(email: str):
+    """Promote or demote a student to/from student_staff (Admin only)."""
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({'success': False, 'message': 'No token provided'}), 401
+
+    token = auth_header.split(' ')[1]
+    payload = AuthService.verify_jwt_token(token)
+    if not payload or payload.get('user_type') != 'admin':
+        return jsonify({'success': False, 'message': 'Admin access required'}), 403
+
+    data = request.json or {}
+    new_role = data.get('role', '').strip()
+    if new_role not in ('student', 'student_staff'):
+        return jsonify({'success': False, 'message': "role must be 'student' or 'student_staff'"}), 400
+
+    existing = db.fetch_one("SELECT email FROM students WHERE email = %s", (email,))
+    if not existing:
+        return jsonify({'success': False, 'message': 'Student not found'}), 404
+
+    db.execute_query("UPDATE students SET role = %s WHERE email = %s", (new_role, email))
+    return jsonify({'success': True, 'message': f'Role updated to {new_role}', 'role': new_role}), 200
+
+
 @app.route('/api/admin/print-requests', methods=['GET'])
 def admin_get_all_requests():
-    """Get all print requests (Admin only)"""
+    """Get all print requests (Admin / Student Staff)"""
     auth_header = request.headers.get('Authorization')
     
     if not auth_header or not auth_header.startswith('Bearer '):
@@ -654,13 +683,16 @@ def admin_get_all_requests():
     token = auth_header.split(' ')[1]
     payload = AuthService.verify_jwt_token(token)
     
-    if not payload or payload.get('user_type') != 'admin':
+    if not payload or payload.get('user_type') not in ('admin', 'student_staff'):
         return jsonify({'success': False, 'message': 'Admin access required'}), 403
     
     status = request.args.get('status')
     priority = request.args.get('priority')
-    
-    result = PrintService.get_all_requests(status, priority)
+    week = request.args.get('week')        # optional 'YYYY-WW' filter
+    from_date = request.args.get('from')   # optional 'YYYY-MM-DD'
+    to_date = request.args.get('to')       # optional 'YYYY-MM-DD'
+
+    result = PrintService.get_all_requests(status, priority, week, from_date, to_date)
     
     if result['success']:
         return jsonify(result), 200
@@ -670,7 +702,7 @@ def admin_get_all_requests():
 
 @app.route('/api/admin/print-requests/<int:request_id>/status', methods=['PATCH'])
 def admin_update_request_status(request_id):
-    """Update the status of a print request (Admin only)"""
+    """Update the status of a print request (Admin / Student Staff)"""
     auth_header = request.headers.get('Authorization')
     
     if not auth_header or not auth_header.startswith('Bearer '):
@@ -679,7 +711,7 @@ def admin_update_request_status(request_id):
     token = auth_header.split(' ')[1]
     payload = AuthService.verify_jwt_token(token)
     
-    if not payload or payload.get('user_type') != 'admin':
+    if not payload or payload.get('user_type') not in ('admin', 'student_staff'):
         return jsonify({'success': False, 'message': 'Admin access required'}), 403
     
     data = request.json
@@ -707,7 +739,7 @@ def admin_update_request_status(request_id):
 
 @app.route('/api/admin/print-requests/<int:request_id>/return', methods=['POST'])
 def admin_return_request(request_id):
-    """Return a print request back to the student for revision (Admin only)"""
+    """Return a print request back to the student for revision (Admin / Student Staff)"""
     auth_header = request.headers.get('Authorization')
 
     if not auth_header or not auth_header.startswith('Bearer '):
@@ -716,7 +748,7 @@ def admin_return_request(request_id):
     token = auth_header.split(' ')[1]
     payload = AuthService.verify_jwt_token(token)
 
-    if not payload or payload.get('user_type') != 'admin':
+    if not payload or payload.get('user_type') not in ('admin', 'student_staff'):
         return jsonify({'success': False, 'message': 'Admin access required'}), 403
 
     data = request.json or {}
@@ -756,7 +788,7 @@ def admin_approve_with_ufp(request_id):
 
     token = auth_header.split(' ')[1]
     payload = AuthService.verify_jwt_token(token)
-    if not payload or payload.get('user_type') != 'admin':
+    if not payload or payload.get('user_type') not in ('admin', 'student_staff'):
         return jsonify({'success': False, 'message': 'Admin access required'}), 403
 
     data = request.json or {}
@@ -835,7 +867,7 @@ def admin_approve_with_ufp(request_id):
 
 @app.route('/api/admin/print-requests/statistics', methods=['GET'])
 def admin_get_statistics():
-    """Get print request statistics (Admin only)"""
+    """Get print request statistics (Admin / Student Staff)"""
     auth_header = request.headers.get('Authorization')
     
     if not auth_header or not auth_header.startswith('Bearer '):
@@ -844,7 +876,7 @@ def admin_get_statistics():
     token = auth_header.split(' ')[1]
     payload = AuthService.verify_jwt_token(token)
     
-    if not payload or payload.get('user_type') != 'admin':
+    if not payload or payload.get('user_type') not in ('admin', 'student_staff'):
         return jsonify({'success': False, 'message': 'Admin access required'}), 403
     
     result = PrintService.get_statistics()
@@ -1036,18 +1068,21 @@ def sync_google_sheet():
 def get_weekly_report():
     """
     GET /api/reports/weekly?week=YYYY-WW
-    Return aggregated KPI metrics for the given ISO week.
-    Defaults to last week if ?week is omitted.
+    GET /api/reports/weekly?from=YYYY-MM-DD&to=YYYY-MM-DD
+    Return aggregated KPI metrics for the given period.
+    Defaults to last week if all params are omitted.
     Requires admin / professor / manager JWT.
     """
     payload = _get_auth_payload()
     if not payload or payload.get('user_type') not in ('admin', 'professor', 'manager'):
         return jsonify({'success': False, 'message': 'Admin access required'}), 403
 
-    week = request.args.get('week', '').strip() or None
+    week      = request.args.get('week', '').strip() or None
+    from_date = request.args.get('from', '').strip() or None
+    to_date   = request.args.get('to',   '').strip() or None
 
     try:
-        data = _report_service.get_weekly_report(week)
+        data = _report_service.get_weekly_report(week, from_date, to_date)
         return jsonify({'success': True, 'report': data}), 200
     except ValueError as e:
         return jsonify({'success': False, 'message': str(e)}), 400

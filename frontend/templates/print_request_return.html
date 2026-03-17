@@ -66,7 +66,7 @@ const requestId = parseInt(location.pathname.split('/').filter(Boolean)[1]);
 (async function init() {
   const user = getUser();
   if (!user) { location.href = '/accounts/login'; return; }
-  if (user.user_type !== 'admin') { location.href = '/print-requests/'; return; }
+  if (user.user_type !== 'admin' && user.user_type !== 'student_staff') { location.href = '/print-requests/'; return; }
 
   try {
     const res  = await apiFetch(`/api/print-requests/${requestId}`);

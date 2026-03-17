@@ -37,6 +37,18 @@
       </a>
     </div>
   </div>
+
+  <!-- Student Staff panel -->
+  <div id="panel-student-staff" style="display:none">
+    <div style="display:flex;gap:16px;margin-bottom:24px">
+      <a href="/print-requests/" class="btn" style="width:auto;flex:1;text-align:center">
+        📋 Manage All Print Requests
+      </a>
+      <a href="/print-requests/new/" class="btn btn-secondary" style="width:auto;flex:1;text-align:center">
+        ➕ Submit New Request
+      </a>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -48,10 +60,14 @@
     document.getElementById('section-user').style.display = 'block';
     document.getElementById('welcome-msg').textContent = 'Welcome back, ' + (user.full_name || user.email) + '!';
     document.getElementById('user-info').textContent =
-      user.user_type === 'admin' ? '👤 Admin Account' : '🎓 Student  |  ' + (user.email || '');
+      user.user_type === 'admin' ? '👤 Admin Account' :
+      user.user_type === 'student_staff' ? '⭐ Student Staff  |  ' + (user.email || '') :
+      '🎓 Student  |  ' + (user.email || '');
 
     if (user.user_type === 'student') {
       document.getElementById('panel-student').style.display = 'block';
+    } else if (user.user_type === 'student_staff') {
+      document.getElementById('panel-student-staff').style.display = 'block';
     } else {
       document.getElementById('panel-admin').style.display = 'block';
     }

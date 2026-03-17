@@ -34,7 +34,7 @@
     document.getElementById('btn-new').style.display = 'none';
   }
 
-  loadRequests(user.user_type);
+  loadRequests(user.user_type, user);
 })();
 
 function statusBadge(s) {
@@ -50,9 +50,9 @@ function priorityLabel(p) {
   return p === 'urgent' ? '🔴 Urgent' : p === 'high' ? '🟠 High' : '🟢 Normal';
 }
 
-async function loadRequests(userType) {
+async function loadRequests(userType, user) {
   try {
-    const endpoint = userType === 'admin'
+    const endpoint = (userType === 'admin' || userType === 'student_staff')
       ? '/api/admin/print-requests'
       : '/api/print-requests/my-requests';
 
@@ -70,8 +70,9 @@ async function loadRequests(userType) {
 
   const tbody = document.getElementById('req-body');
   tbody.innerHTML = list.map((r, idx) => {
-      // Feedback banner shown to students when admin has left notes on a revision_requested request
-      const feedbackBanner = (userType !== 'admin' && r.status === 'revision_requested' && r.admin_notes)
+      // Feedback banner shown to students/student_staff for their own revision_requested requests
+      const isOwnRequest = (userType === 'student_staff') ? (r.student_email === user.email) : true;
+      const feedbackBanner = (userType !== 'admin' && isOwnRequest && r.status === 'revision_requested' && r.admin_notes)
         ? `<tr class="feedback-row">
              <td colspan="7" style="padding:0 12px 10px 32px">
                <div class="feedback-banner">
@@ -92,7 +93,8 @@ async function loadRequests(userType) {
           <td>${new Date(r.created_at).toLocaleDateString('en-US')}</td>
           <td style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
             <a href="/print-requests/${r.id}/" style="color:#e94560">Details</a>
-            ${userType !== 'admin' && (r.status === 'pending' || r.status === 'revision_requested' || r.status === 'rejected') ? `<button onclick="deleteRequest(${r.id},'${r.project_name.replace(/'/g,"&#39;")}')" class="btn-delete">🗑 Delete</button>` : ''}
+            ${(userType === 'admin') ? '' :
+              ((userType === 'student_staff' ? r.student_email === user.email : true) && (r.status === 'pending' || r.status === 'revision_requested' || r.status === 'rejected')) ? `<button onclick="deleteRequest(${r.id},'${r.project_name.replace(/'/g,"&#39;")}')" class="btn-delete">🗑 Delete</button>` : ''}
           </td>
         </tr>`;
       return row + feedbackBanner;
@@ -118,7 +120,7 @@ async function deleteRequest(id, name) {
     if (data.success) {
       alertBox.innerHTML = `<div class="alert alert-success">Request deleted successfully.</div>`;
       const user = getUser();
-      loadRequests(user.user_type);
+      loadRequests(user.user_type, user);
     } else {
       alertBox.innerHTML = `<div class="alert alert-error">${data.message}</div>`;
     }
