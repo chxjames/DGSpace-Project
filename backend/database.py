@@ -15,7 +15,8 @@ class Database:
                 user=Config.DB_USER,
                 password=Config.DB_PASSWORD,
                 database=Config.DB_NAME,
-                ssl_disabled=False  # Enable SSL for Aiven
+                ssl_disabled=True,           # Local MySQL, no SSL needed
+                auth_plugin='mysql_native_password'  # Bypass caching_sha2_password SSL requirement
             )
             if self.connection.is_connected():
                 print(f"[OK] Connected to MySQL database: {Config.DB_NAME}")

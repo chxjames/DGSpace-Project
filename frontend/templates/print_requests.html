@@ -11,6 +11,18 @@
 <div id="alert-box"></div>
 
 <div class="card">
+  <!-- Sort controls -->
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+    <label style="font-size:0.85rem;color:#666;white-space:nowrap">Sort by:</label>
+    <select id="sort-select" onchange="applySortAndRender()"
+      style="padding:5px 10px;border:1px solid #ddd;border-radius:4px;font-size:0.85rem;cursor:pointer">
+      <option value="date-desc">Date (Newest first)</option>
+      <option value="date-asc">Date (Oldest first)</option>
+      <option value="alpha-asc">Name (A → Z)</option>
+      <option value="alpha-desc">Name (Z → A)</option>
+    </select>
+  </div>
+
   <div id="loading" style="text-align:center;padding:32px;color:#888">Loading…</div>
   <table id="req-table" style="display:none">
     <thead>
@@ -50,27 +62,34 @@ function priorityLabel(p) {
   return p === 'urgent' ? '🔴 Urgent' : p === 'high' ? '🟠 High' : '🟢 Normal';
 }
 
-async function loadRequests(userType, user) {
-  try {
-    const endpoint = (userType === 'admin' || userType === 'student_staff')
-      ? '/api/admin/print-requests'
-      : '/api/print-requests/my-requests';
+/* ── sorting + state ─────────────────────────────────────────── */
+let _cachedList = [];
+let _cachedUserType = '';
+let _cachedUser = null;
 
-    const res  = await apiFetch(endpoint);
-    if (res.status === 401) { location.href = '/accounts/login'; return; }
-    const data = await res.json();
-    const list = data.requests || [];
+function sortList(list, mode) {
+  const sorted = [...list];
+  switch (mode) {
+    case 'alpha-asc':
+      sorted.sort((a, b) => (a.project_name || '').localeCompare(b.project_name || ''));
+      break;
+    case 'alpha-desc':
+      sorted.sort((a, b) => (b.project_name || '').localeCompare(a.project_name || ''));
+      break;
+    case 'date-asc':
+      sorted.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+      break;
+    case 'date-desc':
+    default:
+      sorted.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      break;
+  }
+  return sorted;
+}
 
-    document.getElementById('loading').style.display = 'none';
-
-    if (!list.length) {
-      document.getElementById('no-data').style.display = 'block';
-      return;
-    }
-
+function renderTable(list, userType, user) {
   const tbody = document.getElementById('req-body');
   tbody.innerHTML = list.map((r, idx) => {
-      // Feedback banner shown to students/student_staff for their own revision_requested requests
       const isOwnRequest = (userType === 'student_staff') ? (r.student_email === user.email) : true;
       const feedbackBanner = (userType !== 'admin' && isOwnRequest && r.status === 'revision_requested' && r.admin_notes)
         ? `<tr class="feedback-row">
@@ -99,7 +118,42 @@ async function loadRequests(userType, user) {
         </tr>`;
       return row + feedbackBanner;
     }).join('');
+}
 
+function applySortAndRender() {
+  if (!_cachedList.length) return;
+  const mode = document.getElementById('sort-select').value;
+  const sorted = sortList(_cachedList, mode);
+  renderTable(sorted, _cachedUserType, _cachedUser);
+}
+
+async function loadRequests(userType, user) {
+  _cachedUserType = userType;
+  _cachedUser = user;
+  try {
+    const endpoint = (userType === 'admin' || userType === 'student_staff')
+      ? '/api/admin/print-requests'
+      : '/api/print-requests/my-requests';
+
+    const res  = await apiFetch(endpoint);
+    if (res.status === 401) { location.href = '/accounts/login'; return; }
+    const data = await res.json();
+    const list = data.requests || [];
+
+    document.getElementById('loading').style.display = 'none';
+
+    if (!list.length) {
+      document.getElementById('no-data').style.display = 'block';
+      document.getElementById('req-table').style.display = 'none';
+      return;
+    }
+
+    _cachedList = list;
+    const mode = document.getElementById('sort-select').value;
+    const sorted = sortList(list, mode);
+    renderTable(sorted, userType, user);
+
+    document.getElementById('no-data').style.display = 'none';
     document.getElementById('req-table').style.display = 'table';
   } catch(e) {
     document.getElementById('loading').innerHTML =

@@ -29,6 +29,13 @@
       <input type="date" id="date-to"   style="padding:6px 10px;border:1px solid #ddd;border-radius:4px;font-size:0.9rem">
       <button onclick="setThisWeek()" style="padding:5px 12px;background:#f0f0f5;border:1px solid #ddd;border-radius:4px;font-size:0.82rem;cursor:pointer;color:#555">This Week</button>
       <button onclick="setLastWeek()" style="padding:5px 12px;background:#f0f0f5;border:1px solid #ddd;border-radius:4px;font-size:0.82rem;cursor:pointer;color:#555">Last Week</button>
+      <span style="color:#ccc;font-size:1rem">|</span>
+      <label style="font-size:0.82rem;color:#555;display:flex;align-items:center;gap:4px">
+        💲 Price/g
+        <input type="number" id="material-price" min="0" step="0.01" placeholder="0.00"
+          oninput="onPriceChange()"
+          style="width:70px;padding:5px 8px;border:1px solid #ddd;border-radius:4px;font-size:0.85rem;text-align:right">
+      </label>
     </div>
     <input type="month" id="month-picker" style="padding:6px 10px;border:1px solid #ddd;border-radius:4px;font-size:0.9rem;display:none">
     <button class="btn" style="width:auto;padding:8px 20px" onclick="loadReport()">Load</button>
@@ -39,7 +46,7 @@
 
   <!-- ═══════════════════════════ WEEKLY CONTENT -->
   <div id="weekly-content" style="display:none">
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:28px">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:16px;margin-bottom:28px">
       <div class="card" style="padding:20px;text-align:center">
         <div style="font-size:2rem;font-weight:bold;color:#e94560" id="w-total-jobs">—</div>
         <div style="color:#666;font-size:0.9rem;margin-top:4px">Total Jobs</div>
@@ -56,11 +63,15 @@
         <div style="font-size:2rem;font-weight:bold;color:#fd7e14" id="w-material">—</div>
         <div style="color:#666;font-size:0.9rem;margin-top:4px">Material (g)</div>
       </div>
+      <div class="card" style="padding:20px;text-align:center">
+        <div style="font-size:2rem;font-weight:bold;color:#6f42c1" id="w-cost-per-job">—</div>
+        <div style="color:#666;font-size:0.9rem;margin-top:4px">Cost / Job</div>
+      </div>
     </div>
 
     <div class="card" style="margin-bottom:24px">
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap">
-        <h3 style="margin:0;color:#1a1a2e">🍩 Distribution</h3>
+        <h3 style="margin:0;color:#1a1a2e">📊 Distribution</h3>
         <select id="w-donut-group" onchange="refreshDonut('w')"
           style="padding:5px 10px;border:1px solid #ddd;border-radius:4px;font-size:0.85rem;cursor:pointer">
           <option value="printer">By Printer</option>
@@ -91,6 +102,7 @@
               <th style="padding:10px;text-align:right;border-bottom:2px solid #dee2e6">Print Hours</th>
               <th style="padding:10px;text-align:right;border-bottom:2px solid #dee2e6">Avg Min/Job</th>
               <th style="padding:10px;text-align:right;border-bottom:2px solid #dee2e6">Material (g)</th>
+              <th style="padding:10px;text-align:right;border-bottom:2px solid #dee2e6">Cost</th>
             </tr>
           </thead>
           <tbody id="w-printer-tbody"></tbody>
@@ -108,6 +120,7 @@
               <th style="padding:10px;text-align:right;border-bottom:2px solid #dee2e6">Jobs Handled</th>
               <th style="padding:10px;text-align:right;border-bottom:2px solid #dee2e6">Print Hours</th>
               <th style="padding:10px;text-align:right;border-bottom:2px solid #dee2e6">Material (g)</th>
+              <th style="padding:10px;text-align:right;border-bottom:2px solid #dee2e6">Cost</th>
             </tr>
           </thead>
           <tbody id="w-operator-tbody"></tbody>
@@ -190,7 +203,7 @@
 
     <div class="card" style="margin-bottom:24px">
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap">
-        <h3 style="margin:0;color:#1a1a2e">🍩 Distribution</h3>
+        <h3 style="margin:0;color:#1a1a2e">📊 Distribution</h3>
         <select id="m-donut-group" onchange="refreshDonut('m')"
           style="padding:5px 10px;border:1px solid #ddd;border-radius:4px;font-size:0.85rem;cursor:pointer">
           <option value="printer">By Printer</option>
@@ -279,6 +292,62 @@ function showAlert(msg) {
     `<div style="padding:12px;background:#fee2e2;border:1px solid #fca5a5;border-radius:6px;color:#991b1b;margin-bottom:16px">${msg}</div>`;
 }
 
+/* ── material price helpers ──────────────────────────────────── */
+function getMaterialPrice() {
+  return parseFloat(document.getElementById('material-price').value) || 0;
+}
+function onPriceChange() {
+  localStorage.setItem('dg_material_price', document.getElementById('material-price').value);
+  updateCostPerJob();
+}
+function updateCostPerJob() {
+  const price = getMaterialPrice();
+  const r = lastWeekReport;
+  // KPI card
+  const el = document.getElementById('w-cost-per-job');
+  if (!r || !price) { el.textContent = '—'; } 
+  else {
+    const totalCost = (parseFloat(r.material.total_material_g) || 0) * price;
+    const totalJobs = r.volume.total_jobs || 1;
+    el.textContent = '$' + (totalCost / totalJobs).toFixed(2);
+  }
+  // Printer table cost column
+  if (r) {
+    const fromVal = document.getElementById('date-from').value;
+    const toVal   = document.getElementById('date-to').value;
+    const ptbody  = document.getElementById('w-printer-tbody');
+    ptbody.innerHTML = '';
+    (r.capacity.by_printer || []).forEach(p => {
+      const link = `/reports/printer/${encodeURIComponent(p.printer_name)}/?from=${fromVal}&to=${toVal}`;
+      const mat  = parseFloat(p.total_material_g) || 0;
+      const cost = price ? '$' + (mat * price).toFixed(2) : '—';
+      ptbody.innerHTML += `<tr>
+        <td style="padding:9px 10px;border-bottom:1px solid #f0f0f0"><a href="${link}" style="color:#007bff;text-decoration:none">${esc(p.printer_name)}</a></td>
+        <td style="padding:9px 10px;border-bottom:1px solid #f0f0f0;text-align:right">${p.jobs}</td>
+        <td style="padding:9px 10px;border-bottom:1px solid #f0f0f0;text-align:right">${(parseFloat(p.print_hours)||0).toFixed(1)}</td>
+        <td style="padding:9px 10px;border-bottom:1px solid #f0f0f0;text-align:right">${(parseFloat(p.avg_print_minutes)||0).toFixed(0)}</td>
+        <td style="padding:9px 10px;border-bottom:1px solid #f0f0f0;text-align:right">${mat.toFixed(1)}</td>
+        <td style="padding:9px 10px;border-bottom:1px solid #f0f0f0;text-align:right;color:#6f42c1;font-weight:600">${cost}</td>
+      </tr>`;
+    });
+    // Operator table cost column
+    const otbody = document.getElementById('w-operator-tbody');
+    otbody.innerHTML = '';
+    (r.staffing.by_operator || []).forEach(o => {
+      const link = `/reports/operator/${encodeURIComponent(o.operator_name)}/?from=${fromVal}&to=${toVal}`;
+      const mat  = parseFloat(o.material_used_g) || 0;
+      const cost = price ? '$' + (mat * price).toFixed(2) : '—';
+      otbody.innerHTML += `<tr>
+        <td style="padding:9px 10px;border-bottom:1px solid #f0f0f0"><a href="${link}" style="color:#007bff;text-decoration:none">${esc(o.operator_name)}</a></td>
+        <td style="padding:9px 10px;border-bottom:1px solid #f0f0f0;text-align:right">${o.jobs_handled}</td>
+        <td style="padding:9px 10px;border-bottom:1px solid #f0f0f0;text-align:right">${(parseFloat(o.print_hours_handled)||0).toFixed(1)}</td>
+        <td style="padding:9px 10px;border-bottom:1px solid #f0f0f0;text-align:right">${mat.toFixed(1)}</td>
+        <td style="padding:9px 10px;border-bottom:1px solid #f0f0f0;text-align:right;color:#6f42c1;font-weight:600">${cost}</td>
+      </tr>`;
+    });
+  }
+}
+
 /* ── date helpers ────────────────────────────────────────────── */
 function _isoDate(d) {
   // Returns 'YYYY-MM-DD' in LOCAL time (avoids UTC-shift issues)
@@ -337,6 +406,10 @@ function switchTab(tab) {
 
 /* ── init ────────────────────────────────────────────────────── */
 document.addEventListener('DOMContentLoaded', () => {
+  // Restore material price from localStorage
+  const savedPrice = localStorage.getItem('dg_material_price');
+  if (savedPrice) document.getElementById('material-price').value = savedPrice;
+
   const params     = new URLSearchParams(location.search);
   const tabParam   = params.get('tab') || 'weekly';
   const fromParam  = params.get('from');
@@ -393,30 +466,8 @@ async function loadWeekly() {
     document.getElementById('w-hours').textContent      = (parseFloat(r.capacity.total_print_hours)||0).toFixed(1);
     document.getElementById('w-material').textContent   = (parseFloat(r.material.total_material_g)||0).toFixed(1);
 
-    const ptbody = document.getElementById('w-printer-tbody');
-    ptbody.innerHTML = '';
-    (r.capacity.by_printer || []).forEach(p => {
-      const link = `/reports/printer/${encodeURIComponent(p.printer_name)}/?from=${fromVal}&to=${toVal}`;
-      ptbody.innerHTML += `<tr>
-        <td style="padding:9px 10px;border-bottom:1px solid #f0f0f0"><a href="${link}" style="color:#007bff;text-decoration:none">${esc(p.printer_name)}</a></td>
-        <td style="padding:9px 10px;border-bottom:1px solid #f0f0f0;text-align:right">${p.jobs}</td>
-        <td style="padding:9px 10px;border-bottom:1px solid #f0f0f0;text-align:right">${(parseFloat(p.print_hours)||0).toFixed(1)}</td>
-        <td style="padding:9px 10px;border-bottom:1px solid #f0f0f0;text-align:right">${(parseFloat(p.avg_print_minutes)||0).toFixed(0)}</td>
-        <td style="padding:9px 10px;border-bottom:1px solid #f0f0f0;text-align:right">${(parseFloat(p.total_material_g)||0).toFixed(1)}</td>
-      </tr>`;
-    });
-
-    const otbody = document.getElementById('w-operator-tbody');
-    otbody.innerHTML = '';
-    (r.staffing.by_operator || []).forEach(o => {
-      const link = `/reports/operator/${encodeURIComponent(o.operator_name)}/?from=${fromVal}&to=${toVal}`;
-      otbody.innerHTML += `<tr>
-        <td style="padding:9px 10px;border-bottom:1px solid #f0f0f0"><a href="${link}" style="color:#007bff;text-decoration:none">${esc(o.operator_name)}</a></td>
-        <td style="padding:9px 10px;border-bottom:1px solid #f0f0f0;text-align:right">${o.jobs_handled}</td>
-        <td style="padding:9px 10px;border-bottom:1px solid #f0f0f0;text-align:right">${(parseFloat(o.print_hours_handled)||0).toFixed(1)}</td>
-        <td style="padding:9px 10px;border-bottom:1px solid #f0f0f0;text-align:right">${(parseFloat(o.material_used_g)||0).toFixed(1)}</td>
-      </tr>`;
-    });
+    // Render tables (with cost column) and KPI cost card
+    updateCostPerJob();
 
     refreshDonut('w');
 
@@ -582,39 +633,63 @@ function jumpToWeek(weekStr) {           // weekStr = '2026-10'
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-/* ── donut chart ─────────────────────────────────────────────── */
-/* unit: 'g' | 'h' | 'jobs' — controls legend suffix */
+/* ── distribution bar chart ──────────────────────────────────── */
+/* unit: 'g' | 'h' | 'jobs' — controls label suffix */
 function renderDonut(canvasId, rows, nameKey, valueKey, unit, onCreated) {
-  const labels = rows.map(r => r[nameKey]);
-  const values = rows.map(r => parseFloat(r[valueKey]) || 0);
-  const colors = labels.map((_, i) => CHART_COLORS[i % CHART_COLORS.length]);
+  const rawLabels = rows.map(r => r[nameKey]);
+  const rawValues = rows.map(r => parseFloat(r[valueKey]) || 0);
+
+  /* sort largest → smallest */
+  const indices = rawValues.map((_, i) => i).sort((a, b) => rawValues[b] - rawValues[a]);
+  const labels  = indices.map(i => rawLabels[i]);
+  const values  = indices.map(i => rawValues[i]);
+  const colors  = indices.map((_, i) => CHART_COLORS[i % CHART_COLORS.length]);
+
   const fmt = v => unit === 'g' ? `${v.toFixed(1)}g` : unit === 'h' ? `${v.toFixed(1)}h` : `${Math.round(v)}`;
+  const total = values.reduce((a, b) => a + b, 0);
+
   const chart = new Chart(document.getElementById(canvasId).getContext('2d'), {
-    type: 'doughnut',
-    data: { labels, datasets: [{ data: values, backgroundColor: colors, borderColor:'#fff', borderWidth:2, hoverOffset:8 }] },
+    type: 'bar',
+    data: { labels, datasets: [{ data: values, backgroundColor: colors, borderColor: colors.map(c => c), borderWidth: 1, borderRadius: 4, barPercentage: 0.7 }] },
     options: {
-      cutout: '60%',
+      indexAxis: 'y',
       maintainAspectRatio: false,
       layout: { padding: { right: 10 } },
+      scales: {
+        x: { beginAtZero: true, grid: { color: '#eee' }, ticks: { font: { size: 11 } } },
+        y: { grid: { display: false }, ticks: { font: { size: 11 } } }
+      },
       plugins: {
-        legend: {
-          position: 'right',
-          labels: {
-            boxWidth:14, padding:10, font:{size:11},
-            generateLabels(chart) {
-              const meta = chart.getDatasetMeta(0);
-              return chart.data.labels.map((label, i) => {
-                const total = chart.data.datasets[0].data.reduce((a,b)=>a+b, 0);
-                const val   = chart.data.datasets[0].data[i];
-                const pct   = total > 0 ? (val/total*100).toFixed(1) : '0.0';
-                return { text:`${label}  ${fmt(val)} (${pct}%)`, fillStyle:chart.data.datasets[0].backgroundColor[i], strokeStyle:'#fff', lineWidth:1, hidden:meta.data[i]?.hidden, index:i };
-              });
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label(ctx) {
+              const pct = total > 0 ? (ctx.parsed.x / total * 100).toFixed(1) : '0.0';
+              return ` ${fmt(ctx.parsed.x)}  (${pct}%)`;
             }
           }
         },
-        tooltip: { callbacks: { label(ctx) { const t=ctx.dataset.data.reduce((a,b)=>a+b,0); return ` ${fmt(ctx.parsed)}  (${t>0?(ctx.parsed/t*100).toFixed(1):0}%)`; } } }
+        /* show value + percentage at end of each bar */
+        datalabels: false
       }
-    }
+    },
+    plugins: [{
+      id: 'barLabels',
+      afterDatasetsDraw(chart) {
+        const ctx2 = chart.ctx;
+        const meta = chart.getDatasetMeta(0);
+        ctx2.save();
+        ctx2.font = '11px sans-serif';
+        ctx2.fillStyle = '#555';
+        ctx2.textBaseline = 'middle';
+        meta.data.forEach((bar, i) => {
+          const val = chart.data.datasets[0].data[i];
+          const pct = total > 0 ? (val / total * 100).toFixed(1) : '0.0';
+          ctx2.fillText(`${fmt(val)} (${pct}%)`, bar.x + 6, bar.y);
+        });
+        ctx2.restore();
+      }
+    }]
   });
   onCreated(chart);
 }
@@ -660,14 +735,18 @@ function refreshDonut(prefix) {
 function exportCSV() {
   if (!lastWeekReport) return;
   const r = lastWeekReport;
+  const price = getMaterialPrice();
+  const totalCost = price ? ((parseFloat(r.material.total_material_g)||0) * price) : '';
+  const costPerJob = (price && r.volume.total_jobs) ? (totalCost / r.volume.total_jobs).toFixed(2) : '';
   const rows = [
     ['Week', r.week], ['Period', `${r.period.from} to ${r.period.to}`], [],
     ['--- Volume ---'], ['Total Jobs', r.volume.total_jobs], ['Finished', r.volume.finished_jobs], ['Unfinished', r.volume.unfinished_jobs], [],
-    ['--- Material ---'], ['Total Material (g)', r.material.total_material_g], ['Avg per Job (g)', r.material.avg_material_per_job_g], [],
-    ['--- Printer Breakdown ---'], ['Printer','Jobs','Print Hours','Avg Min/Job','Material (g)'],
-    ...(r.capacity.by_printer||[]).map(p=>[p.printer_name,p.jobs,p.print_hours,p.avg_print_minutes,p.total_material_g]),
-    [],['--- Staff ---'],['Operator','Jobs','Print Hours','Material (g)'],
-    ...(r.staffing.by_operator||[]).map(o=>[o.operator_name,o.jobs_handled,o.print_hours_handled,o.material_used_g]),
+    ['--- Material ---'], ['Total Material (g)', r.material.total_material_g], ['Avg per Job (g)', r.material.avg_material_per_job_g],
+    ['Price per gram ($)', price || 'N/A'], ['Total Cost ($)', totalCost || 'N/A'], ['Cost per Job ($)', costPerJob || 'N/A'], [],
+    ['--- Printer Breakdown ---'], ['Printer','Jobs','Print Hours','Avg Min/Job','Material (g)','Cost ($)'],
+    ...(r.capacity.by_printer||[]).map(p=>[p.printer_name,p.jobs,p.print_hours,p.avg_print_minutes,p.total_material_g, price ? ((parseFloat(p.total_material_g)||0)*price).toFixed(2) : '']),
+    [],['--- Staff ---'],['Operator','Jobs','Print Hours','Material (g)','Cost ($)'],
+    ...(r.staffing.by_operator||[]).map(o=>[o.operator_name,o.jobs_handled,o.print_hours_handled,o.material_used_g, price ? ((parseFloat(o.material_used_g)||0)*price).toFixed(2) : '']),
   ];
   const csv = rows.map(r=>r.map(v=>`"${String(v??'').replace(/"/g,'""')}"`).join(',')).join('\n');
   const a = document.createElement('a');

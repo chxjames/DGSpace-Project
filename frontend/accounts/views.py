@@ -65,6 +65,14 @@ class MonthlyReportView(TemplateView):
     template_name = "monthly_report.html"
 
 
+class ManagePrintersView(TemplateView):
+    template_name = "manage_printers.html"
+
+
+class ManageAdminsView(TemplateView):
+    template_name = "manage_admins.html"
+
+
 @method_decorator(csrf_exempt, name='dispatch')
 class ApiProxyView(View):
     """Forward every /api/... request to the Flask backend transparently."""

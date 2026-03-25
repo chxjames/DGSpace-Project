@@ -672,6 +672,187 @@ def admin_update_student_role(email: str):
     return jsonify({'success': True, 'message': f'Role updated to {new_role}', 'role': new_role}), 200
 
 
+# ==================== PRINTER MANAGEMENT ====================
+
+@app.route('/api/admin/printers', methods=['GET'])
+def admin_list_printers():
+    """List all printers (Admin only)."""
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({'success': False, 'message': 'No token provided'}), 401
+    token = auth_header.split(' ')[1]
+    payload = AuthService.verify_jwt_token(token)
+    if not payload or payload.get('user_type') != 'admin':
+        return jsonify({'success': False, 'message': 'Admin access required'}), 403
+
+    printers = db.fetch_all(
+        "SELECT printer_id, printer_name, model, location, status, notes, created_at FROM printers ORDER BY printer_name"
+    ) or []
+    return jsonify({'success': True, 'printers': printers}), 200
+
+
+@app.route('/api/admin/printers', methods=['POST'])
+def admin_add_printer():
+    """Add a new printer (Admin only)."""
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({'success': False, 'message': 'No token provided'}), 401
+    token = auth_header.split(' ')[1]
+    payload = AuthService.verify_jwt_token(token)
+    if not payload or payload.get('user_type') != 'admin':
+        return jsonify({'success': False, 'message': 'Admin access required'}), 403
+
+    data = request.json or {}
+    name = (data.get('printer_name') or '').strip()
+    if not name:
+        return jsonify({'success': False, 'message': 'Printer name is required'}), 400
+
+    # Check duplicate
+    existing = db.fetch_one("SELECT printer_id FROM printers WHERE printer_name = %s", (name,))
+    if existing:
+        return jsonify({'success': False, 'message': 'A printer with that name already exists'}), 409
+
+    result = db.execute_query(
+        "INSERT INTO printers (printer_name, model, location, status, notes) VALUES (%s, %s, %s, %s, %s)",
+        (name, (data.get('model') or '').strip() or None,
+         (data.get('location') or '').strip() or None,
+         data.get('status', 'active'),
+         (data.get('notes') or '').strip() or None)
+    )
+    if result is not None:
+        return jsonify({'success': True, 'message': 'Printer added', 'printer_id': result}), 201
+    return jsonify({'success': False, 'message': 'Failed to add printer'}), 500
+
+
+@app.route('/api/admin/printers/<int:printer_id>', methods=['PATCH'])
+def admin_update_printer(printer_id):
+    """Update printer details (Admin only)."""
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({'success': False, 'message': 'No token provided'}), 401
+    token = auth_header.split(' ')[1]
+    payload = AuthService.verify_jwt_token(token)
+    if not payload or payload.get('user_type') != 'admin':
+        return jsonify({'success': False, 'message': 'Admin access required'}), 403
+
+    existing = db.fetch_one("SELECT printer_id FROM printers WHERE printer_id = %s", (printer_id,))
+    if not existing:
+        return jsonify({'success': False, 'message': 'Printer not found'}), 404
+
+    data = request.json or {}
+    sets, vals = [], []
+    for field in ('printer_name', 'model', 'location', 'status', 'notes'):
+        if field in data:
+            sets.append(f"{field} = %s")
+            vals.append((data[field] or '').strip() or None)
+    if not sets:
+        return jsonify({'success': False, 'message': 'Nothing to update'}), 400
+
+    vals.append(printer_id)
+    db.execute_query(f"UPDATE printers SET {', '.join(sets)} WHERE printer_id = %s", tuple(vals))
+    return jsonify({'success': True, 'message': 'Printer updated'}), 200
+
+
+@app.route('/api/admin/printers/<int:printer_id>', methods=['DELETE'])
+def admin_delete_printer(printer_id):
+    """Delete a printer (Admin only)."""
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({'success': False, 'message': 'No token provided'}), 401
+    token = auth_header.split(' ')[1]
+    payload = AuthService.verify_jwt_token(token)
+    if not payload or payload.get('user_type') != 'admin':
+        return jsonify({'success': False, 'message': 'Admin access required'}), 403
+
+    existing = db.fetch_one("SELECT printer_id FROM printers WHERE printer_id = %s", (printer_id,))
+    if not existing:
+        return jsonify({'success': False, 'message': 'Printer not found'}), 404
+
+    db.execute_query("DELETE FROM printers WHERE printer_id = %s", (printer_id,))
+    return jsonify({'success': True, 'message': 'Printer deleted'}), 200
+
+
+# ==================== ADMIN ACCOUNT MANAGEMENT ====================
+
+@app.route('/api/admin/admins', methods=['GET'])
+def admin_list_admins():
+    """List all admin accounts (Admin only)."""
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({'success': False, 'message': 'No token provided'}), 401
+    token = auth_header.split(' ')[1]
+    payload = AuthService.verify_jwt_token(token)
+    if not payload or payload.get('user_type') != 'admin':
+        return jsonify({'success': False, 'message': 'Admin access required'}), 403
+
+    admins = db.fetch_all(
+        "SELECT email, full_name, role, email_verified, created_at, last_login FROM admins ORDER BY created_at DESC"
+    ) or []
+    return jsonify({'success': True, 'admins': admins}), 200
+
+
+@app.route('/api/admin/admins', methods=['POST'])
+def admin_create_admin():
+    """Create a new admin account (Admin only). Sets email_verified = TRUE immediately."""
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({'success': False, 'message': 'No token provided'}), 401
+    token = auth_header.split(' ')[1]
+    payload = AuthService.verify_jwt_token(token)
+    if not payload or payload.get('user_type') != 'admin':
+        return jsonify({'success': False, 'message': 'Admin access required'}), 403
+
+    data = request.json or {}
+    email = (data.get('email') or '').strip()
+    password = data.get('password', '')
+    full_name = (data.get('full_name') or '').strip()
+    role = data.get('role', 'admin')
+
+    if not email or not password or not full_name:
+        return jsonify({'success': False, 'message': 'email, password, and full_name are required'}), 400
+    if role not in ('super_admin', 'admin', 'moderator', 'professor', 'manager'):
+        return jsonify({'success': False, 'message': 'Invalid role'}), 400
+
+    existing = db.fetch_one("SELECT email FROM admins WHERE email = %s", (email,))
+    if existing:
+        return jsonify({'success': False, 'message': 'Email already registered'}), 409
+
+    password_hash = AuthService.hash_password(password)
+    result = db.execute_query(
+        "INSERT INTO admins (email, password_hash, full_name, role, email_verified) VALUES (%s, %s, %s, %s, TRUE)",
+        (email, password_hash, full_name, role)
+    )
+    if result is not None:
+        return jsonify({'success': True, 'message': 'Admin created successfully'}), 201
+    return jsonify({'success': False, 'message': 'Failed to create admin'}), 500
+
+
+@app.route('/api/admin/admins/<path:email>', methods=['DELETE'])
+def admin_delete_admin(email):
+    """Delete an admin account (Admin only). Cannot delete yourself."""
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({'success': False, 'message': 'No token provided'}), 401
+    token = auth_header.split(' ')[1]
+    payload = AuthService.verify_jwt_token(token)
+    if not payload or payload.get('user_type') != 'admin':
+        return jsonify({'success': False, 'message': 'Admin access required'}), 403
+
+    if payload.get('email') == email:
+        return jsonify({'success': False, 'message': 'You cannot delete your own account'}), 400
+
+    existing = db.fetch_one("SELECT email FROM admins WHERE email = %s", (email,))
+    if not existing:
+        return jsonify({'success': False, 'message': 'Admin not found'}), 404
+
+    # Clean up related rows
+    db.execute_query("DELETE FROM totp_secrets WHERE email = %s AND user_type = 'admin'", (email,))
+    db.execute_query("DELETE FROM password_reset_tokens WHERE email = %s AND user_type = 'admin'", (email,))
+    db.execute_query("DELETE FROM email_verification_codes WHERE email = %s AND user_type = 'admin'", (email,))
+    db.execute_query("DELETE FROM admins WHERE email = %s", (email,))
+    return jsonify({'success': True, 'message': 'Admin deleted'}), 200
+
+
 @app.route('/api/admin/print-requests', methods=['GET'])
 def admin_get_all_requests():
     """Get all print requests (Admin / Student Staff)"""
