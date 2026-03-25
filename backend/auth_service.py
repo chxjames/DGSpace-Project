@@ -71,9 +71,14 @@ class AuthService:
     def register_student(email, password, full_name, department=None):
         """Register a new student"""
         # Check if email already exists
-        existing = db.fetch_one("SELECT email FROM students WHERE email = %s", (email,))
+        existing = db.fetch_one("SELECT email, email_verified FROM students WHERE email = %s", (email,))
         if existing:
-            return {'success': False, 'message': 'Email already registered'}
+            # If account exists but NOT verified, delete and allow re-registration
+            if not existing['email_verified']:
+                db.execute_query("DELETE FROM email_verification_codes WHERE email = %s AND user_type = 'student'", (email,))
+                db.execute_query("DELETE FROM students WHERE email = %s", (email,))
+            else:
+                return {'success': False, 'message': 'Email already registered'}
         
         # Hash password
         password_hash = AuthService.hash_password(password)
