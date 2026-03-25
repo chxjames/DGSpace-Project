@@ -6,7 +6,7 @@ load_dotenv()
 class Config:
     # Database
     DB_HOST = os.getenv('DB_HOST', 'localhost')
-    DB_PORT = int(os.getenv('DB_PORT', 3306))
+    DB_PORT = int(os.getenv('DB_PORT', '3306') or '3306')
     DB_USER = os.getenv('DB_USER', 'dgspace_user')
     DB_PASSWORD = os.getenv('DB_PASSWORD')
     DB_NAME = os.getenv('DB_NAME', 'DGSpace')
@@ -17,7 +17,7 @@ class Config:
 
     # Email
     MAIL_SERVER = os.getenv('MAIL_SERVER')
-    MAIL_PORT = int(os.getenv('MAIL_PORT', 587))
+    MAIL_PORT = int(os.getenv('MAIL_PORT', '587') or '587')
     MAIL_USE_TLS = os.getenv('MAIL_USE_TLS', 'True') == 'True'
     MAIL_USERNAME = os.getenv('MAIL_USERNAME')
     MAIL_PASSWORD = os.getenv('MAIL_PASSWORD')
@@ -60,7 +60,7 @@ class Config:
     }
 
     # Server
-    PORT = int(os.getenv('PORT', 5000))
+    PORT = int(os.getenv('PORT', '5000') or '5000')
 
     # File uploads
     UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), 'uploads')
