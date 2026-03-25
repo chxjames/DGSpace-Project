@@ -4,9 +4,9 @@ from django.http import HttpResponse
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
+from django.conf import settings
 
-
-FLASK_BASE = "http://localhost:5000"
+FLASK_BASE = getattr(settings, 'FLASK_BACKEND_URL', 'http://localhost:5000')
 
 
 class SignUpView(TemplateView):
