@@ -1405,9 +1405,10 @@ def internal_error(error):
     return jsonify({'success': False, 'message': 'Internal server error'}), 500
 
 if __name__ == '__main__':
+    port = int(os.getenv('PORT', 5000))
     print("Starting DGSpace Backend Server...")
     print(f"Database: {Config.DB_NAME}")
-    print(f"Server running on: http://localhost:{Config.PORT or 5000}")
+    print(f"Server running on: http://localhost:{port}")
     
     # Connect to database
     db.connect()
@@ -1415,7 +1416,7 @@ if __name__ == '__main__':
     # Run Flask app
     app.run(
         host='0.0.0.0',
-        port=int(Config.PORT or 5000),
+        port=port,
         debug=True
     )
 
