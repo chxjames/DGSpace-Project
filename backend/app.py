@@ -35,6 +35,16 @@ mail.init_app(app)
 def before_request():
     if not db.connection or not db.connection.is_connected():
         db.connect()
+    # Auto-cleanup: delete unverified accounts older than 10 minutes
+    try:
+        db.execute_query(
+            "DELETE FROM email_verification_codes WHERE is_used = FALSE AND expires_at < NOW() AND email IN (SELECT email FROM students WHERE email_verified = FALSE)"
+        )
+        db.execute_query(
+            "DELETE FROM students WHERE email_verified = FALSE AND created_at < DATE_SUB(NOW(), INTERVAL 10 MINUTE)"
+        )
+    except Exception:
+        pass
 
 # Health check endpoint
 @app.route('/', methods=['GET'])
