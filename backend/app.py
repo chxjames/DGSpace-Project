@@ -1255,6 +1255,120 @@ def sync_google_sheet():
         }), 500
 
 
+@app.route('/api/reports/dashboard', methods=['GET'])
+def get_dashboard_report():
+    """
+    GET /api/reports/dashboard?from=YYYY-MM-DD&to=YYYY-MM-DD
+    Return aggregated stats directly from print_requests table.
+    Requires admin / professor / manager JWT.
+    """
+    payload = _get_auth_payload()
+    if not payload or payload.get('user_type') not in ('admin', 'professor', 'manager'):
+        return jsonify({'success': False, 'message': 'Admin access required'}), 403
+
+    from_date = request.args.get('from', '').strip() or None
+    to_date   = request.args.get('to',   '').strip() or None
+
+    # Default: last 7 days
+    if not from_date or not to_date:
+        from datetime import datetime, timedelta
+        to_dt   = datetime.utcnow()
+        from_dt = to_dt - timedelta(days=7)
+        from_date = from_dt.strftime('%Y-%m-%d')
+        to_date   = to_dt.strftime('%Y-%m-%d')
+
+    try:
+        # Overall summary
+        summary = db.fetch_one("""
+            SELECT
+                COUNT(*) AS total_requests,
+                SUM(status = 'completed') AS completed,
+                SUM(status = 'in_progress') AS in_progress,
+                SUM(status = 'pending') AS pending,
+                SUM(status = 'approved') AS approved,
+                SUM(status = 'rejected') AS rejected,
+                SUM(status = 'cancelled') AS cancelled,
+                ROUND(SUM(slicer_time_minutes) / 60, 1) AS total_print_hours,
+                ROUND(SUM(slicer_material_g), 1) AS total_material_g,
+                COUNT(DISTINCT student_email) AS unique_students
+            FROM print_requests
+            WHERE DATE(created_at) BETWEEN %s AND %s
+        """, (from_date, to_date))
+
+        # By material type
+        by_material = db.fetch_all("""
+            SELECT material_type, COUNT(*) AS count,
+                   ROUND(SUM(slicer_material_g), 1) AS material_g
+            FROM print_requests
+            WHERE DATE(created_at) BETWEEN %s AND %s
+            GROUP BY material_type
+            ORDER BY count DESC
+        """, (from_date, to_date))
+
+        # By status over time (daily)
+        by_day = db.fetch_all("""
+            SELECT DATE(created_at) AS day, COUNT(*) AS count,
+                   SUM(status = 'completed') AS completed
+            FROM print_requests
+            WHERE DATE(created_at) BETWEEN %s AND %s
+            GROUP BY DATE(created_at)
+            ORDER BY day
+        """, (from_date, to_date))
+
+        # Top students
+        top_students = db.fetch_all("""
+            SELECT pr.student_email, s.full_name,
+                   COUNT(*) AS request_count,
+                   SUM(pr.status = 'completed') AS completed
+            FROM print_requests pr
+            LEFT JOIN students s ON pr.student_email = s.email
+            WHERE DATE(pr.created_at) BETWEEN %s AND %s
+            GROUP BY pr.student_email, s.full_name
+            ORDER BY request_count DESC
+            LIMIT 10
+        """, (from_date, to_date))
+
+        # Recent completed requests
+        recent = db.fetch_all("""
+            SELECT pr.request_id, pr.student_email, s.full_name,
+                   pr.project_name, pr.material_type,
+                   pr.slicer_time_minutes, pr.slicer_material_g,
+                   pr.status, pr.created_at, pr.completed_at
+            FROM print_requests pr
+            LEFT JOIN students s ON pr.student_email = s.email
+            WHERE DATE(pr.created_at) BETWEEN %s AND %s
+            ORDER BY pr.created_at DESC
+            LIMIT 50
+        """, (from_date, to_date))
+
+        # Convert datetime objects to strings for JSON
+        def serialize(obj):
+            if hasattr(obj, 'isoformat'):
+                return obj.isoformat()
+            return obj
+
+        recent_list = []
+        for r in recent:
+            recent_list.append({k: serialize(v) for k, v in r.items()})
+
+        by_day_list = []
+        for r in by_day:
+            by_day_list.append({k: serialize(v) for k, v in r.items()})
+
+        return jsonify({
+            'success': True,
+            'period': {'from': from_date, 'to': to_date},
+            'summary': summary,
+            'by_material': by_material,
+            'by_day': by_day_list,
+            'top_students': top_students,
+            'recent': recent_list,
+        }), 200
+
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Report error: {str(e)}'}), 500
+
+
 @app.route('/api/reports/weekly', methods=['GET'])
 def get_weekly_report():
     """
