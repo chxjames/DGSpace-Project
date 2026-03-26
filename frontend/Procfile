@@ -1,1 +1,1 @@
-web: pip install gunicorn whitenoise && mkdir -p staticfiles && python manage.py collectstatic --noinput && python -m gunicorn donaldsgarage.wsgi --bind 0.0.0.0:$PORT
+web: pip install gunicorn whitenoise && mkdir -p staticfiles && python manage.py migrate --noinput && python manage.py collectstatic --noinput && python -m gunicorn donaldsgarage.wsgi --bind 0.0.0.0:$PORT
