@@ -124,6 +124,8 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATICFILES_DIRS = []
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Flask backend URL (set via environment variable in production)
 FLASK_BACKEND_URL = os.environ.get('FLASK_BACKEND_URL', 'http://localhost:5000')
