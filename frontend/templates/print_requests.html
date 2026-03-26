@@ -38,6 +38,11 @@
 </div>
 
 <script>
+/* Global state - declared first to avoid TDZ errors */
+var _cachedList = [];
+var _cachedUserType = '';
+var _cachedUser = null;
+
 (function() {
   const user = getUser();
   if (!user) { location.href = '/accounts/login'; return; }
@@ -62,10 +67,8 @@ function priorityLabel(p) {
   return p === 'urgent' ? '🔴 Urgent' : p === 'high' ? '🟠 High' : '🟢 Normal';
 }
 
-/* ── sorting + state ─────────────────────────────────────────── */
-let _cachedList = [];
-let _cachedUserType = '';
-let _cachedUser = null;
+/* ── sorting + state ───────────────────────────────────── */
+// Note: _cachedList, _cachedUserType, _cachedUser declared at top of script
 
 function sortList(list, mode) {
   const sorted = [...list];
