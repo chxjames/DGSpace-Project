@@ -4,5 +4,8 @@ nixPkgs = ["python311"]
 [phases.install]
 cmds = ["pip install -r requirements.txt"]
 
+[phases.build]
+cmds = ["mkdir -p staticfiles", "python manage.py migrate --noinput", "python manage.py collectstatic --noinput"]
+
 [start]
-cmd = "gunicorn donaldsgarage.wsgi --bind 0.0.0.0:$PORT"
+cmd = "python -m gunicorn donaldsgarage.wsgi --bind 0.0.0.0:$PORT"
