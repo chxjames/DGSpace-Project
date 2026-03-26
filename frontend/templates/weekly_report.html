@@ -1,308 +1,613 @@
-{% extends "base.html" %}
-{% block title %}Report ‚Ä?DGSpace{% endblock %}
+{% extends "base.html" %}{% extends "base.html" %}
 
-{% block content %}
-<div style="max-width:1000px;margin:0 auto">
+{% block title %}Report - DGSpace{% endblock %}{% block title %}Report ÔøΩ?DGSpace{% endblock %}
 
-  <!-- Header -->
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px">
-    <h2 style="color:#1a1a2e;margin:0">üìä Print Request Report</h2>
-    <button onclick="exportCSV()" style="padding:7px 14px;background:#fff;border:1px solid #ddd;border-radius:4px;cursor:pointer;font-size:0.85rem">‚¨?Export CSV</button>
-  </div>
 
-  <!-- Date range picker -->
-  <div style="display:flex;align-items:center;gap:10px;margin-bottom:24px;flex-wrap:wrap">
-    <input type="date" id="date-from" style="padding:7px 10px;border:1px solid #ddd;border-radius:4px;font-size:0.9rem">
-    <span style="color:#888">‚Ü?/span>
-    <input type="date" id="date-to" style="padding:7px 10px;border:1px solid #ddd;border-radius:4px;font-size:0.9rem">
-    <button onclick="setThisWeek()" style="padding:6px 12px;background:#f0f0f5;border:1px solid #ddd;border-radius:4px;font-size:0.82rem;cursor:pointer">This Week</button>
-    <button onclick="setLastWeek()" style="padding:6px 12px;background:#f0f0f5;border:1px solid #ddd;border-radius:4px;font-size:0.82rem;cursor:pointer">Last Week</button>
-    <button onclick="setThisMonth()" style="padding:6px 12px;background:#f0f0f5;border:1px solid #ddd;border-radius:4px;font-size:0.82rem;cursor:pointer">This Month</button>
-    <button onclick="loadReport()" class="btn" style="width:auto;padding:7px 20px">Load</button>
-  </div>
 
-  <div id="alert-box"></div>
-  <div id="period-label" style="color:#888;font-size:0.9rem;margin-bottom:20px"></div>
+{% block content %}{% block content %}
 
-  <!-- KPI Cards -->
-  <div id="kpi-section" style="display:none">
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:16px;margin-bottom:28px">
-      <div class="card" style="padding:20px;text-align:center">
-        <div style="font-size:2rem;font-weight:bold;color:#e94560" id="kpi-total">‚Ä?/div>
-        <div style="color:#666;font-size:0.9rem;margin-top:4px">Total Requests</div>
-      </div>
-      <div class="card" style="padding:20px;text-align:center">
-        <div style="font-size:2rem;font-weight:bold;color:#28a745" id="kpi-completed">‚Ä?/div>
-        <div style="color:#666;font-size:0.9rem;margin-top:4px">Completed</div>
-      </div>
-      <div class="card" style="padding:20px;text-align:center">
-        <div style="font-size:2rem;font-weight:bold;color:#007bff" id="kpi-inprogress">‚Ä?/div>
-        <div style="color:#666;font-size:0.9rem;margin-top:4px">In Progress</div>
-      </div>
-      <div class="card" style="padding:20px;text-align:center">
-        <div style="font-size:2rem;font-weight:bold;color:#ffc107" id="kpi-pending">‚Ä?/div>
-        <div style="color:#666;font-size:0.9rem;margin-top:4px">Pending</div>
-      </div>
-      <div class="card" style="padding:20px;text-align:center">
-        <div style="font-size:2rem;font-weight:bold;color:#fd7e14" id="kpi-hours">‚Ä?/div>
-        <div style="color:#666;font-size:0.9rem;margin-top:4px">Print Hours</div>
-      </div>
-      <div class="card" style="padding:20px;text-align:center">
-        <div style="font-size:2rem;font-weight:bold;color:#6f42c1" id="kpi-material">‚Ä?/div>
-        <div style="color:#666;font-size:0.9rem;margin-top:4px">Material (g)</div>
-      </div>
-      <div class="card" style="padding:20px;text-align:center">
-        <div style="font-size:2rem;font-weight:bold;color:#17a2b8" id="kpi-students">‚Ä?/div>
-        <div style="color:#666;font-size:0.9rem;margin-top:4px">Students</div>
-      </div>
-    </div>
+<div style="max-width:1000px;margin:0 auto"><div style="max-width:1000px;margin:0 auto">
 
-    <!-- By Material -->
-    <div class="card" style="margin-bottom:24px">
-      <h3 style="margin-bottom:16px;color:#1a1a2e">üß± By Material Type</h3>
-      <div style="overflow-x:auto">
-        <table style="width:100%;border-collapse:collapse;font-size:0.9rem">
-          <thead>
-            <tr style="background:#f8f9fa">
-              <th style="padding:10px;text-align:left;border-bottom:2px solid #dee2e6">Material</th>
-              <th style="padding:10px;text-align:right;border-bottom:2px solid #dee2e6">Requests</th>
-              <th style="padding:10px;text-align:right;border-bottom:2px solid #dee2e6">Material Used (g)</th>
-              <th style="padding:10px;text-align:left;border-bottom:2px solid #dee2e6">Share</th>
-            </tr>
-          </thead>
-          <tbody id="material-tbody"></tbody>
-        </table>
-      </div>
-    </div>
 
-    <!-- Top Students -->
-    <div class="card" style="margin-bottom:24px">
-      <h3 style="margin-bottom:16px;color:#1a1a2e">üèÜ Top Students</h3>
-      <div style="overflow-x:auto">
-        <table style="width:100%;border-collapse:collapse;font-size:0.9rem">
-          <thead>
-            <tr style="background:#f8f9fa">
-              <th style="padding:10px;text-align:left;border-bottom:2px solid #dee2e6">Student</th>
-              <th style="padding:10px;text-align:right;border-bottom:2px solid #dee2e6">Requests</th>
-              <th style="padding:10px;text-align:right;border-bottom:2px solid #dee2e6">Completed</th>
-            </tr>
-          </thead>
-          <tbody id="students-tbody"></tbody>
-        </table>
-      </div>
-    </div>
 
-    <!-- All Requests Table -->
-    <div class="card">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">
-        <h3 style="margin:0;color:#1a1a2e">üìã All Requests</h3>
-        <span id="req-count" style="font-size:0.85rem;color:#888"></span>
-      </div>
-      <div style="overflow-x:auto">
-        <table style="width:100%;border-collapse:collapse;font-size:0.88rem">
-          <thead>
-            <tr style="background:#f8f9fa">
-              <th style="padding:9px 10px;text-align:left;border-bottom:2px solid #dee2e6">#</th>
-              <th style="padding:9px 10px;text-align:left;border-bottom:2px solid #dee2e6">Student</th>
-              <th style="padding:9px 10px;text-align:left;border-bottom:2px solid #dee2e6">Project</th>
-              <th style="padding:9px 10px;text-align:left;border-bottom:2px solid #dee2e6">Material</th>
-              <th style="padding:9px 10px;text-align:right;border-bottom:2px solid #dee2e6">Print Min</th>
-              <th style="padding:9px 10px;text-align:right;border-bottom:2px solid #dee2e6">Material (g)</th>
-              <th style="padding:9px 10px;text-align:left;border-bottom:2px solid #dee2e6">Status</th>
-              <th style="padding:9px 10px;text-align:left;border-bottom:2px solid #dee2e6">Submitted</th>
-              <th style="padding:9px 10px;text-align:center;border-bottom:2px solid #dee2e6">View</th>
-            </tr>
-          </thead>
-          <tbody id="requests-tbody">
-            <tr><td colspan="9" style="padding:20px;text-align:center;color:#aaa">Loading‚Ä?/td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
+  <!-- Header -->  <!-- Header -->
 
-  <div id="empty-state" style="text-align:center;padding:60px;color:#aaa;display:none">No requests found for this period.</div>
-  <div id="loading" style="text-align:center;padding:60px;color:#aaa">Loading‚Ä?/div>
-</div>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px">  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px">
 
-<script>
-(function() {
-  const user = getUser();
-  if (!user || !['admin','professor','manager'].includes(user.user_type)) location.href='/accounts/login';
-})();
+    <h2 style="color:#1a1a2e;margin:0">Print Request Report</h2>    <h2 style="color:#1a1a2e;margin:0">üìä Print Request Report</h2>
 
-const STATUS_BADGE = {
+    <button onclick="exportCSV()" style="padding:7px 14px;background:#fff;border:1px solid #ddd;border-radius:4px;cursor:pointer;font-size:0.85rem">Export CSV</button>    <button onclick="exportCSV()" style="padding:7px 14px;background:#fff;border:1px solid #ddd;border-radius:4px;cursor:pointer;font-size:0.85rem">ÔøΩ?Export CSV</button>
+
+  </div>  </div>
+
+
+
+  <!-- Date range picker -->  <!-- Date range picker -->
+
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:24px;flex-wrap:wrap">  <div style="display:flex;align-items:center;gap:10px;margin-bottom:24px;flex-wrap:wrap">
+
+    <input type="date" id="date-from" style="padding:7px 10px;border:1px solid #ddd;border-radius:4px;font-size:0.9rem">    <input type="date" id="date-from" style="padding:7px 10px;border:1px solid #ddd;border-radius:4px;font-size:0.9rem">
+
+    <span style="color:#888">to</span>    <span style="color:#888">ÔøΩ?/span>
+
+    <input type="date" id="date-to" style="padding:7px 10px;border:1px solid #ddd;border-radius:4px;font-size:0.9rem">    <input type="date" id="date-to" style="padding:7px 10px;border:1px solid #ddd;border-radius:4px;font-size:0.9rem">
+
+    <button onclick="setThisWeek()" style="padding:6px 12px;background:#f0f0f5;border:1px solid #ddd;border-radius:4px;font-size:0.82rem;cursor:pointer">This Week</button>    <button onclick="setThisWeek()" style="padding:6px 12px;background:#f0f0f5;border:1px solid #ddd;border-radius:4px;font-size:0.82rem;cursor:pointer">This Week</button>
+
+    <button onclick="setLastWeek()" style="padding:6px 12px;background:#f0f0f5;border:1px solid #ddd;border-radius:4px;font-size:0.82rem;cursor:pointer">Last Week</button>    <button onclick="setLastWeek()" style="padding:6px 12px;background:#f0f0f5;border:1px solid #ddd;border-radius:4px;font-size:0.82rem;cursor:pointer">Last Week</button>
+
+    <button onclick="setThisMonth()" style="padding:6px 12px;background:#f0f0f5;border:1px solid #ddd;border-radius:4px;font-size:0.82rem;cursor:pointer">This Month</button>    <button onclick="setThisMonth()" style="padding:6px 12px;background:#f0f0f5;border:1px solid #ddd;border-radius:4px;font-size:0.82rem;cursor:pointer">This Month</button>
+
+    <button onclick="loadReport()" class="btn" style="width:auto;padding:7px 20px">Load</button>    <button onclick="loadReport()" class="btn" style="width:auto;padding:7px 20px">Load</button>
+
+  </div>  </div>
+
+
+
+  <div id="alert-box"></div>  <div id="alert-box"></div>
+
+  <div id="period-label" style="color:#888;font-size:0.9rem;margin-bottom:20px"></div>  <div id="period-label" style="color:#888;font-size:0.9rem;margin-bottom:20px"></div>
+
+
+
+  <!-- KPI Cards -->  <!-- KPI Cards -->
+
+  <div id="kpi-section" style="display:none">  <div id="kpi-section" style="display:none">
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:16px;margin-bottom:28px">    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:16px;margin-bottom:28px">
+
+      <div class="card" style="padding:20px;text-align:center">      <div class="card" style="padding:20px;text-align:center">
+
+        <div style="font-size:2rem;font-weight:bold;color:#e94560" id="kpi-total">0</div>        <div style="font-size:2rem;font-weight:bold;color:#e94560" id="kpi-total">ÔøΩ?/div>
+
+        <div style="color:#666;font-size:0.9rem;margin-top:4px">Total Requests</div>        <div style="color:#666;font-size:0.9rem;margin-top:4px">Total Requests</div>
+
+      </div>      </div>
+
+      <div class="card" style="padding:20px;text-align:center">      <div class="card" style="padding:20px;text-align:center">
+
+        <div style="font-size:2rem;font-weight:bold;color:#28a745" id="kpi-completed">0</div>        <div style="font-size:2rem;font-weight:bold;color:#28a745" id="kpi-completed">ÔøΩ?/div>
+
+        <div style="color:#666;font-size:0.9rem;margin-top:4px">Completed</div>        <div style="color:#666;font-size:0.9rem;margin-top:4px">Completed</div>
+
+      </div>      </div>
+
+      <div class="card" style="padding:20px;text-align:center">      <div class="card" style="padding:20px;text-align:center">
+
+        <div style="font-size:2rem;font-weight:bold;color:#007bff" id="kpi-inprogress">0</div>        <div style="font-size:2rem;font-weight:bold;color:#007bff" id="kpi-inprogress">ÔøΩ?/div>
+
+        <div style="color:#666;font-size:0.9rem;margin-top:4px">In Progress</div>        <div style="color:#666;font-size:0.9rem;margin-top:4px">In Progress</div>
+
+      </div>      </div>
+
+      <div class="card" style="padding:20px;text-align:center">      <div class="card" style="padding:20px;text-align:center">
+
+        <div style="font-size:2rem;font-weight:bold;color:#ffc107" id="kpi-pending">0</div>        <div style="font-size:2rem;font-weight:bold;color:#ffc107" id="kpi-pending">ÔøΩ?/div>
+
+        <div style="color:#666;font-size:0.9rem;margin-top:4px">Pending</div>        <div style="color:#666;font-size:0.9rem;margin-top:4px">Pending</div>
+
+      </div>      </div>
+
+      <div class="card" style="padding:20px;text-align:center">      <div class="card" style="padding:20px;text-align:center">
+
+        <div style="font-size:2rem;font-weight:bold;color:#fd7e14" id="kpi-hours">0</div>        <div style="font-size:2rem;font-weight:bold;color:#fd7e14" id="kpi-hours">ÔøΩ?/div>
+
+        <div style="color:#666;font-size:0.9rem;margin-top:4px">Print Hours</div>        <div style="color:#666;font-size:0.9rem;margin-top:4px">Print Hours</div>
+
+      </div>      </div>
+
+      <div class="card" style="padding:20px;text-align:center">      <div class="card" style="padding:20px;text-align:center">
+
+        <div style="font-size:2rem;font-weight:bold;color:#6f42c1" id="kpi-material">0</div>        <div style="font-size:2rem;font-weight:bold;color:#6f42c1" id="kpi-material">ÔøΩ?/div>
+
+        <div style="color:#666;font-size:0.9rem;margin-top:4px">Material (g)</div>        <div style="color:#666;font-size:0.9rem;margin-top:4px">Material (g)</div>
+
+      </div>      </div>
+
+      <div class="card" style="padding:20px;text-align:center">      <div class="card" style="padding:20px;text-align:center">
+
+        <div style="font-size:2rem;font-weight:bold;color:#17a2b8" id="kpi-students">0</div>        <div style="font-size:2rem;font-weight:bold;color:#17a2b8" id="kpi-students">ÔøΩ?/div>
+
+        <div style="color:#666;font-size:0.9rem;margin-top:4px">Students</div>        <div style="color:#666;font-size:0.9rem;margin-top:4px">Students</div>
+
+      </div>      </div>
+
+    </div>    </div>
+
+
+
+    <!-- By Material -->    <!-- By Material -->
+
+    <div class="card" style="margin-bottom:24px">    <div class="card" style="margin-bottom:24px">
+
+      <h3 style="margin-bottom:16px;color:#1a1a2e">By Material Type</h3>      <h3 style="margin-bottom:16px;color:#1a1a2e">üß± By Material Type</h3>
+
+      <div style="overflow-x:auto">      <div style="overflow-x:auto">
+
+        <table style="width:100%;border-collapse:collapse;font-size:0.9rem">        <table style="width:100%;border-collapse:collapse;font-size:0.9rem">
+
+          <thead>          <thead>
+
+            <tr style="background:#f8f9fa">            <tr style="background:#f8f9fa">
+
+              <th style="padding:10px;text-align:left;border-bottom:2px solid #dee2e6">Material</th>              <th style="padding:10px;text-align:left;border-bottom:2px solid #dee2e6">Material</th>
+
+              <th style="padding:10px;text-align:right;border-bottom:2px solid #dee2e6">Requests</th>              <th style="padding:10px;text-align:right;border-bottom:2px solid #dee2e6">Requests</th>
+
+              <th style="padding:10px;text-align:right;border-bottom:2px solid #dee2e6">Material Used (g)</th>              <th style="padding:10px;text-align:right;border-bottom:2px solid #dee2e6">Material Used (g)</th>
+
+              <th style="padding:10px;text-align:left;border-bottom:2px solid #dee2e6">Share</th>              <th style="padding:10px;text-align:left;border-bottom:2px solid #dee2e6">Share</th>
+
+            </tr>            </tr>
+
+          </thead>          </thead>
+
+          <tbody id="material-tbody"></tbody>          <tbody id="material-tbody"></tbody>
+
+        </table>        </table>
+
+      </div>      </div>
+
+    </div>    </div>
+
+
+
+    <!-- Top Students -->    <!-- Top Students -->
+
+    <div class="card" style="margin-bottom:24px">    <div class="card" style="margin-bottom:24px">
+
+      <h3 style="margin-bottom:16px;color:#1a1a2e">Top Students</h3>      <h3 style="margin-bottom:16px;color:#1a1a2e">üèÜ Top Students</h3>
+
+      <div style="overflow-x:auto">      <div style="overflow-x:auto">
+
+        <table style="width:100%;border-collapse:collapse;font-size:0.9rem">        <table style="width:100%;border-collapse:collapse;font-size:0.9rem">
+
+          <thead>          <thead>
+
+            <tr style="background:#f8f9fa">            <tr style="background:#f8f9fa">
+
+              <th style="padding:10px;text-align:left;border-bottom:2px solid #dee2e6">Student</th>              <th style="padding:10px;text-align:left;border-bottom:2px solid #dee2e6">Student</th>
+
+              <th style="padding:10px;text-align:right;border-bottom:2px solid #dee2e6">Requests</th>              <th style="padding:10px;text-align:right;border-bottom:2px solid #dee2e6">Requests</th>
+
+              <th style="padding:10px;text-align:right;border-bottom:2px solid #dee2e6">Completed</th>              <th style="padding:10px;text-align:right;border-bottom:2px solid #dee2e6">Completed</th>
+
+            </tr>            </tr>
+
+          </thead>          </thead>
+
+          <tbody id="students-tbody"></tbody>          <tbody id="students-tbody"></tbody>
+
+        </table>        </table>
+
+      </div>      </div>
+
+    </div>    </div>
+
+
+
+    <!-- All Requests Table -->    <!-- All Requests Table -->
+
+    <div class="card">    <div class="card">
+
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+
+        <h3 style="margin:0;color:#1a1a2e">All Requests</h3>        <h3 style="margin:0;color:#1a1a2e">üìã All Requests</h3>
+
+        <span id="req-count" style="font-size:0.85rem;color:#888"></span>        <span id="req-count" style="font-size:0.85rem;color:#888"></span>
+
+      </div>      </div>
+
+      <div style="overflow-x:auto">      <div style="overflow-x:auto">
+
+        <table style="width:100%;border-collapse:collapse;font-size:0.88rem">        <table style="width:100%;border-collapse:collapse;font-size:0.88rem">
+
+          <thead>          <thead>
+
+            <tr style="background:#f8f9fa">            <tr style="background:#f8f9fa">
+
+              <th style="padding:9px 10px;text-align:left;border-bottom:2px solid #dee2e6">#</th>              <th style="padding:9px 10px;text-align:left;border-bottom:2px solid #dee2e6">#</th>
+
+              <th style="padding:9px 10px;text-align:left;border-bottom:2px solid #dee2e6">Student</th>              <th style="padding:9px 10px;text-align:left;border-bottom:2px solid #dee2e6">Student</th>
+
+              <th style="padding:9px 10px;text-align:left;border-bottom:2px solid #dee2e6">Project</th>              <th style="padding:9px 10px;text-align:left;border-bottom:2px solid #dee2e6">Project</th>
+
+              <th style="padding:9px 10px;text-align:left;border-bottom:2px solid #dee2e6">Material</th>              <th style="padding:9px 10px;text-align:left;border-bottom:2px solid #dee2e6">Material</th>
+
+              <th style="padding:9px 10px;text-align:right;border-bottom:2px solid #dee2e6">Print Min</th>              <th style="padding:9px 10px;text-align:right;border-bottom:2px solid #dee2e6">Print Min</th>
+
+              <th style="padding:9px 10px;text-align:right;border-bottom:2px solid #dee2e6">Material (g)</th>              <th style="padding:9px 10px;text-align:right;border-bottom:2px solid #dee2e6">Material (g)</th>
+
+              <th style="padding:9px 10px;text-align:left;border-bottom:2px solid #dee2e6">Status</th>              <th style="padding:9px 10px;text-align:left;border-bottom:2px solid #dee2e6">Status</th>
+
+              <th style="padding:9px 10px;text-align:left;border-bottom:2px solid #dee2e6">Submitted</th>              <th style="padding:9px 10px;text-align:left;border-bottom:2px solid #dee2e6">Submitted</th>
+
+              <th style="padding:9px 10px;text-align:center;border-bottom:2px solid #dee2e6">View</th>              <th style="padding:9px 10px;text-align:center;border-bottom:2px solid #dee2e6">View</th>
+
+            </tr>            </tr>
+
+          </thead>          </thead>
+
+          <tbody id="requests-tbody">          <tbody id="requests-tbody">
+
+            <tr><td colspan="9" style="padding:20px;text-align:center;color:#aaa">Loading...</td></tr>            <tr><td colspan="9" style="padding:20px;text-align:center;color:#aaa">LoadingÔøΩ?/td></tr>
+
+          </tbody>          </tbody>
+
+        </table>        </table>
+
+      </div>      </div>
+
+    </div>    </div>
+
+  </div>  </div>
+
+
+
+  <div id="empty-state" style="text-align:center;padding:60px;color:#aaa;display:none">No requests found for this period.</div>  <div id="empty-state" style="text-align:center;padding:60px;color:#aaa;display:none">No requests found for this period.</div>
+
+  <div id="loading" style="text-align:center;padding:60px;color:#aaa">Loading...</div>  <div id="loading" style="text-align:center;padding:60px;color:#aaa">LoadingÔøΩ?/div>
+
+</div></div>
+
+
+
+<script><script>
+
+(function() {(function() {
+
+  var user = getUser();  const user = getUser();
+
+  if (!user || ['admin','professor','manager'].indexOf(user.user_type) === -1) {  if (!user || !['admin','professor','manager'].includes(user.user_type)) location.href='/accounts/login';
+
+    location.href = '/accounts/login';})();
+
+  }
+
+})();const STATUS_BADGE = {
+
   pending:     'background:#fff3cd;color:#856404;border:1px solid #ffc107',
-  approved:    'background:#d1e7dd;color:#0a3622;border:1px solid #a3cfbb',
-  in_progress: 'background:#cfe2ff;color:#084298;border:1px solid #9ec5fe',
-  completed:   'background:#d1e7dd;color:#0a3622;border:1px solid #a3cfbb',
-  rejected:    'background:#f8d7da;color:#842029;border:1px solid #f1aeb5',
-  cancelled:   'background:#e2e3e5;color:#41464b;border:1px solid #c4c8cb',
-};
 
-let lastData = null;
+var STATUS_BADGE = {  approved:    'background:#d1e7dd;color:#0a3622;border:1px solid #a3cfbb',
 
-function esc(s) {
-  if (s == null) return '‚Ä?;
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  pending:     'background:#fff3cd;color:#856404;border:1px solid #ffc107',  in_progress: 'background:#cfe2ff;color:#084298;border:1px solid #9ec5fe',
+
+  approved:    'background:#d1e7dd;color:#0a3622;border:1px solid #a3cfbb',  completed:   'background:#d1e7dd;color:#0a3622;border:1px solid #a3cfbb',
+
+  in_progress: 'background:#cfe2ff;color:#084298;border:1px solid #9ec5fe',  rejected:    'background:#f8d7da;color:#842029;border:1px solid #f1aeb5',
+
+  completed:   'background:#d1e7dd;color:#0a3622;border:1px solid #a3cfbb',  cancelled:   'background:#e2e3e5;color:#41464b;border:1px solid #c4c8cb',
+
+  rejected:    'background:#f8d7da;color:#842029;border:1px solid #f1aeb5',};
+
+  cancelled:   'background:#e2e3e5;color:#41464b;border:1px solid #c4c8cb'
+
+};let lastData = null;
+
+
+
+var lastData = null;function esc(s) {
+
+  if (s == null) return 'ÔøΩ?;
+
+function esc(s) {  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+  if (s == null) return '-';}
+
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');function isoDate(d) {
+
+}  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+
 }
-function isoDate(d) {
-  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-}
-function setThisWeek() {
-  const today = new Date(), dow = today.getDay() || 7;
-  const mon = new Date(today); mon.setDate(today.getDate() - dow + 1);
+
+function isoDate(d) {function setThisWeek() {
+
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');  const today = new Date(), dow = today.getDay() || 7;
+
+}  const mon = new Date(today); mon.setDate(today.getDate() - dow + 1);
+
   const sun = new Date(mon);   sun.setDate(mon.getDate() + 6);
+
+function setThisWeek() {  document.getElementById('date-from').value = isoDate(mon);
+
+  var today = new Date(), dow = today.getDay() || 7;  document.getElementById('date-to').value   = isoDate(sun);
+
+  var mon = new Date(today); mon.setDate(today.getDate() - dow + 1);}
+
+  var sun = new Date(mon);   sun.setDate(mon.getDate() + 6);function setLastWeek() {
+
+  document.getElementById('date-from').value = isoDate(mon);  const today = new Date(), dow = today.getDay() || 7;
+
+  document.getElementById('date-to').value   = isoDate(sun);  const mon = new Date(today); mon.setDate(today.getDate() - dow - 6);
+
+}  const sun = new Date(mon);   sun.setDate(mon.getDate() + 6);
+
   document.getElementById('date-from').value = isoDate(mon);
-  document.getElementById('date-to').value   = isoDate(sun);
-}
-function setLastWeek() {
-  const today = new Date(), dow = today.getDay() || 7;
-  const mon = new Date(today); mon.setDate(today.getDate() - dow - 6);
-  const sun = new Date(mon);   sun.setDate(mon.getDate() + 6);
-  document.getElementById('date-from').value = isoDate(mon);
-  document.getElementById('date-to').value   = isoDate(sun);
-}
-function setThisMonth() {
-  const now = new Date();
-  const first = new Date(now.getFullYear(), now.getMonth(), 1);
-  const last  = new Date(now.getFullYear(), now.getMonth()+1, 0);
-  document.getElementById('date-from').value = isoDate(first);
+
+function setLastWeek() {  document.getElementById('date-to').value   = isoDate(sun);
+
+  var today = new Date(), dow = today.getDay() || 7;}
+
+  var mon = new Date(today); mon.setDate(today.getDate() - dow - 6);function setThisMonth() {
+
+  var sun = new Date(mon);   sun.setDate(mon.getDate() + 6);  const now = new Date();
+
+  document.getElementById('date-from').value = isoDate(mon);  const first = new Date(now.getFullYear(), now.getMonth(), 1);
+
+  document.getElementById('date-to').value   = isoDate(sun);  const last  = new Date(now.getFullYear(), now.getMonth()+1, 0);
+
+}  document.getElementById('date-from').value = isoDate(first);
+
   document.getElementById('date-to').value   = isoDate(last);
-}
 
-document.addEventListener('DOMContentLoaded', () => {
-  setLastWeek();
-  loadReport();
-});
+function setThisMonth() {}
+
+  var now = new Date();
+
+  var first = new Date(now.getFullYear(), now.getMonth(), 1);document.addEventListener('DOMContentLoaded', () => {
+
+  var last  = new Date(now.getFullYear(), now.getMonth()+1, 0);  setLastWeek();
+
+  document.getElementById('date-from').value = isoDate(first);  loadReport();
+
+  document.getElementById('date-to').value   = isoDate(last);});
+
+}
 
 async function loadReport() {
-  const from = document.getElementById('date-from').value;
-  const to   = document.getElementById('date-to').value;
-  if (!from || !to) return;
+
+document.addEventListener('DOMContentLoaded', function() {  const from = document.getElementById('date-from').value;
+
+  setLastWeek();  const to   = document.getElementById('date-to').value;
+
+  loadReport();  if (!from || !to) return;
+
+});
 
   document.getElementById('loading').style.display    = 'block';
-  document.getElementById('kpi-section').style.display = 'none';
-  document.getElementById('empty-state').style.display = 'none';
-  document.getElementById('alert-box').innerHTML       = '';
+
+async function loadReport() {  document.getElementById('kpi-section').style.display = 'none';
+
+  var from = document.getElementById('date-from').value;  document.getElementById('empty-state').style.display = 'none';
+
+  var to   = document.getElementById('date-to').value;  document.getElementById('alert-box').innerHTML       = '';
+
+  if (!from || !to) return;
 
   try {
-    const [dashRes, reqRes] = await Promise.all([
-      apiFetch(`/api/reports/dashboard?from=${from}&to=${to}`),
-      apiFetch(`/api/admin/print-requests?from=${from}&to=${to}`)
-    ]);
+
+  document.getElementById('loading').style.display    = 'block';    const [dashRes, reqRes] = await Promise.all([
+
+  document.getElementById('kpi-section').style.display = 'none';      apiFetch(`/api/reports/dashboard?from=${from}&to=${to}`),
+
+  document.getElementById('empty-state').style.display = 'none';      apiFetch(`/api/admin/print-requests?from=${from}&to=${to}`)
+
+  document.getElementById('alert-box').innerHTML       = '';    ]);
+
     const dash = await dashRes.json();
-    const reqs = await reqRes.json();
 
-    document.getElementById('loading').style.display = 'none';
+  try {    const reqs = await reqRes.json();
 
-    if (!dash.success) { showAlert(dash.message); return; }
+    var results = await Promise.all([
 
-    const s = dash.summary;
+      apiFetch('/api/reports/dashboard?from=' + from + '&to=' + to),    document.getElementById('loading').style.display = 'none';
+
+      apiFetch('/api/admin/print-requests?from=' + from + '&to=' + to)
+
+    ]);    if (!dash.success) { showAlert(dash.message); return; }
+
+    var dash = await results[0].json();
+
+    var reqs = await results[1].json();    const s = dash.summary;
+
     if (!s.total_requests) {
-      document.getElementById('empty-state').style.display = 'block';
+
+    document.getElementById('loading').style.display = 'none';      document.getElementById('empty-state').style.display = 'block';
+
       return;
-    }
 
-    lastData = { dash, reqs: reqs.requests || [] };
-    document.getElementById('period-label').textContent = `üìÖ ${from}  ‚Ü? ${to}`;
+    if (!dash.success) { showAlert(dash.message); return; }    }
 
-    // KPI cards
-    document.getElementById('kpi-total').textContent     = s.total_requests;
+
+
+    var s = dash.summary;    lastData = { dash, reqs: reqs.requests || [] };
+
+    if (!s.total_requests) {    document.getElementById('period-label').textContent = `üìÖ ${from}  ÔøΩ? ${to}`;
+
+      document.getElementById('empty-state').style.display = 'block';
+
+      return;    // KPI cards
+
+    }    document.getElementById('kpi-total').textContent     = s.total_requests;
+
     document.getElementById('kpi-completed').textContent = s.completed || 0;
-    document.getElementById('kpi-inprogress').textContent= s.in_progress || 0;
-    document.getElementById('kpi-pending').textContent   = s.pending || 0;
+
+    lastData = { dash: dash, reqs: reqs.requests || [] };    document.getElementById('kpi-inprogress').textContent= s.in_progress || 0;
+
+    document.getElementById('period-label').textContent = from + '  ~  ' + to;    document.getElementById('kpi-pending').textContent   = s.pending || 0;
+
     document.getElementById('kpi-hours').textContent     = (parseFloat(s.total_print_hours)||0).toFixed(1);
-    document.getElementById('kpi-material').textContent  = (parseFloat(s.total_material_g)||0).toFixed(1);
-    document.getElementById('kpi-students').textContent  = s.unique_students || 0;
 
-    // Material table
-    const total = s.total_requests || 1;
-    const matBody = document.getElementById('material-tbody');
-    matBody.innerHTML = (dash.by_material || []).map(m => {
-      const pct = Math.round((m.count / total) * 100);
+    // KPI cards    document.getElementById('kpi-material').textContent  = (parseFloat(s.total_material_g)||0).toFixed(1);
+
+    document.getElementById('kpi-total').textContent     = s.total_requests;    document.getElementById('kpi-students').textContent  = s.unique_students || 0;
+
+    document.getElementById('kpi-completed').textContent = s.completed || 0;
+
+    document.getElementById('kpi-inprogress').textContent= s.in_progress || 0;    // Material table
+
+    document.getElementById('kpi-pending').textContent   = s.pending || 0;    const total = s.total_requests || 1;
+
+    document.getElementById('kpi-hours').textContent     = (parseFloat(s.total_print_hours)||0).toFixed(1);    const matBody = document.getElementById('material-tbody');
+
+    document.getElementById('kpi-material').textContent  = (parseFloat(s.total_material_g)||0).toFixed(1);    matBody.innerHTML = (dash.by_material || []).map(m => {
+
+    document.getElementById('kpi-students').textContent  = s.unique_students || 0;      const pct = Math.round((m.count / total) * 100);
+
       return `<tr>
-        <td style="padding:9px 10px;border-bottom:1px solid #f0f0f0;font-weight:500">${esc(m.material_type)}</td>
-        <td style="padding:9px 10px;border-bottom:1px solid #f0f0f0;text-align:right">${m.count}</td>
-        <td style="padding:9px 10px;border-bottom:1px solid #f0f0f0;text-align:right">${(parseFloat(m.material_g)||0).toFixed(1)}</td>
-        <td style="padding:9px 10px;border-bottom:1px solid #f0f0f0;min-width:120px">
-          <div style="background:#e9ecef;border-radius:4px;height:8px">
-            <div style="background:#fd7e14;border-radius:4px;height:8px;width:${pct}%"></div>
-          </div>
-          <span style="font-size:0.75rem;color:#888">${pct}%</span>
-        </td>
-      </tr>`;
-    }).join('');
 
-    // Top students
+    // Material table        <td style="padding:9px 10px;border-bottom:1px solid #f0f0f0;font-weight:500">${esc(m.material_type)}</td>
+
+    var total = s.total_requests || 1;        <td style="padding:9px 10px;border-bottom:1px solid #f0f0f0;text-align:right">${m.count}</td>
+
+    var matBody = document.getElementById('material-tbody');        <td style="padding:9px 10px;border-bottom:1px solid #f0f0f0;text-align:right">${(parseFloat(m.material_g)||0).toFixed(1)}</td>
+
+    matBody.innerHTML = (dash.by_material || []).map(function(m) {        <td style="padding:9px 10px;border-bottom:1px solid #f0f0f0;min-width:120px">
+
+      var pct = Math.round((m.count / total) * 100);          <div style="background:#e9ecef;border-radius:4px;height:8px">
+
+      return '<tr>'            <div style="background:#fd7e14;border-radius:4px;height:8px;width:${pct}%"></div>
+
+        + '<td style="padding:9px 10px;border-bottom:1px solid #f0f0f0;font-weight:500">' + esc(m.material_type) + '</td>'          </div>
+
+        + '<td style="padding:9px 10px;border-bottom:1px solid #f0f0f0;text-align:right">' + m.count + '</td>'          <span style="font-size:0.75rem;color:#888">${pct}%</span>
+
+        + '<td style="padding:9px 10px;border-bottom:1px solid #f0f0f0;text-align:right">' + (parseFloat(m.material_g)||0).toFixed(1) + '</td>'        </td>
+
+        + '<td style="padding:9px 10px;border-bottom:1px solid #f0f0f0;min-width:120px">'      </tr>`;
+
+        + '<div style="background:#e9ecef;border-radius:4px;height:8px"><div style="background:#fd7e14;border-radius:4px;height:8px;width:' + pct + '%"></div></div>'    }).join('');
+
+        + '<span style="font-size:0.75rem;color:#888">' + pct + '%</span></td></tr>';
+
+    }).join('');    // Top students
+
     const stuBody = document.getElementById('students-tbody');
-    stuBody.innerHTML = (dash.top_students || []).map(s => `<tr>
-      <td style="padding:9px 10px;border-bottom:1px solid #f0f0f0">
-        <div style="font-weight:500">${esc(s.full_name || s.student_email)}</div>
-        <div style="font-size:0.78rem;color:#888">${esc(s.student_email)}</div>
-      </td>
-      <td style="padding:9px 10px;border-bottom:1px solid #f0f0f0;text-align:right">${s.request_count}</td>
-      <td style="padding:9px 10px;border-bottom:1px solid #f0f0f0;text-align:right">${s.completed || 0}</td>
-    </tr>`).join('');
 
-    // Requests table
-    const allReqs = lastData.reqs;
-    document.getElementById('req-count').textContent = `${allReqs.length} request${allReqs.length !== 1 ? 's' : ''}`;
-    const tbody = document.getElementById('requests-tbody');
-    if (!allReqs.length) {
-      tbody.innerHTML = '<tr><td colspan="9" style="padding:20px;text-align:center;color:#aaa">No requests in this period.</td></tr>';
-    } else {
-      tbody.innerHTML = allReqs.map(r => {
-        const badge = STATUS_BADGE[r.status] || 'background:#e2e3e5;color:#41464b';
-        return `<tr>
-          <td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;color:#888;font-size:0.8rem">${r.request_id}</td>
-          <td style="padding:8px 10px;border-bottom:1px solid #f0f0f0">
-            <div style="font-weight:500">${esc(r.student_name)}</div>
-            <div style="font-size:0.78rem;color:#888">${esc(r.student_email)}</div>
-          </td>
-          <td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${esc(r.project_name)}">${esc(r.project_name)}</td>
-          <td style="padding:8px 10px;border-bottom:1px solid #f0f0f0">${esc(r.material_type)}</td>
-          <td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;text-align:right">${r.slicer_time_minutes != null ? Math.round(r.slicer_time_minutes) : '‚Ä?}</td>
-          <td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;text-align:right">${r.slicer_material_g != null ? parseFloat(r.slicer_material_g).toFixed(1) : '‚Ä?}</td>
-          <td style="padding:8px 10px;border-bottom:1px solid #f0f0f0">
-            <span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:0.78rem;font-weight:600;white-space:nowrap;${badge}">${r.status.replace(/_/g,' ')}</span>
-          </td>
+    // Top students    stuBody.innerHTML = (dash.top_students || []).map(s => `<tr>
+
+    var stuBody = document.getElementById('students-tbody');      <td style="padding:9px 10px;border-bottom:1px solid #f0f0f0">
+
+    stuBody.innerHTML = (dash.top_students || []).map(function(st) {        <div style="font-weight:500">${esc(s.full_name || s.student_email)}</div>
+
+      return '<tr>'        <div style="font-size:0.78rem;color:#888">${esc(s.student_email)}</div>
+
+        + '<td style="padding:9px 10px;border-bottom:1px solid #f0f0f0"><div style="font-weight:500">' + esc(st.full_name || st.student_email) + '</div><div style="font-size:0.78rem;color:#888">' + esc(st.student_email) + '</div></td>'      </td>
+
+        + '<td style="padding:9px 10px;border-bottom:1px solid #f0f0f0;text-align:right">' + st.request_count + '</td>'      <td style="padding:9px 10px;border-bottom:1px solid #f0f0f0;text-align:right">${s.request_count}</td>
+
+        + '<td style="padding:9px 10px;border-bottom:1px solid #f0f0f0;text-align:right">' + (st.completed || 0) + '</td></tr>';      <td style="padding:9px 10px;border-bottom:1px solid #f0f0f0;text-align:right">${s.completed || 0}</td>
+
+    }).join('');    </tr>`).join('');
+
+
+
+    // Requests table    // Requests table
+
+    var allReqs = lastData.reqs;    const allReqs = lastData.reqs;
+
+    document.getElementById('req-count').textContent = allReqs.length + ' request' + (allReqs.length !== 1 ? 's' : '');    document.getElementById('req-count').textContent = `${allReqs.length} request${allReqs.length !== 1 ? 's' : ''}`;
+
+    var tbody = document.getElementById('requests-tbody');    const tbody = document.getElementById('requests-tbody');
+
+    if (!allReqs.length) {    if (!allReqs.length) {
+
+      tbody.innerHTML = '<tr><td colspan="9" style="padding:20px;text-align:center;color:#aaa">No requests in this period.</td></tr>';      tbody.innerHTML = '<tr><td colspan="9" style="padding:20px;text-align:center;color:#aaa">No requests in this period.</td></tr>';
+
+    } else {    } else {
+
+      tbody.innerHTML = allReqs.map(function(r) {      tbody.innerHTML = allReqs.map(r => {
+
+        var badge = STATUS_BADGE[r.status] || 'background:#e2e3e5;color:#41464b';        const badge = STATUS_BADGE[r.status] || 'background:#e2e3e5;color:#41464b';
+
+        return '<tr>'        return `<tr>
+
+          + '<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;color:#888;font-size:0.8rem">' + r.request_id + '</td>'          <td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;color:#888;font-size:0.8rem">${r.request_id}</td>
+
+          + '<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0"><div style="font-weight:500">' + esc(r.student_name) + '</div><div style="font-size:0.78rem;color:#888">' + esc(r.student_email) + '</div></td>'          <td style="padding:8px 10px;border-bottom:1px solid #f0f0f0">
+
+          + '<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="' + esc(r.project_name) + '">' + esc(r.project_name) + '</td>'            <div style="font-weight:500">${esc(r.student_name)}</div>
+
+          + '<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0">' + esc(r.material_type) + '</td>'            <div style="font-size:0.78rem;color:#888">${esc(r.student_email)}</div>
+
+          + '<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;text-align:right">' + (r.slicer_time_minutes != null ? Math.round(r.slicer_time_minutes) : '-') + '</td>'          </td>
+
+          + '<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;text-align:right">' + (r.slicer_material_g != null ? parseFloat(r.slicer_material_g).toFixed(1) : '-') + '</td>'          <td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${esc(r.project_name)}">${esc(r.project_name)}</td>
+
+          + '<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0"><span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:0.78rem;font-weight:600;white-space:nowrap;' + badge + '">' + r.status.replace(/_/g,' ') + '</span></td>'          <td style="padding:8px 10px;border-bottom:1px solid #f0f0f0">${esc(r.material_type)}</td>
+
+          + '<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;white-space:nowrap;color:#555">' + (r.created_at||'').slice(0,10) + '</td>'          <td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;text-align:right">${r.slicer_time_minutes != null ? Math.round(r.slicer_time_minutes) : 'ÔøΩ?}</td>
+
+          + '<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;text-align:center"><a href="/print-requests/' + r.request_id + '/" style="color:#007bff;font-size:0.85rem;text-decoration:none">View</a></td>'          <td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;text-align:right">${r.slicer_material_g != null ? parseFloat(r.slicer_material_g).toFixed(1) : 'ÔøΩ?}</td>
+
+          + '</tr>';          <td style="padding:8px 10px;border-bottom:1px solid #f0f0f0">
+
+      }).join('');            <span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:0.78rem;font-weight:600;white-space:nowrap;${badge}">${r.status.replace(/_/g,' ')}</span>
+
+    }          </td>
+
           <td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;white-space:nowrap;color:#555">${(r.created_at||'').slice(0,10)}</td>
-          <td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;text-align:center">
-            <a href="/print-requests/${r.request_id}/" style="color:#007bff;font-size:0.85rem;text-decoration:none">View ‚Ä?/a>
-          </td>
-        </tr>`;
-      }).join('');
-    }
 
-    document.getElementById('kpi-section').style.display = 'block';
-  } catch(e) {
-    document.getElementById('loading').style.display = 'none';
-    showAlert('Cannot reach server: ' + e.message);
+    document.getElementById('kpi-section').style.display = 'block';          <td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;text-align:center">
+
+  } catch(e) {            <a href="/print-requests/${r.request_id}/" style="color:#007bff;font-size:0.85rem;text-decoration:none">View ÔøΩ?/a>
+
+    document.getElementById('loading').style.display = 'none';          </td>
+
+    showAlert('Cannot reach server: ' + e.message);        </tr>`;
+
+  }      }).join('');
+
+}    }
+
+
+
+function showAlert(msg) {    document.getElementById('kpi-section').style.display = 'block';
+
+  document.getElementById('alert-box').innerHTML =  } catch(e) {
+
+    '<div style="padding:12px;background:#fee2e2;border:1px solid #fca5a5;border-radius:6px;color:#991b1b;margin-bottom:16px">' + msg + '</div>';    document.getElementById('loading').style.display = 'none';
+
+}    showAlert('Cannot reach server: ' + e.message);
+
   }
-}
 
-function showAlert(msg) {
-  document.getElementById('alert-box').innerHTML =
-    `<div style="padding:12px;background:#fee2e2;border:1px solid #fca5a5;border-radius:6px;color:#991b1b;margin-bottom:16px">${msg}</div>`;
-}
+function exportCSV() {}
 
-function exportCSV() {
   if (!lastData) return;
-  const reqs = lastData.reqs;
-  const rows = [
-    ['#','Student Email','Student Name','Project','Material','Print Min','Material (g)','Status','Submitted'],
-    ...reqs.map(r => [
-      r.request_id, r.student_email, r.student_name, r.project_name,
-      r.material_type, r.slicer_time_minutes ?? '', r.slicer_material_g ?? '',
-      r.status, (r.created_at||'').slice(0,10)
-    ])
-  ];
-  const csv = rows.map(r => r.map(v => `"${String(v??'').replace(/"/g,'""')}"`).join(',')).join('\n');
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv;charset=utf-8;'}));
-  a.download = `report_${document.getElementById('date-from').value}_${document.getElementById('date-to').value}.csv`;
-  a.click();
+
+  var reqs = lastData.reqs;function showAlert(msg) {
+
+  var header = ['#','Student Email','Student Name','Project','Material','Print Min','Material (g)','Status','Submitted'];  document.getElementById('alert-box').innerHTML =
+
+  var rows = [header];    `<div style="padding:12px;background:#fee2e2;border:1px solid #fca5a5;border-radius:6px;color:#991b1b;margin-bottom:16px">${msg}</div>`;
+
+  reqs.forEach(function(r) {}
+
+    rows.push([
+
+      r.request_id, r.student_email, r.student_name, r.project_name,function exportCSV() {
+
+      r.material_type, r.slicer_time_minutes != null ? r.slicer_time_minutes : '',  if (!lastData) return;
+
+      r.slicer_material_g != null ? r.slicer_material_g : '',  const reqs = lastData.reqs;
+
+      r.status, (r.created_at||'').slice(0,10)  const rows = [
+
+    ]);    ['#','Student Email','Student Name','Project','Material','Print Min','Material (g)','Status','Submitted'],
+
+  });    ...reqs.map(r => [
+
+  var csv = rows.map(function(r) {      r.request_id, r.student_email, r.student_name, r.project_name,
+
+    return r.map(function(v) { return '"' + String(v != null ? v : '').replace(/"/g,'""') + '"'; }).join(',');      r.material_type, r.slicer_time_minutes ?? '', r.slicer_material_g ?? '',
+
+  }).join('\n');      r.status, (r.created_at||'').slice(0,10)
+
+  var a = document.createElement('a');    ])
+
+  a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv;charset=utf-8;'}));  ];
+
+  a.download = 'report_' + document.getElementById('date-from').value + '_' + document.getElementById('date-to').value + '.csv';  const csv = rows.map(r => r.map(v => `"${String(v??'').replace(/"/g,'""')}"`).join(',')).join('\n');
+
+  a.click();  const a = document.createElement('a');
+
+}  a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv;charset=utf-8;'}));
+
+</script>  a.download = `report_${document.getElementById('date-from').value}_${document.getElementById('date-to').value}.csv`;
+
+{% endblock %}  a.click();
+
 }
 </script>
 {% endblock %}
