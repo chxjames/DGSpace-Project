@@ -158,8 +158,16 @@
         document.getElementById('nav-login').style.display   = 'none';
         document.getElementById('nav-signup').style.display  = 'none';
         document.getElementById('nav-logout').style.display  = 'inline-block';
-        document.getElementById('nav-print').style.display   = 'inline';
         document.getElementById('nav-profile').style.display  = 'inline';
+
+        // Only show Print Requests if 2FA is active
+        fetch('/api/2fa/status', {
+          headers: { 'Authorization': 'Bearer ' + getToken(), 'Content-Type': 'application/json' }
+        }).then(r => r.json()).then(d => {
+          if (d.is_active || d.enabled) {
+            document.getElementById('nav-print').style.display = 'inline';
+          }
+        }).catch(() => {});
       }
     })();
   </script>

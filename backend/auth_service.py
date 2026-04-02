@@ -155,29 +155,7 @@ class AuthService:
         else:
             effective_type = user_type
 
-        # ── 2FA gate ──────────────────────────────────────────────────────────
-        # If the user has 2FA enabled, do NOT issue the real JWT yet.
-        # Return a short-lived temp token that only allows /api/2fa/login-verify.
-        if _check_2fa_active(email, user_type):
-            temp_payload = {
-                'email': email,
-                'user_type': user_type,
-                'effective_type': effective_type,
-                'role': user.get('role'),
-                'scope': '2fa_pending',   # marks this as a temp token
-                'exp': datetime.utcnow() + timedelta(minutes=5),
-                'iat': datetime.utcnow()
-            }
-            temp_token = jwt.encode(temp_payload, Config.JWT_SECRET_KEY, algorithm='HS256')
-            return {
-                'success': True,
-                'require_2fa': True,
-                'temp_token': temp_token,
-                'message': '2FA verification required'
-            }
-        # ──────────────────────────────────────────────────────────────────────
-
-        # Generate full JWT token
+        # Generate full JWT token directly — 2FA is enforced at the UI level
         if user_type == 'student':
             token = AuthService.generate_jwt_token(email, effective_type)
         else:

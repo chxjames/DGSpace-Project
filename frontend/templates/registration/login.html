@@ -7,54 +7,29 @@
 
   <div id="alert-box"></div>
 
-  <!-- ── Step 1: Email + Password ── -->
-  <div id="step-password">
-    <div class="form-group">
-      <label>Account Type</label>
-      <select id="user-type">
-        <option value="student">Student</option>
-        <option value="admin">Admin</option>
-      </select>
-    </div>
-    <div class="form-group">
-      <label>Email</label>
-      <input type="email" id="email" placeholder="your@email.com">
-    </div>
-    <div class="form-group">
-      <label>Password</label>
-      <input type="password" id="password" placeholder="••••••••">
-    </div>
-    <button class="btn" onclick="doLogin()">Log In</button>
-
-    <p style="margin-top:16px;text-align:center;font-size:0.9rem">
-      Don't have an account? <a href="/accounts/signup">Sign Up</a>
-    </p>
+  <div class="form-group">
+    <label>Account Type</label>
+    <select id="user-type">
+      <option value="student">Student</option>
+      <option value="admin">Admin</option>
+    </select>
   </div>
-
-  <!-- ── Step 2: 2FA TOTP (hidden until needed) ── -->
-  <div id="step-2fa" style="display:none">
-    <div style="text-align:center;margin-bottom:20px">
-      <div style="font-size:2.4rem;margin-bottom:8px">🔐</div>
-      <p style="color:#555;font-size:0.95rem">
-        Enter the 6-digit code from your authenticator app<br>
-        (Google Authenticator / Duo / Microsoft Auth)
-      </p>
-    </div>
-    <div class="form-group">
-      <label>Authentication Code</label>
-      <input type="text" id="totp-code" placeholder="000000"
-             maxlength="6" inputmode="numeric" autocomplete="one-time-code"
-             style="text-align:center;font-size:1.4rem;letter-spacing:8px">
-    </div>
-    <button class="btn" onclick="doVerify2FA()">Verify</button>
-    <button class="btn btn-secondary" onclick="backToPassword()"
-            style="margin-top:8px">← Back</button>
+  <div class="form-group">
+    <label>Email</label>
+    <input type="email" id="email" placeholder="your@email.com">
   </div>
+  <div class="form-group">
+    <label>Password</label>
+    <input type="password" id="password" placeholder="••••••••">
+  </div>
+  <button class="btn" onclick="doLogin()">Log In</button>
+
+  <p style="margin-top:16px;text-align:center;font-size:0.9rem">
+    Don't have an account? <a href="/accounts/signup">Sign Up</a>
+  </p>
 </div>
 
 <script>
-let _tempToken = null;
-
 function showAlert(msg, type='error') {
   document.getElementById('alert-box').innerHTML =
     `<div class="alert alert-${type}">${msg}</div>`;
@@ -77,73 +52,18 @@ async function doLogin() {
     });
     const data = await res.json();
 
-    if (!data.success) {
-      showAlert(data.message || 'Login failed.');
-      return;
-    }
-
-    if (data.require_2fa) {
-      // Server requires TOTP — show step 2
-      _tempToken = data.temp_token;
-      document.getElementById('step-password').style.display = 'none';
-      document.getElementById('step-2fa').style.display      = 'block';
-      document.getElementById('totp-code').value = '';
-      showAlert('', 'info');   // clear any previous alert
-      setTimeout(() => document.getElementById('totp-code').focus(), 50);
-      return;
-    }
-
-    // No 2FA required — login complete
-    saveAuth(data.token, data.user);
-    showAlert('Login successful! Redirecting…', 'success');
-    setTimeout(() => location.href = '/', 800);
-
-  } catch(e) {
-    showAlert('Cannot reach the backend. Make sure both servers are running.');
-  }
-}
-
-async function doVerify2FA() {
-  const code = document.getElementById('totp-code').value.trim();
-  if (!code || code.length !== 6) { showAlert('Please enter the 6-digit code.'); return; }
-
-  try {
-    const res  = await fetch('/api/2fa/login-verify', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ temp_token: _tempToken, code })
-    });
-    const data = await res.json();
-
     if (data.success) {
       saveAuth(data.token, data.user);
       showAlert('Login successful! Redirecting…', 'success');
       setTimeout(() => location.href = '/', 800);
     } else {
-      showAlert(data.message || 'Invalid code. Please try again.');
-      document.getElementById('totp-code').value = '';
-      document.getElementById('totp-code').focus();
+      showAlert(data.message || 'Login failed.');
     }
   } catch(e) {
-    showAlert('Cannot reach the backend.');
+    showAlert('Cannot reach the backend. Make sure both servers are running.');
   }
 }
 
-function backToPassword() {
-  _tempToken = null;
-  document.getElementById('step-2fa').style.display      = 'none';
-  document.getElementById('step-password').style.display = 'block';
-  showAlert('', 'info');
-}
-
-// Press Enter to submit whichever step is visible
-document.addEventListener('keydown', e => {
-  if (e.key !== 'Enter') return;
-  if (document.getElementById('step-2fa').style.display !== 'none') {
-    doVerify2FA();
-  } else {
-    doLogin();
-  }
-});
+document.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
 </script>
 {% endblock %}
