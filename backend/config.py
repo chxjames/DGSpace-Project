@@ -29,36 +29,6 @@ class Config:
     # Dev mode: print verification code to terminal instead of sending email
     DEV_EMAIL_MODE = os.getenv('DEV_EMAIL_MODE', 'False') == 'True'
 
-    # ----------------------------------------------------------------
-    # Google Sheets — Weekly Report (Phase 0 MVP)
-    # ----------------------------------------------------------------
-    # 1. Create a Service Account in Google Cloud Console
-    # 2. Download the JSON key file and set SERVICE_ACCOUNT_JSON_PATH
-    # 3. Share the Google Sheet with the Service Account email (read-only)
-    # 4. Copy the Sheet ID from the URL:
-    #    https://docs.google.com/spreadsheets/d/<SHEET_ID>/edit
-    GOOGLE_SHEET_ID           = os.getenv('GOOGLE_SHEET_ID', '')
-    GOOGLE_SHEET_TAB_NAME     = os.getenv('GOOGLE_SHEET_TAB_NAME', 'Sheet1')
-    SERVICE_ACCOUNT_JSON_PATH = os.getenv('SERVICE_ACCOUNT_JSON_PATH', 'service_account.json')
-
-    # Maps internal field names → exact column header strings in the Sheet.
-    # Edit these if your Sheet headers differ.
-    SHEET_COLUMN_MAP = {
-        'submitted_at':    'Timestamp',
-        'student_email':   'Email address',
-        'student_name':    'Name',
-        'operator_name':   'Operator',
-        'printer_name':    'Printer',
-        'print_time_raw':  'Print time (HH:MM)',
-        'material_used_g': 'Print Consumables (g)',
-        'started_at':      'Date Started',
-        'is_finished':     'Finished?',
-        'error_1':         'Error 1',
-        'error_2':         'Error 2',
-        'actual_finish':   'Actual Finish',   # optional — staff adds this column
-        'file_name':       'File Name',
-    }
-
     # Server
     PORT = int(os.getenv('PORT', '5000') or '5000')
 

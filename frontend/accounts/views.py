@@ -37,34 +37,6 @@ class WeeklyReportView(TemplateView):
     template_name = "weekly_report.html"
 
 
-class ReportSyncView(TemplateView):
-    template_name = "report_sync.html"
-
-
-class ReportRawView(TemplateView):
-    template_name = "report_raw.html"
-
-
-class PrinterDetailView(TemplateView):
-    template_name = "printer_detail.html"
-
-
-class OperatorDetailView(TemplateView):
-    template_name = "operator_detail.html"
-
-
-class MaterialsReportView(TemplateView):
-    template_name = "materials_report.html"
-
-
-class ErrorsReportView(TemplateView):
-    template_name = "errors_report.html"
-
-
-class MonthlyReportView(TemplateView):
-    template_name = "monthly_report.html"
-
-
 class ManagePrintersView(TemplateView):
     template_name = "manage_printers.html"
 

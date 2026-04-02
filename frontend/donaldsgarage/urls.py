@@ -17,7 +17,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include, re_path
 from django.views.generic.base import TemplateView
-from accounts.views import PrintRequestsView, PrintRequestNewView, PrintRequestDetailView, PrintRequestReturnView, AdminStudentsView, ApiProxyView, WeeklyReportView, ReportSyncView, ReportRawView, PrinterDetailView, OperatorDetailView, MaterialsReportView, ErrorsReportView, MonthlyReportView, ManagePrintersView, ManageAdminsView
+from accounts.views import PrintRequestsView, PrintRequestNewView, PrintRequestDetailView, PrintRequestReturnView, AdminStudentsView, ApiProxyView, WeeklyReportView, ManagePrintersView, ManageAdminsView
 
 urlpatterns = [
     path("accounts/", include("accounts.urls")),
@@ -32,13 +32,6 @@ urlpatterns = [
     path("admin/admins/",   ManageAdminsView.as_view(),   name="manage-admins"),
     # Reports
     path("reports/weekly/",                    WeeklyReportView.as_view(),   name="weekly-report"),
-    path("reports/sync/",                      ReportSyncView.as_view(),     name="report-sync"),
-    path("reports/raw/",                       ReportRawView.as_view(),      name="report-raw"),
-    path("reports/printer/<path:name>/",       PrinterDetailView.as_view(),  name="printer-detail"),
-    path("reports/operator/<path:name>/",      OperatorDetailView.as_view(), name="operator-detail"),
-    path("reports/materials/",                 MaterialsReportView.as_view(),name="materials-report"),
-    path("reports/errors/",                    ErrorsReportView.as_view(),   name="errors-report"),
-    path("reports/monthly/",                   MonthlyReportView.as_view(),  name="monthly-report"),
     path('admin/', admin.site.urls),
     # Proxy: forward all /api/... calls to Flask
     re_path(r"^api/(?P<path>.*)$", ApiProxyView.as_view(), name="api-proxy"),
