@@ -10,6 +10,20 @@
 <div id="alert-box"></div>
 
 <div class="card">
+  <!-- Search bar -->
+  <div style="margin-bottom:16px;display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+    <input id="search-input" type="text" placeholder="🔍  Search by email, name or department…"
+      oninput="filterStudents()"
+      style="flex:1;min-width:200px;padding:8px 12px;border:1px solid #ddd;border-radius:6px;font-size:0.9rem">
+    <select id="filter-role" onchange="filterStudents()"
+      style="padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:0.85rem">
+      <option value="">All Roles</option>
+      <option value="student">Student</option>
+      <option value="student_staff">Staff</option>
+    </select>
+    <span id="search-count" style="font-size:0.82rem;color:#999;white-space:nowrap"></span>
+  </div>
+
   <div id="loading" style="text-align:center;padding:32px;color:#888">Loading…</div>
 
   <div style="overflow-x:auto">
@@ -83,50 +97,75 @@ async function loadStudents() {
       return;
     }
 
-    const list = data.students || [];
-    if (!list.length) {
-      document.getElementById('no-data').style.display = 'block';
-      return;
-    }
-
-    const tbody = document.getElementById('students-body');
-    tbody.innerHTML = list.map((s, idx) => {
-      const safeEmail = String(s.email || '');
-      const safeName  = String(s.full_name || '');
-      const safeDept  = String(s.department || '');
-      const role      = s.role || 'student';
-      const verified  = s.email_verified ? '✅' : '—';
-      const isStaff   = role === 'student_staff';
-      const promoteLabel = isStaff
-        ? '↩ Demote to Student'
-        : '⭐ Make Staff';
-      const promoteStyle = isStaff
-        ? 'background:#f0f0f0;color:#555;border:1px solid #ccc;padding:3px 8px;border-radius:6px;cursor:pointer;font-size:0.75rem;margin-right:4px;white-space:nowrap'
-        : 'background:#1976d2;color:#fff;border:none;padding:3px 8px;border-radius:6px;cursor:pointer;font-size:0.75rem;margin-right:4px;white-space:nowrap';
-      const newRole = isStaff ? 'student' : 'student_staff';
-      return `
-        <tr>
-          <td>${idx + 1}</td>
-          <td>${safeEmail}</td>
-          <td>${safeName}</td>
-          <td>${safeDept || '—'}</td>
-          <td style="text-align:center;min-width:90px">${roleBadge(role)}</td>
-          <td style="text-align:center">${verified}</td>
-          <td>${fmtDate(s.created_at)}</td>
-          <td>${fmtDate(s.last_login)}</td>
-          <td style="white-space:nowrap">
-            <button style="${promoteStyle}" onclick="promoteStudent('${safeEmail.replace(/'/g, "&#39;")}','${newRole}')">${promoteLabel}</button>
-            <button style="background:#f39c12;color:#fff;border:none;padding:3px 8px;border-radius:6px;cursor:pointer;font-size:0.75rem;margin-right:4px;white-space:nowrap" onclick="reset2FA('${safeEmail.replace(/'/g, "&#39;")}')">🔑 Reset 2FA</button>
-            <button class="btn-delete" onclick="deleteStudent('${safeEmail.replace(/'/g, "&#39;")}')">🗑 Delete</button>
-          </td>
-        </tr>`;
-    }).join('');
-
-    document.getElementById('students-table').style.display = 'table';
+    _allStudents = data.students || [];
+    renderStudents(_allStudents);
   } catch(e) {
     document.getElementById('loading').innerHTML =
       '<span style="color:#c0392b">Failed to load. Make sure the backend is running.</span>';
   }
+}
+
+var _allStudents = [];
+
+function filterStudents() {
+  const q    = document.getElementById('search-input').value.toLowerCase();
+  const role = document.getElementById('filter-role').value;
+  const filtered = _allStudents.filter(s => {
+    const matchRole = !role || (s.role || 'student') === role;
+    const matchQ    = !q ||
+      (s.email      || '').toLowerCase().includes(q) ||
+      (s.full_name  || '').toLowerCase().includes(q) ||
+      (s.department || '').toLowerCase().includes(q);
+    return matchRole && matchQ;
+  });
+  renderStudents(filtered);
+}
+
+function renderStudents(list) {
+  document.getElementById('search-count').textContent =
+    list.length === _allStudents.length
+      ? `${list.length} student${list.length !== 1 ? 's' : ''}`
+      : `${list.length} / ${_allStudents.length}`;
+
+  if (!list.length) {
+    document.getElementById('students-table').style.display = 'none';
+    document.getElementById('no-data').style.display = 'block';
+    return;
+  }
+  document.getElementById('no-data').style.display = 'none';
+
+  const tbody = document.getElementById('students-body');
+  tbody.innerHTML = list.map((s, idx) => {
+    const safeEmail = String(s.email || '');
+    const safeName  = String(s.full_name || '');
+    const safeDept  = String(s.department || '');
+    const role      = s.role || 'student';
+    const verified  = s.email_verified ? '✅' : '—';
+    const isStaff   = role === 'student_staff';
+    const promoteLabel = isStaff ? '↩ Demote to Student' : '⭐ Make Staff';
+    const promoteStyle = isStaff
+      ? 'background:#f0f0f0;color:#555;border:1px solid #ccc;padding:3px 8px;border-radius:6px;cursor:pointer;font-size:0.75rem;margin-right:4px;white-space:nowrap'
+      : 'background:#1976d2;color:#fff;border:none;padding:3px 8px;border-radius:6px;cursor:pointer;font-size:0.75rem;margin-right:4px;white-space:nowrap';
+    const newRole = isStaff ? 'student' : 'student_staff';
+    return `
+      <tr>
+        <td>${idx + 1}</td>
+        <td>${safeEmail}</td>
+        <td>${safeName}</td>
+        <td>${safeDept || '—'}</td>
+        <td style="text-align:center;min-width:90px">${roleBadge(role)}</td>
+        <td style="text-align:center">${verified}</td>
+        <td>${fmtDate(s.created_at)}</td>
+        <td>${fmtDate(s.last_login)}</td>
+        <td style="white-space:nowrap">
+          <button style="${promoteStyle}" onclick="promoteStudent('${safeEmail.replace(/'/g,"&#39;")}','${newRole}')">${promoteLabel}</button>
+          <button style="background:#f39c12;color:#fff;border:none;padding:3px 8px;border-radius:6px;cursor:pointer;font-size:0.75rem;margin-right:4px;white-space:nowrap" onclick="reset2FA('${safeEmail.replace(/'/g,"&#39;")}')">🔑 Reset 2FA</button>
+          <button class="btn-delete" onclick="deleteStudent('${safeEmail.replace(/'/g,"&#39;")}')">🗑 Delete</button>
+        </td>
+      </tr>`;
+  }).join('');
+
+  document.getElementById('students-table').style.display = 'table';
 }
 
 async function promoteStudent(email, newRole) {
