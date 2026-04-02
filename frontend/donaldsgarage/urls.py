@@ -17,7 +17,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include, re_path
 from django.views.generic.base import TemplateView
-from accounts.views import PrintRequestsView, PrintRequestNewView, PrintRequestDetailView, PrintRequestReturnView, AdminStudentsView, ApiProxyView, WeeklyReportView, ManagePrintersView, ManageAdminsView
+from accounts.views import PrintRequestsView, PrintRequestNewView, PrintRequestDetailView, PrintRequestReturnView, AdminStudentsView, ApiProxyView, WeeklyReportView, ManagePrintersView, ManageAdminsView, ProfileView
 
 urlpatterns = [
     path("accounts/", include("accounts.urls")),
@@ -32,6 +32,8 @@ urlpatterns = [
     path("admin/admins/",   ManageAdminsView.as_view(),   name="manage-admins"),
     # Reports
     path("reports/weekly/",                    WeeklyReportView.as_view(),   name="weekly-report"),
+    # Profile
+    path("profile/",                           ProfileView.as_view(),        name="profile"),
     path('admin/', admin.site.urls),
     # Proxy: forward all /api/... calls to Flask
     re_path(r"^api/(?P<path>.*)$", ApiProxyView.as_view(), name="api-proxy"),

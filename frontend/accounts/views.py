@@ -37,6 +37,10 @@ class WeeklyReportView(TemplateView):
     template_name = "weekly_report.html"
 
 
+class ProfileView(TemplateView):
+    template_name = "profile.html"
+
+
 class ManagePrintersView(TemplateView):
     template_name = "manage_printers.html"
 
