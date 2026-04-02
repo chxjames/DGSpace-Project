@@ -2,81 +2,228 @@
 {% block title %}Home — DGSpace{% endblock %}
 
 {% block content %}
-<!-- Guest -->
-<div id="section-guest" style="display:none;text-align:center;padding:60px 0">
-  <h1 style="font-size:2rem;color:#1a1a2e">Welcome to DGSpace 🖨</h1>
-  <p style="margin:16px 0;color:#666">Donald's Garage 3D Print Request Management Platform</p>
-  <a href="/accounts/login" class="btn" style="width:auto;padding:12px 32px;margin-right:8px">Log In</a>
-  <a href="/accounts/signup" class="btn btn-secondary" style="width:auto;padding:12px 32px">Sign Up</a>
+<style>
+  /* ── Hero ── */
+  .hero {
+    text-align: center;
+    padding: 72px 24px 56px;
+  }
+  .hero h1 {
+    font-size: 2.4rem; color: #1a1a2e; margin-bottom: 12px; line-height: 1.2;
+  }
+  .hero p {
+    font-size: 1.05rem; color: #666; margin-bottom: 32px; max-width: 480px; margin-left: auto; margin-right: auto;
+  }
+  .hero-btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .hero-btns .btn { width: auto; padding: 12px 36px; font-size: 1rem; }
+
+  /* ── Welcome banner ── */
+  .welcome-banner {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    border-radius: 12px; padding: 32px 36px;
+    color: #fff; margin-bottom: 28px;
+    display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    flex-wrap: wrap;
+  }
+  .welcome-banner h2 { font-size: 1.6rem; margin-bottom: 6px; }
+  .welcome-banner .sub { color: #aaa; font-size: 0.9rem; }
+  .welcome-banner .badge-role {
+    background: rgba(233,69,96,.25); color: #e94560;
+    border: 1px solid rgba(233,69,96,.4);
+    padding: 4px 14px; border-radius: 20px; font-size: 0.82rem; font-weight: bold;
+    white-space: nowrap;
+  }
+
+  /* ── Quick-action cards ── */
+  .action-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+  .action-card {
+    background: #fff; border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.07);
+    padding: 28px 20px; text-align: center;
+    text-decoration: none; color: inherit;
+    border: 2px solid transparent;
+    transition: border-color .15s, box-shadow .15s, transform .12s;
+    display: block;
+  }
+  .action-card:hover {
+    border-color: #e94560; box-shadow: 0 4px 16px rgba(233,69,96,.15);
+    transform: translateY(-2px);
+  }
+  .action-card .icon { font-size: 2.2rem; margin-bottom: 12px; }
+  .action-card .label { font-weight: bold; color: #1a1a2e; font-size: 0.95rem; margin-bottom: 4px; }
+  .action-card .desc { font-size: 0.8rem; color: #999; }
+
+  /* ── Stats strip (admin) ── */
+  .stats-strip {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 14px; margin-bottom: 28px;
+  }
+  .stat-card {
+    background: #fff; border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.07);
+    padding: 20px; text-align: center;
+  }
+  .stat-card .num { font-size: 2rem; font-weight: bold; color: #e94560; }
+  .stat-card .lbl { font-size: 0.78rem; color: #888; margin-top: 4px; }
+</style>
+
+<!-- ══════════════════ GUEST ══════════════════ -->
+<div id="section-guest" style="display:none">
+  <div class="hero">
+    <div style="font-size:3.5rem;margin-bottom:16px">🖨</div>
+    <h1>Welcome to DGSpace</h1>
+    <p>Donald's Garage 3D Print Request Management Platform at the University of San Diego</p>
+    <div class="hero-btns">
+      <a href="/accounts/login" class="btn">Log In</a>
+      <a href="/accounts/signup" class="btn btn-secondary">Sign Up</a>
+    </div>
+  </div>
 </div>
 
-<!-- Logged in -->
+<!-- ══════════════════ LOGGED IN ══════════════════ -->
 <div id="section-user" style="display:none">
-  <div class="card" style="margin-bottom:24px">
-    <h2 id="welcome-msg">Welcome back!</h2>
-    <p style="color:#666;margin-top:8px" id="user-info"></p>
+
+  <!-- Welcome banner -->
+  <div class="welcome-banner">
+    <div>
+      <h2 id="welcome-msg">Welcome back!</h2>
+      <div class="sub" id="user-email"></div>
+    </div>
+    <span class="badge-role" id="role-badge"></span>
   </div>
 
-  <!-- Student panel -->
+  <!-- ── STUDENT ── -->
   <div id="panel-student" style="display:none">
-    <div style="display:flex;gap:16px;margin-bottom:24px">
-      <a href="/print-requests/" class="btn" style="width:auto;flex:1;text-align:center">
-        📋 My Print Requests
+    <div class="action-grid">
+      <a href="/print-requests/" class="action-card">
+        <div class="icon">📋</div>
+        <div class="label">My Requests</div>
+        <div class="desc">View & track your print jobs</div>
       </a>
-      <a href="/print-requests/new/" class="btn btn-secondary" style="width:auto;flex:1;text-align:center">
-        ➕ Submit New Request
+      <a href="/print-requests/new/" class="action-card">
+        <div class="icon">➕</div>
+        <div class="label">New Request</div>
+        <div class="desc">Submit a new 3D print job</div>
+      </a>
+      <a href="/profile/" class="action-card">
+        <div class="icon">👤</div>
+        <div class="label">My Profile</div>
+        <div class="desc">Settings &amp; 2FA security</div>
       </a>
     </div>
   </div>
 
-  <!-- Admin panel -->
+  <!-- ── ADMIN ── -->
   <div id="panel-admin" style="display:none">
-    <div style="display:flex;gap:16px;margin-bottom:24px;flex-wrap:wrap">
-      <a href="/print-requests/" class="btn" style="width:auto;flex:1;text-align:center">
-        📋 Manage All Print Requests
+    <!-- Stats strip -->
+    <div class="stats-strip" id="admin-stats">
+      <div class="stat-card"><div class="num" id="s-pending">—</div><div class="lbl">Pending</div></div>
+      <div class="stat-card"><div class="num" id="s-approved">—</div><div class="lbl">Approved</div></div>
+      <div class="stat-card"><div class="num" id="s-inprogress">—</div><div class="lbl">In Progress</div></div>
+      <div class="stat-card"><div class="num" id="s-completed">—</div><div class="lbl">Completed</div></div>
+      <div class="stat-card"><div class="num" id="s-total">—</div><div class="lbl">Total</div></div>
+    </div>
+    <!-- Actions -->
+    <div class="action-grid">
+      <a href="/print-requests/" class="action-card">
+        <div class="icon">📋</div>
+        <div class="label">Print Requests</div>
+        <div class="desc">Review &amp; manage all jobs</div>
       </a>
-      <a href="/admin/printers/" class="btn btn-secondary" style="width:auto;flex:1;text-align:center">
-        🖨️ Manage Printers
+      <a href="/admin/printers/" class="action-card">
+        <div class="icon">🖨️</div>
+        <div class="label">Printers</div>
+        <div class="desc">Manage printer inventory</div>
       </a>
-      <a href="/admin/admins/" class="btn btn-secondary" style="width:auto;flex:1;text-align:center">
-        🔑 Manage Admins
+      <a href="/admin/students/" class="action-card">
+        <div class="icon">🎓</div>
+        <div class="label">Students</div>
+        <div class="desc">View student accounts</div>
+      </a>
+      <a href="/admin/admins/" class="action-card">
+        <div class="icon">🔑</div>
+        <div class="label">Admins</div>
+        <div class="desc">Manage admin accounts</div>
+      </a>
+      <a href="/reports/weekly/" class="action-card">
+        <div class="icon">📊</div>
+        <div class="label">Reports</div>
+        <div class="desc">Stats &amp; analytics</div>
+      </a>
+      <a href="/profile/" class="action-card">
+        <div class="icon">👤</div>
+        <div class="label">My Profile</div>
+        <div class="desc">Settings &amp; 2FA security</div>
       </a>
     </div>
   </div>
 
-  <!-- Student Staff panel -->
+  <!-- ── STUDENT STAFF ── -->
   <div id="panel-student-staff" style="display:none">
-    <div style="display:flex;gap:16px;margin-bottom:24px">
-      <a href="/print-requests/" class="btn" style="width:auto;flex:1;text-align:center">
-        📋 Manage All Print Requests
+    <div class="action-grid">
+      <a href="/print-requests/" class="action-card">
+        <div class="icon">📋</div>
+        <div class="label">Print Requests</div>
+        <div class="desc">Manage all print jobs</div>
       </a>
-      <a href="/print-requests/new/" class="btn btn-secondary" style="width:auto;flex:1;text-align:center">
-        ➕ Submit New Request
+      <a href="/print-requests/new/" class="action-card">
+        <div class="icon">➕</div>
+        <div class="label">New Request</div>
+        <div class="desc">Submit a new 3D print job</div>
+      </a>
+      <a href="/profile/" class="action-card">
+        <div class="icon">👤</div>
+        <div class="label">My Profile</div>
+        <div class="desc">Settings &amp; 2FA security</div>
       </a>
     </div>
   </div>
-</div>
+
+</div><!-- end section-user -->
 
 <script>
 (function() {
   const user = getUser();
   if (!user) {
     document.getElementById('section-guest').style.display = 'block';
-  } else {
-    document.getElementById('section-user').style.display = 'block';
-    document.getElementById('welcome-msg').textContent = 'Welcome back, ' + (user.full_name || user.email) + '!';
-    document.getElementById('user-info').textContent =
-      user.user_type === 'admin' ? '👤 Admin Account' :
-      user.user_type === 'student_staff' ? '⭐ Student Staff  |  ' + (user.email || '') :
-      '🎓 Student  |  ' + (user.email || '');
+    return;
+  }
 
-    if (user.user_type === 'student') {
-      document.getElementById('panel-student').style.display = 'block';
-    } else if (user.user_type === 'student_staff') {
-      document.getElementById('panel-student-staff').style.display = 'block';
-    } else {
-      document.getElementById('panel-admin').style.display = 'block';
-    }
+  document.getElementById('section-user').style.display = 'block';
+  document.getElementById('welcome-msg').textContent = 'Welcome back, ' + (user.full_name || user.email) + '!';
+  document.getElementById('user-email').textContent = user.email || '';
+
+  const roleMap = {
+    student: '🎓 Student',
+    student_staff: '⭐ Student Staff',
+    admin: '👤 Admin',
+    professor: '🏫 Professor',
+    manager: '🛠 Manager'
+  };
+  document.getElementById('role-badge').textContent = roleMap[user.user_type] || user.user_type;
+
+  if (user.user_type === 'student') {
+    document.getElementById('panel-student').style.display = 'block';
+  } else if (user.user_type === 'student_staff') {
+    document.getElementById('panel-student-staff').style.display = 'block';
+  } else {
+    document.getElementById('panel-admin').style.display = 'block';
+    // Load stats
+    apiFetch('/api/admin/print-requests/statistics').then(r => r.json()).then(d => {
+      if (!d.success) return;
+      const s = d.statistics || {};
+      const by = s.by_status || {};
+      document.getElementById('s-pending').textContent    = by.pending     ?? 0;
+      document.getElementById('s-approved').textContent   = by.approved    ?? 0;
+      document.getElementById('s-inprogress').textContent = by.in_progress ?? 0;
+      document.getElementById('s-completed').textContent  = by.completed   ?? 0;
+      document.getElementById('s-total').textContent      = s.total_requests ?? '—';
+    }).catch(() => {});
   }
 })();
 </script>
