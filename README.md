@@ -1,6 +1,10 @@
 # DGSpace — 3D Print Request Management System
 
-A full-stack web application for **Donald's Garage** that lets students submit 3D print requests and admins review, slice, and manage them through a streamlined workflow.
+A full-stack web application for **Donald's Garage** at the University of San Diego. Students submit 3D print requests and admins review, slice, and manage them through a streamlined workflow.
+
+**Live:**
+- Frontend: https://dgspace-c5ff.up.railway.app
+- Backend API: https://dgspace-project-production.up.railway.app
 
 ---
 
@@ -8,13 +12,14 @@ A full-stack web application for **Donald's Garage** that lets students submit 3
 
 | Layer | Technology |
 |---|---|
-| Frontend | Django 5.2 (template rendering, port 8000) |
-| Backend API | Python Flask 3.0 (REST API, port 5000) |
-| Database | MySQL 8.0 (local) |
+| Frontend | Django 5.2 (template rendering) |
+| Backend API | Python Flask 3.0 (REST API) |
+| Database | MySQL 8.0 (AWS RDS) |
 | Auth | JWT tokens + bcrypt + Email verification + TOTP 2FA |
 | 3D Viewer | Three.js 0.165 (STL preview in browser) |
 | UFP Parsing | Custom parser for Cura `.ufp` slice data |
-| Reports | Google Sheets integration (weekly print logs) |
+| Reports | Dashboard from `print_requests` DB table |
+| Hosting | Railway (both services) |
 | Python env | virtualenv (`.venv/`) |
 
 ---
@@ -23,25 +28,23 @@ A full-stack web application for **Donald's Garage** that lets students submit 3
 
 ```
 DGSpace-Project-1/
-├── start.ps1                  # Start both servers (run this!)
+├── start.ps1                  # Start both servers locally
 ├── .venv/                     # Shared Python virtual environment
 │
-├── backend/                   # Flask REST API (port 5000)
+├── backend/                   # Flask REST API
 │   ├── app.py                 # All API routes
 │   ├── auth_service.py        # Register / login / JWT logic
 │   ├── email_service.py       # Email verification (Gmail SMTP)
 │   ├── print_service.py       # Print request CRUD
 │   ├── totp_service.py        # 2FA (TOTP) — setup, verify, disable
 │   ├── ufp_analysis.py        # Parse Cura .ufp files (print time, material, etc.)
-│   ├── sheet_service.py       # Google Sheets API wrapper
-│   ├── report_service.py      # Weekly/monthly report aggregation
 │   ├── database.py            # MySQL connection wrapper
 │   ├── config.py              # Loads settings from .env
 │   ├── uploads/               # Uploaded STL & UFP files (UUID-named)
 │   ├── .env                   # Local secrets (not committed)
 │   └── requirements.txt       # Python dependencies
 │
-├── frontend/                  # Django frontend (port 8000)
+├── frontend/                  # Django frontend
 │   ├── manage.py
 │   ├── donaldsgarage/         # Django project settings & URL routing
 │   ├── accounts/              # Views + API proxy to Flask
@@ -52,9 +55,9 @@ DGSpace-Project-1/
 │       ├── print_request_new.html     # Student: submit new request
 │       ├── print_request_detail.html  # Detail page + Three.js STL viewer + admin actions
 │       ├── admin_students.html        # Admin: student management
-│       ├── weekly_report.html         # Weekly print report
-│       ├── report_sync.html           # Google Sheets sync UI
-│       ├── report_raw.html            # Raw data view
+│       ├── manage_printers.html       # Admin: printer management
+│       ├── manage_admins.html         # Admin: admin account management
+│       ├── weekly_report.html         # Reports dashboard
 │       └── registration/
 │           ├── login.html
 │           └── signup.html
@@ -71,17 +74,17 @@ DGSpace-Project-1/
 ```
 Browser
   |
-  | HTTP to localhost:8000
+  | HTTP (Railway)
   v
-Django (port 8000)
+Django Frontend
   |- Serves HTML templates
   |- /api/* --> proxied to Flask (ApiProxyView)
                     |
                     v
-                Flask (port 5000)
+                Flask Backend (Railway)
                     |- REST API
                     v
-                 MySQL (DGSpace)
+                 MySQL (AWS RDS)
 ```
 
 All browser JS uses relative URLs (`/api/...`) — everything routes through Django, no CORS issues.
@@ -107,7 +110,7 @@ All browser JS uses relative URLs (`/api/...`) — everything routes through Dja
 - **UFP Slice Data** — Auto-parsed from Cura `.ufp` files (print time, material weight, layer height, infill)
 - **Student Management** — View/delete student accounts
 - **Status Workflow** — `pending` → `approved` → `in_progress` → `completed` (or `rejected` / `cancelled`)
-- **Reports Dashboard** — Weekly/monthly reports synced from Google Sheets
+- **Reports Dashboard** — Aggregated stats (requests by status, material usage, top students) read directly from the database
 
 ### Security
 
@@ -122,12 +125,12 @@ All browser JS uses relative URLs (`/api/...`) — everything routes through Dja
 ## Prerequisites
 
 - **Python 3.10+**
-- **MySQL 8.0+** (running locally)
+- **MySQL 8.0+** (local dev) or AWS RDS (production)
 - **Cura** (for slicing STL → UFP files, admin workflow)
 
 ---
 
-## Setup
+## Local Development Setup
 
 ### 1. Clone the repository
 
@@ -150,14 +153,11 @@ pip install django
 ```powershell
 $mysql = "C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe"
 & $mysql -u root -p DGSpace < database/schema.sql
-& $mysql -u root -p DGSpace < database/migration_001_print_requests.sql
-& $mysql -u root -p DGSpace < database/migration_002_stl_upload.sql
-& $mysql -u root -p DGSpace < database/migration_003_revision_requested.sql
-& $mysql -u root -p DGSpace < database/migration_005_ufp_fields.sql
-& $mysql -u root -p DGSpace < database/migration_006_deadline.sql
 ```
 
-Tables: `students`, `admins`, `email_verification_codes`, `password_reset_tokens`, `totp_secrets`, `print_requests`, `print_request_history`
+Then run any `migration_*.sql` files in order.
+
+Tables: `students`, `admins`, `email_verification_codes`, `password_reset_tokens`, `totp_secrets`, `print_requests`, `print_request_history`, `printers`
 
 ### 4. Configure environment variables
 
@@ -184,10 +184,6 @@ MAIL_DEFAULT_SENDER=your_email@gmail.com
 
 # Dev mode: print verification codes to terminal instead of sending email
 DEV_EMAIL_MODE=True
-
-# Google Sheets (optional)
-# GOOGLE_SHEET_ID=your_sheet_id
-# SERVICE_ACCOUNT_JSON_PATH=service_account.json
 ```
 
 ### 5. Start the servers
@@ -203,9 +199,7 @@ This opens two PowerShell windows:
 
 Open **`http://localhost:8000`** in your browser.
 
-> **Note:** Do NOT use the VS Code Simple Browser — it blocks some requests.
-
-> **Tip:** If `DEV_EMAIL_MODE=True`, verification codes are printed in the Flask terminal window.
+> **Tip:** If `DEV_EMAIL_MODE=True`, verification codes print in the Flask terminal window.
 
 ---
 
@@ -274,14 +268,7 @@ Open **`http://localhost:8000`** in your browser.
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | `/api/reports/sync-google-sheet` | Sync data from Google Sheet |
-| GET | `/api/reports/weekly` | Weekly report summary |
-| GET | `/api/reports/raw` | Raw print log data |
-| GET | `/api/reports/printer/<name>` | Per-printer report |
-| GET | `/api/reports/operator/<name>` | Per-operator report |
-| GET | `/api/reports/materials` | Material usage report |
-| GET | `/api/reports/errors` | Error tracking report |
-| GET | `/api/reports/monthly` | Monthly report |
+| GET | `/api/reports/dashboard` | Aggregated stats from print_requests (by status, material, day, top students) |
 
 ---
 
@@ -350,36 +337,6 @@ print("Done")
 - Verification codes expire in 15 minutes
 - Passwords hashed with bcrypt (12 rounds)
 - STL files stored with UUID filenames to prevent path traversal
-
----
-
-## Google Sheets Report Integration
-
-The manager can sync the Google Sheet (where staff record print jobs) into the database and view aggregated weekly KPI reports.
-
-```
-Google Sheet --> /api/reports/sync-google-sheet --> print_logs_raw --> /reports/weekly/
-```
-
-### Setting Up a Service Account (One-Time)
-
-1. Go to [Google Cloud Console](https://console.cloud.google.com/) → **APIs & Services** → **Credentials**
-2. Click **Create Credentials → Service Account**
-3. Open the new Service Account → **Keys** tab → **Add Key → Create new key (JSON)**
-4. Download and save the JSON file (e.g. `backend/service_account.json`)
-5. Enable the **Google Sheets API** in **APIs & Services → Library**
-
-### Sharing the Sheet
-
-1. Open the JSON key file, find `"client_email"` (e.g. `dgspace@project.iam.gserviceaccount.com`)
-2. Open your Google Sheet → **Share** → paste that email → set permission to **Viewer**
-3. Copy the Sheet ID from the URL and add to `.env`:
-
-```ini
-GOOGLE_SHEET_ID=your_sheet_id_here
-GOOGLE_SHEET_TAB_NAME=Sheet1
-SERVICE_ACCOUNT_JSON_PATH=backend/service_account.json
-```
 
 ---
 
