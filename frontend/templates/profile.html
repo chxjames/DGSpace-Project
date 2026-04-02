@@ -89,8 +89,8 @@
       <div style="font-size:0.8rem;color:#aaa;text-align:center" id="profile-joined"></div>
     </div>
 
-    <!-- Change password card -->
-    <div class="card" style="margin-bottom:20px">
+    <!-- Change password card (only shown when 2FA is active) -->
+    <div class="card" id="change-pw-card" style="margin-bottom:20px;display:none">
       <div class="section-title">🔑 Change Password</div>
       <div id="pw-alert"></div>
       <div class="form-group">
@@ -305,9 +305,11 @@
       if (d.is_active || d.enabled) {
         document.getElementById('twofa-enabled').style.display = 'block';
         document.getElementById('twofa-status-box').className = 'twofa-box enabled';
+        document.getElementById('change-pw-card').style.display = 'block';
       } else {
         document.getElementById('twofa-disabled').style.display = 'block';
         document.getElementById('twofa-status-box').className = 'twofa-box';
+        document.getElementById('change-pw-card').style.display = 'none';
       }
     } catch(e) {
       document.getElementById('twofa-loading').textContent = 'Could not load 2FA status.';
@@ -349,6 +351,7 @@
       if (d.success) {
         showAlert('✅ 2FA is now active! Your account is protected.', 'success');
         load2FAStatus();
+        document.getElementById('change-pw-card').style.display = 'block';
       } else {
         document.getElementById('confirm-error').textContent = 'Wrong code. Try again.';
       }
@@ -365,6 +368,7 @@
       if (d.success) {
         showAlert('2FA has been disabled.', 'success');
         load2FAStatus();
+        document.getElementById('change-pw-card').style.display = 'none';
       } else {
         document.getElementById('disable-error').textContent = d.message || 'Wrong code.';
       }
