@@ -147,17 +147,41 @@ class AuthService:
         # Update last login
         update_query = f"UPDATE {table} SET last_login = NOW() WHERE email = %s"
         db.execute_query(update_query, (email,))
-        
-        # Generate JWT token. If admin, include role in the token payload.
-        # For students with role='student_staff', emit user_type='student_staff'.
+
+        # Resolve effective user_type (student_staff vs student)
         if user_type == 'student':
             student_role = user.get('role') or 'student'
-            effective_type = student_role  # 'student' or 'student_staff'
-            token = AuthService.generate_jwt_token(email, effective_type)
+            effective_type = student_role
         else:
             effective_type = user_type
+
+        # ── 2FA gate ──────────────────────────────────────────────────────────
+        # If the user has 2FA enabled, do NOT issue the real JWT yet.
+        # Return a short-lived temp token that only allows /api/2fa/login-verify.
+        if _check_2fa_active(email, user_type):
+            temp_payload = {
+                'email': email,
+                'user_type': user_type,
+                'effective_type': effective_type,
+                'role': user.get('role'),
+                'scope': '2fa_pending',   # marks this as a temp token
+                'exp': datetime.utcnow() + timedelta(minutes=5),
+                'iat': datetime.utcnow()
+            }
+            temp_token = jwt.encode(temp_payload, Config.JWT_SECRET_KEY, algorithm='HS256')
+            return {
+                'success': True,
+                'require_2fa': True,
+                'temp_token': temp_token,
+                'message': '2FA verification required'
+            }
+        # ──────────────────────────────────────────────────────────────────────
+
+        # Generate full JWT token
+        if user_type == 'student':
+            token = AuthService.generate_jwt_token(email, effective_type)
+        else:
             role = user.get('role') if user else None
-            # Build payload with role embedded
             payload = {
                 'email': email,
                 'user_type': user_type,
@@ -175,7 +199,6 @@ class AuthService:
                 'email': user['email'],
                 'full_name': user['full_name'],
                 'user_type': effective_type,
-                # include role for admin users so frontend can adjust UI
                 **({'role': user.get('role')} if user_type != 'student' else {})
             }
         }

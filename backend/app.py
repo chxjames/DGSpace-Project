@@ -1215,6 +1215,63 @@ def verify_2fa():
     }), 200
 
 
+@app.route('/api/2fa/login-verify', methods=['POST'])
+def login_verify_2fa():
+    """
+    登录第二步（安全版）：验证 temp_token + TOTP 码，通过后颁发正式 JWT。
+    Body: { "temp_token": "...", "code": "123456" }
+    temp_token 由密码验证成功后服务端签发，有效期 5 分钟，scope='2fa_pending'。
+    """
+    import datetime as _dt
+    data = request.json or {}
+    temp_token = data.get('temp_token', '').strip()
+    code       = data.get('code', '').strip()
+
+    if not temp_token or not code:
+        return jsonify({'success': False, 'message': 'temp_token 和 code 均为必填项'}), 400
+
+    # 解码 temp token
+    tp = AuthService.verify_jwt_token(temp_token)
+    if not tp or tp.get('scope') != '2fa_pending':
+        return jsonify({'success': False, 'message': '无效或已过期的会话，请重新登录'}), 401
+
+    email         = tp['email']
+    user_type     = tp['user_type']
+    effective_type = tp.get('effective_type', user_type)
+
+    # 验证 TOTP 码
+    result = TotpService.verify_totp(email, user_type, code)
+    if not result['success']:
+        return jsonify({'success': False, 'message': '验证码错误，请重试'}), 401
+
+    # 颁发正式 JWT
+    if user_type == 'admin':
+        role = tp.get('role')
+        payload = {
+            'email': email,
+            'user_type': user_type,
+            'role': role,
+            'exp': _dt.datetime.utcnow() + _dt.timedelta(hours=Config.JWT_EXPIRATION_HOURS),
+            'iat': _dt.datetime.utcnow()
+        }
+        import jwt as _jwt
+        token = _jwt.encode(payload, Config.JWT_SECRET_KEY, algorithm='HS256')
+    else:
+        token = AuthService.generate_jwt_token(email, effective_type)
+
+    # 查询用户信息以返回给前端
+    table = 'students' if user_type == 'student' else 'admins'
+    user_row = db.fetch_one(f"SELECT email, full_name, role FROM {table} WHERE email = %s", (email,))
+    user_obj = {
+        'email': email,
+        'full_name': user_row['full_name'] if user_row else email,
+        'user_type': effective_type,
+        **({'role': tp.get('role')} if user_type != 'student' else {})
+    }
+
+    return jsonify({'success': True, 'token': token, 'user': user_obj}), 200
+
+
 @app.route('/api/2fa/disable', methods=['DELETE'])
 def disable_2fa():
     """
