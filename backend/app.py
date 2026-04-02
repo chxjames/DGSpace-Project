@@ -9,6 +9,7 @@ from totp_service import TotpService
 from ufp_analysis import analyze_ufp
 import os
 import uuid
+import bcrypt
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for frontend requests
@@ -286,7 +287,6 @@ def change_password():
     if not row:
         return jsonify({'success': False, 'message': 'User not found'}), 404
 
-    import bcrypt
     if not bcrypt.checkpw(current_pw.encode(), row['password_hash'].encode()):
         return jsonify({'success': False, 'message': 'Current password is incorrect'}), 400
 
