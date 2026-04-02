@@ -27,7 +27,7 @@
   <table id="req-table" style="display:none">
     <thead>
       <tr>
-        <th>#</th><th>Project Name</th><th>Material</th><th>Priority</th><th>Status</th><th>Submitted</th><th>Action</th>
+        <th>#</th><th>Project Name</th><th>Material</th><th class="col-priority">Priority</th><th>Status</th><th>Submitted</th><th>Action</th>
       </tr>
     </thead>
     <tbody id="req-body"></tbody>
@@ -110,7 +110,7 @@ function renderTable(list, userType, user) {
           <td>${idx + 1}</td>
           <td>${r.project_name}</td>
           <td>${r.material_type || 'PLA'}</td>
-          <td>${priorityLabel(r.priority)}</td>
+          <td class="col-priority">${priorityLabel(r.priority)}</td>
           <td>${statusBadge(r.status)}</td>
           <td>${new Date(r.created_at).toLocaleDateString('en-US')}</td>
           <td style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
@@ -155,6 +155,11 @@ async function loadRequests(userType, user) {
     const mode = document.getElementById('sort-select').value;
     const sorted = sortList(list, mode);
     renderTable(sorted, userType, user);
+
+    // Hide Priority column for plain students
+    if (userType !== 'admin' && userType !== 'student_staff') {
+      document.querySelectorAll('.col-priority').forEach(el => el.style.display = 'none');
+    }
 
     document.getElementById('no-data').style.display = 'none';
     document.getElementById('req-table').style.display = 'table';

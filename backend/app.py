@@ -1020,6 +1020,26 @@ def admin_update_request_status(request_id):
         return jsonify(result), 400
 
 
+@app.route('/api/admin/print-requests/<int:request_id>/priority', methods=['PATCH'])
+def admin_update_priority(request_id):
+    """Update the priority of a print request (Admin / Student Staff only)"""
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({'success': False, 'message': 'No token provided'}), 401
+    token = auth_header.split(' ')[1]
+    payload = AuthService.verify_jwt_token(token)
+    if not payload or payload.get('user_type') not in ('admin', 'student_staff'):
+        return jsonify({'success': False, 'message': 'Admin access required'}), 403
+    data = request.json or {}
+    priority = data.get('priority', '').strip().lower()
+    result = PrintService.update_priority(
+        request_id=request_id,
+        priority=priority,
+        admin_email=payload['email']
+    )
+    return jsonify(result), (200 if result['success'] else 400)
+
+
 @app.route('/api/admin/print-requests/<int:request_id>/return', methods=['POST'])
 def admin_return_request(request_id):
     """Return a print request back to the student for revision (Admin / Student Staff)"""

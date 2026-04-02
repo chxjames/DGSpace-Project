@@ -80,7 +80,20 @@
     <!-- ══════ Admin Actions (below the grid) ══════ -->
     <div id="admin-actions" style="display:none;margin-top:24px">
       <div class="card" style="margin:0">
-        <h3 style="margin:0 0 16px;font-size:1rem;color:#444">🛠 Admin Actions</h3>
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:16px">
+          <h3 style="margin:0;font-size:1rem;color:#444">🛠 Admin Actions</h3>
+          <!-- Priority selector — staff/admin only -->
+          <div style="display:flex;align-items:center;gap:8px;font-size:0.88rem">
+            <label style="color:#666;white-space:nowrap;font-weight:600">Priority:</label>
+            <select id="admin-priority-select"
+                    onchange="adminSetPriority(this.value)"
+                    style="padding:4px 10px;border:1px solid #ddd;border-radius:6px;font-size:0.88rem;cursor:pointer">
+              <option value="normal">🟢 Normal</option>
+              <option value="high">🟠 High</option>
+              <option value="urgent">🔴 Urgent</option>
+            </select>
+          </div>
+        </div>
         <div id="admin-alert-box"></div>
 
         <!-- Status info for non-pending (completed / rejected / cancelled) -->
@@ -385,7 +398,7 @@ function renderDetail(r) {
 
   document.getElementById('d-project-name').textContent = r.project_name;
   document.getElementById('d-status-badge').innerHTML    = statusBadge(r.status);
-  document.getElementById('d-priority-badge').innerHTML  = priorityLabel(r.priority);
+  // Priority badge — only visible to admin / student_staff; rendered later in admin block
   document.getElementById('d-created-at').textContent    = new Date(r.created_at).toLocaleDateString('en-US');
   document.getElementById('d-material').textContent      = r.material_type || '—';
   document.getElementById('d-color').textContent         = r.color_preference || '—';
@@ -447,6 +460,10 @@ function renderDetail(r) {
     window._currentRequestId = r.id || requestId;
     window._currentStatus = r.status;
     window._currentRequest = r;
+
+    // Show priority badge and set the inline selector value
+    document.getElementById('d-priority-badge').innerHTML = priorityLabel(r.priority);
+    document.getElementById('admin-priority-select').value = r.priority || 'normal';
 
     const reviewPanel   = document.getElementById('admin-review-panel');
     const progressGroup = document.getElementById('admin-progress-group');
@@ -607,6 +624,7 @@ window.cancelUfpUpload    = cancelUfpUpload;
 window.fbToggleChip       = fbToggleChip;
 window.fbSyncChipsFromTextarea = fbSyncChipsFromTextarea;
 window.adminCannotCompleteByDeadline = adminCannotCompleteByDeadline;
+window.adminSetPriority   = adminSetPriority;
 
 // ── Student Resubmit functions (expose to global) ──────────
 window.rsRemoveCurrentStl = rsRemoveCurrentStl;
@@ -855,6 +873,30 @@ async function adminApproveWithUfp() {
     adminShowAlert('Network error. Make sure the backend is running.');
     btn.disabled = false;
     btn.textContent = '✅ Confirm Approval';
+  }
+}
+
+async function adminSetPriority(priority) {
+  const sel = document.getElementById('admin-priority-select');
+  const prev = window._currentRequest ? (window._currentRequest.priority || 'normal') : 'normal';
+  try {
+    const res = await window.apiFetch(
+      `/api/admin/print-requests/${window._currentRequestId}/priority`,
+      { method: 'PATCH', body: JSON.stringify({ priority }) }
+    );
+    const data = await res.json();
+    if (data.success) {
+      // Update the badge next to the project name
+      document.getElementById('d-priority-badge').innerHTML = priorityLabel(priority);
+      if (window._currentRequest) window._currentRequest.priority = priority;
+      adminShowAlert(`Priority updated to "${priority}".`, 'success');
+    } else {
+      adminShowAlert(data.message || 'Failed to update priority.');
+      sel.value = prev;  // revert selector
+    }
+  } catch(e) {
+    adminShowAlert('Network error. Make sure the backend is running.');
+    sel.value = prev;
   }
 }
 

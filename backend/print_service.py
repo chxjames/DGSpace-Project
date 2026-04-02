@@ -470,6 +470,25 @@ class PrintService:
             }
 
     @staticmethod
+    def update_priority(request_id: int, priority: str, admin_email: str) -> Dict:
+        """Update the priority of a print request (admin/staff only)."""
+        valid = ('normal', 'high', 'urgent')
+        if priority not in valid:
+            return {'success': False, 'message': f'Invalid priority. Must be one of: {", ".join(valid)}'}
+        try:
+            result = db.fetch_one("SELECT request_id FROM print_requests WHERE request_id = %s", (request_id,))
+            if not result:
+                return {'success': False, 'message': 'Request not found'}
+            db.execute_query(
+                "UPDATE print_requests SET priority = %s WHERE request_id = %s",
+                (priority, request_id)
+            )
+            return {'success': True, 'message': f'Priority updated to {priority}', 'priority': priority}
+        except Exception as e:
+            print(f"Error updating priority: {e}")
+            return {'success': False, 'message': f'Failed to update priority: {str(e)}'}
+
+    @staticmethod
     def return_print_request(
         request_id: int,
         admin_email: str,
