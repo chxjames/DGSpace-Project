@@ -116,6 +116,7 @@ async function loadStudents() {
           <td>${fmtDate(s.last_login)}</td>
           <td style="white-space:nowrap">
             <button style="${promoteStyle}" onclick="promoteStudent('${safeEmail.replace(/'/g, "&#39;")}','${newRole}')">${promoteLabel}</button>
+            <button style="background:#f39c12;color:#fff;border:none;padding:3px 8px;border-radius:6px;cursor:pointer;font-size:0.75rem;margin-right:4px;white-space:nowrap" onclick="reset2FA('${safeEmail.replace(/'/g, "&#39;")}')">🔑 Reset 2FA</button>
             <button class="btn-delete" onclick="deleteStudent('${safeEmail.replace(/'/g, "&#39;")}')">🗑 Delete</button>
           </td>
         </tr>`;
@@ -152,6 +153,24 @@ async function promoteStudent(email, newRole) {
     }
   } catch (e) {
     showAlert('Failed to update role. Make sure the backend is running.');
+  }
+}
+
+async function reset2FA(email) {
+  if (!email) return;
+  if (!confirm(`Reset 2FA for "${email}"?\n\nThis will disable their 2FA. They can re-enable it from their Profile page.`)) return;
+
+  try {
+    const res  = await apiFetch(`/api/admin/students/${encodeURIComponent(email)}/2fa`, { method: 'DELETE' });
+    const data = await res.json();
+
+    if (data.success) {
+      showAlert(`2FA has been reset for ${email}.`, 'success');
+    } else {
+      showAlert(data.message || 'Failed to reset 2FA.');
+    }
+  } catch(e) {
+    showAlert('Failed to reset 2FA. Make sure the backend is running.');
   }
 }
 

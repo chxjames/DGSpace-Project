@@ -1275,25 +1275,28 @@ def login_verify_2fa():
 @app.route('/api/2fa/disable', methods=['DELETE'])
 def disable_2fa():
     """
-    关闭 2FA。需要在 body 中提供当前 TOTP 验证码以确认身份。
-    Body: { "code": "123456" }
+    关闭自己的 2FA。只需有效 JWT，无需再提交 TOTP 验证码。
     """
     payload = _get_auth_payload()
     if not payload:
         return jsonify({'success': False, 'message': 'Unauthorized'}), 401
 
-    data = request.json or {}
-    code = data.get('code', '').strip()
-    if not code:
-        return jsonify({'success': False, 'message': '请提供当前 TOTP 验证码'}), 400
-
-    # 先验证码正确再删除，防止误操作
-    verify = TotpService.verify_totp(payload['email'], payload['user_type'], code)
-    if not verify['success']:
-        return jsonify({'success': False, 'message': '验证码错误，无法关闭 2FA'}), 400
-
     result = TotpService.disable_totp(payload['email'], payload['user_type'])
     return jsonify(result), 200
+
+
+@app.route('/api/admin/students/<email>/2fa', methods=['DELETE'])
+def admin_reset_student_2fa(email):
+    """
+    管理员强制清除指定学生的 2FA。
+    仅需 admin JWT，无需学生本人操作。
+    """
+    payload = _get_auth_payload()
+    if not payload or payload.get('user_type') != 'admin':
+        return jsonify({'success': False, 'message': 'Admin access required'}), 403
+
+    result = TotpService.disable_totp(email, 'student')
+    return jsonify(result), 200 if result['success'] else 400
 
 
 # ===========================================================================
