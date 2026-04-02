@@ -620,6 +620,8 @@ def resubmit_print_request(request_id):
         description=data.get('description'),
         stl_file_path=data.get('stl_file_path'),
         stl_original_name=data.get('stl_original_name'),
+        material_type=data.get('material_type'),
+        color_preference=data.get('color_preference'),
     )
 
     if result['success']:
@@ -1034,6 +1036,7 @@ def admin_return_request(request_id):
 
     data = request.json or {}
     reason = data.get('reason', '').strip()
+    unlocked_fields = data.get('unlocked_fields')  # list or None
 
     if not reason:
         return jsonify({'success': False, 'message': 'A return reason is required'}), 400
@@ -1041,7 +1044,8 @@ def admin_return_request(request_id):
     result = PrintService.return_print_request(
         request_id=request_id,
         admin_email=payload['email'],
-        reason=reason
+        reason=reason,
+        unlocked_fields=unlocked_fields,
     )
 
     if result['success']:

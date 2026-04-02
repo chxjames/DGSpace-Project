@@ -191,7 +191,8 @@ class PrintService:
                        pr.estimated_weight_grams, pr.estimated_print_time_hours,
                        pr.priority, pr.status, pr.admin_notes, pr.reviewed_by,
                        pr.reviewed_at, pr.created_at, pr.updated_at, pr.completed_at,
-                       pr.stl_file_path, pr.stl_original_name, pr.deadline_date
+                       pr.stl_file_path, pr.stl_original_name, pr.deadline_date,
+                       pr.revision_fields
                 FROM print_requests pr
                 JOIN students s ON pr.student_email = s.email
                 WHERE pr.request_id = %s
@@ -203,6 +204,14 @@ class PrintService:
                     'success': False,
                     'message': 'Request not found'
                 }
+
+            import json as _json
+            revision_fields = None
+            if result.get('revision_fields'):
+                try:
+                    revision_fields = _json.loads(result['revision_fields'])
+                except Exception:
+                    revision_fields = None
             
             request_data = {
                 'id': result['request_id'],
@@ -226,6 +235,7 @@ class PrintService:
                 'stl_file_path': result['stl_file_path'],
                 'stl_original_name': result['stl_original_name'],
                 'deadline_date': result['deadline_date'].isoformat() if result['deadline_date'] else None,
+                'revision_fields': revision_fields,  # list like ['stl','description'] or None=all
             }
             
             return {
@@ -460,24 +470,33 @@ class PrintService:
             }
 
     @staticmethod
-    def return_print_request(request_id: int, admin_email: str, reason: str) -> Dict:
+    def return_print_request(
+        request_id: int,
+        admin_email: str,
+        reason: str,
+        unlocked_fields: Optional[List] = None,
+    ) -> Dict:
         """
         Return (send back) a print request to the student for revision.
-        Sets status to 'revision_requested' and stores the admin's reason in admin_notes.
+        Sets status to 'revision_requested', stores feedback in admin_notes,
+        and stores the list of fields the student is allowed to edit in revision_fields.
 
         Args:
-            request_id: ID of the print request
-            admin_email: Email of the admin returning the request
-            reason: Explanation written by the admin (required)
+            request_id:       ID of the print request
+            admin_email:      Email of the admin returning the request
+            reason:           Feedback text (required)
+            unlocked_fields:  List of field keys the student should update,
+                              e.g. ['stl', 'description', 'material'].
+                              If None or empty, all fields are unlocked.
 
         Returns:
             Dict with success status and message
         """
+        import json as _json
         try:
             if not reason or not reason.strip():
                 return {'success': False, 'message': 'A return reason is required'}
 
-            # Verify request exists
             row = db.fetch_one(
                 "SELECT status FROM print_requests WHERE request_id = %s",
                 (request_id,)
@@ -487,16 +506,16 @@ class PrintService:
 
             old_status = row['status']
 
-            # Always update admin_notes and set status to revision_requested
+            fields_json = _json.dumps(unlocked_fields) if unlocked_fields else None
+
             db.execute_query(
                 """UPDATE print_requests
                    SET status = 'revision_requested', reviewed_by = %s, reviewed_at = NOW(),
-                       admin_notes = %s
+                       admin_notes = %s, revision_fields = %s
                    WHERE request_id = %s""",
-                (admin_email, reason.strip(), request_id)
+                (admin_email, reason.strip(), fields_json, request_id)
             )
 
-            # History entry (record the transition, even if status didn't change)
             db.execute_query(
                 """INSERT INTO print_request_history
                    (request_id, old_status, new_status, changed_by, change_reason)
@@ -630,21 +649,13 @@ class PrintService:
         description: Optional[str] = None,
         stl_file_path: Optional[str] = None,
         stl_original_name: Optional[str] = None,
+        material_type: Optional[str] = None,
+        color_preference: Optional[str] = None,
     ) -> Dict:
         """
         Allow a student to resubmit an in-place revision on a revision_requested request.
         Updates editable fields, resets status to 'pending', clears admin_notes.
-
-        Args:
-            request_id:        ID of the print request
-            student_email:     Must match the owning student
-            project_name:      Optional updated project name
-            description:       Optional updated description
-            stl_file_path:     Optional new STL filename (UUID on disk)
-            stl_original_name: Original filename for the new STL
-
-        Returns:
-            Dict with success status and message
+        Only fields explicitly passed (not None) are updated.
         """
         try:
             # Verify ownership and status
@@ -677,6 +688,12 @@ class PrintService:
             if stl_original_name is not None:
                 sets.append("stl_original_name = %s")
                 params.append(stl_original_name)
+            if material_type is not None:
+                sets.append("material_type = %s")
+                params.append(material_type)
+            if color_preference is not None:
+                sets.append("color_preference = %s")
+                params.append(color_preference)
 
             params.append(request_id)
             db.execute_query(
