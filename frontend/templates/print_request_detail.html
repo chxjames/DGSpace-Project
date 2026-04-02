@@ -201,6 +201,10 @@
                     style="width:auto;padding:10px 24px;background:#dc3545;font-size:0.95rem">
               ❌ Reject
             </button>
+            <button id="btn-cannot-deadline" class="btn" onclick="adminCannotCompleteByDeadline()"
+                    style="width:auto;padding:10px 24px;background:#6c757d;font-size:0.95rem;display:none">
+              ⏰ Cannot Complete by Deadline
+            </button>
           </div>
         </div>
 
@@ -263,8 +267,18 @@
             </div>
             <div style="flex:1;min-width:140px">
               <label style="font-size:0.8rem;color:#888;display:block;margin-bottom:4px">Color Preference</label>
-              <input id="rs-color" type="text" placeholder="e.g. Black, White, Any"
-                     style="width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid #e94560;border-radius:6px;font-size:0.9rem;font-family:inherit">
+              <select id="rs-color"
+                      style="width:100%;padding:8px 10px;border:1px solid #e94560;border-radius:6px;font-size:0.9rem;font-family:inherit">
+                <option value="Any">🎨 Any (let staff decide)</option>
+                <option value="White">⬜ White</option>
+                <option value="Black">⬛ Black</option>
+                <option value="Red">🟥 Red</option>
+                <option value="Blue">🟦 Blue</option>
+                <option value="Green">🟩 Green</option>
+                <option value="Yellow">🟨 Yellow</option>
+                <option value="Orange">🟧 Orange</option>
+                <option value="I do not care">🤔 I do not care</option>
+              </select>
             </div>
           </div>
         </div>
@@ -390,6 +404,9 @@ function renderDetail(r) {
     else                    badge = ` <span style="color:#888;font-size:0.8rem">(${daysLeft}d left)</span>`;
     document.getElementById('d-deadline').innerHTML = dlStr + badge;
     document.getElementById('d-deadline-row').style.display = '';
+    // Show "Cannot Complete by Deadline" button for staff when deadline exists
+    const deadlineBtn = document.getElementById('btn-cannot-deadline');
+    if (deadlineBtn) deadlineBtn.style.display = 'inline-flex';
   }
 
   // Show student email only to admins
@@ -493,7 +510,7 @@ function renderDetail(r) {
     if (fields.includes('material')) {
       document.getElementById('rs-field-material').style.display = 'block';
       document.getElementById('rs-material').value = r.material_type || 'PLA';
-      document.getElementById('rs-color').value    = r.color_preference || '';
+      document.getElementById('rs-color').value    = r.color_preference || 'Any';
     }
     if (fields.includes('stl')) {
       document.getElementById('rs-stl-flag').style.display     = 'inline';
@@ -589,6 +606,7 @@ window.adminApproveWithUfp = adminApproveWithUfp;
 window.cancelUfpUpload    = cancelUfpUpload;
 window.fbToggleChip       = fbToggleChip;
 window.fbSyncChipsFromTextarea = fbSyncChipsFromTextarea;
+window.adminCannotCompleteByDeadline = adminCannotCompleteByDeadline;
 
 // ── Student Resubmit functions (expose to global) ──────────
 window.rsRemoveCurrentStl = rsRemoveCurrentStl;
@@ -843,6 +861,38 @@ async function adminApproveWithUfp() {
 async function adminReject() {
   if (!confirm('Reject this request?')) return;
   await adminSetStatus('rejected');
+}
+
+async function adminCannotCompleteByDeadline() {
+  const r = window._currentRequest;
+  const deadlineStr = r && r.deadline_date
+    ? new Date(r.deadline_date + 'T00:00:00').toLocaleDateString('en-US', { year:'numeric', month:'short', day:'numeric' })
+    : 'the deadline';
+  if (!confirm(`Send back to student with reason: "Cannot complete by ${deadlineStr}"?`)) return;
+
+  const btn = document.getElementById('btn-cannot-deadline');
+  btn.disabled = true;
+  const reason = `We regret that we are unable to complete this print request by the deadline (${deadlineStr}). Please reach out if you'd like to resubmit with a later deadline.`;
+  try {
+    const res = await window.apiFetch(`/api/admin/print-requests/${window._currentRequestId}/return`, {
+      method: 'POST',
+      body: JSON.stringify({
+        reason,
+        unlocked_fields: null   // student may edit anything when resubmitting
+      })
+    });
+    const data = await res.json();
+    if (data.success) {
+      adminShowAlert('Request sent back — deadline not met. Reloading…', 'success');
+      setTimeout(() => location.reload(), 1200);
+    } else {
+      adminShowAlert(data.message || 'Failed to send back.');
+      btn.disabled = false;
+    }
+  } catch(e) {
+    adminShowAlert('Network error. Make sure the backend is running.');
+    btn.disabled = false;
+  }
 }
 
 async function adminSetStatus(newStatus) {
