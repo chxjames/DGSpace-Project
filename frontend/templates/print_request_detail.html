@@ -46,9 +46,6 @@
         <div id="d-admin-notes-block" style="margin-top:16px;padding:12px 14px;background:#fff8e1;border:1px solid #ffe082;border-radius:6px;display:none;white-space:normal;overflow-wrap:anywhere;word-break:break-word">
           <div style="font-size:0.85rem;font-weight:600;color:#7a5800;margin-bottom:4px">⚠️ Admin Feedback</div>
           <div id="d-admin-notes" style="font-size:0.9rem;color:#7a5800"></div>
-          <div id="d-admin-notes-hint" style="margin-top:8px;font-size:0.8rem;color:#999;display:none">
-            Please address the feedback above, then delete this request and submit a new one.
-          </div>
         </div>
 
       </div>
@@ -204,6 +201,69 @@
       </div>
     </div>
 
+    <!-- ══════ Student Resubmit Panel (revision_requested only) ══════ -->
+    <div id="student-resubmit-panel" style="display:none;margin-top:24px">
+      <div class="card" style="margin:0;border:2px solid #ffe082">
+        <h3 style="margin:0 0 6px;font-size:1rem;color:#7a5800">✏️ Address Feedback &amp; Resubmit</h3>
+        <p style="margin:0 0 16px;font-size:0.85rem;color:#888">Update your request below and click <strong>Resubmit</strong>. Staff will see the same record — no need to create a new one.</p>
+        <div id="resubmit-alert-box"></div>
+
+        <!-- Project name -->
+        <div style="margin-bottom:12px">
+          <label style="font-size:0.85rem;font-weight:600;color:#555;display:block;margin-bottom:4px">Project Name</label>
+          <input id="rs-project-name" type="text"
+                 style="width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:0.9rem;font-family:inherit">
+        </div>
+
+        <!-- Description -->
+        <div style="margin-bottom:12px">
+          <label style="font-size:0.85rem;font-weight:600;color:#555;display:block;margin-bottom:4px">Description</label>
+          <textarea id="rs-description" rows="4"
+                    style="width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:0.9rem;resize:vertical;font-family:inherit"></textarea>
+        </div>
+
+        <!-- STL replacement (optional) -->
+        <div style="margin-bottom:16px">
+          <label style="font-size:0.85rem;font-weight:600;color:#555;display:block;margin-bottom:4px">Replace STL File <span style="font-weight:400;color:#aaa">(optional — keep existing if not changed)</span></label>
+
+          <!-- current file chip (shown when request has an existing STL and no new one picked yet) -->
+          <div id="rs-current-stl" style="display:none;font-size:0.82rem;color:#555;margin-bottom:8px;padding:6px 10px;background:#f0f4ff;border:1px solid #c8d8ff;border-radius:6px">
+            Keeping current: <span id="rs-current-stl-name" style="font-family:monospace;color:#007bff"></span>
+            <a href="#" onclick="rsRemoveCurrentStl();return false" style="margin-left:8px;color:#dc3545;font-size:0.78rem">✕ Replace with new file</a>
+          </div>
+
+          <!-- drop zone (hidden when current file kept or new file chosen) -->
+          <div id="rs-dropzone"
+               style="border:2px dashed #adb5bd;border-radius:8px;padding:20px;text-align:center;cursor:pointer;background:#fafafa;transition:border-color 0.2s,background 0.2s"
+               ondragover="event.preventDefault();this.style.borderColor='#007bff';this.style.background='#e8f4ff'"
+               ondragleave="this.style.borderColor='#adb5bd';this.style.background='#fafafa'"
+               ondrop="event.preventDefault();this.style.borderColor='#adb5bd';this.style.background='#fafafa';rsHandleStl(event.dataTransfer.files[0])"
+               onclick="document.getElementById('rs-stl-input').click()">
+            <div style="font-size:1.2rem;margin-bottom:4px">📁</div>
+            <div style="font-size:0.88rem;color:#555">Drop <strong>.stl</strong> here or click to browse</div>
+          </div>
+          <input id="rs-stl-input" type="file" accept=".stl" style="display:none"
+                 onchange="rsHandleStl(this.files[0])">
+
+          <!-- new file chip (shown after upload succeeds) -->
+          <div id="rs-new-stl-chip" style="display:none;margin-top:8px;font-size:0.82rem;padding:6px 10px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;color:#166534">
+            ✅ New STL ready: <strong id="rs-new-stl-name"></strong>
+            <a href="#" onclick="rsCancelNewStl();return false" style="margin-left:10px;color:#dc3545;font-size:0.78rem">✕ Cancel</a>
+          </div>
+          <div id="rs-stl-uploading" style="display:none;margin-top:8px;font-size:0.85rem;color:#007bff">⏳ Uploading STL…</div>
+        </div>
+
+        <!-- Submit button -->
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+          <button id="btn-resubmit" class="btn" onclick="submitResubmit()"
+                  style="width:auto;padding:10px 28px;background:#e94560;font-size:0.95rem">
+            🔄 Resubmit
+          </button>
+          <span style="font-size:0.82rem;color:#aaa">Status will reset to <strong>Pending</strong></span>
+        </div>
+      </div>
+    </div>
+
   </div><!-- /detail-card -->
 </div>
 
@@ -297,10 +357,6 @@ function renderDetail(r) {
   if (r.admin_notes) {
     document.getElementById('d-admin-notes').textContent = r.admin_notes;
     document.getElementById('d-admin-notes-block').style.display = 'block';
-    const user = window.getUser ? window.getUser() : null;
-    if (user && user.user_type !== 'admin' && user.user_type !== 'student_staff') {
-      document.getElementById('d-admin-notes-hint').style.display = 'block';
-    }
   }
   if (r.reviewed_at) {
     document.getElementById('d-reviewed-at').textContent = new Date(r.reviewed_at).toLocaleDateString('en-US');
@@ -355,6 +411,28 @@ function renderDetail(r) {
       const labels = { completed: '✅ Completed', rejected: '❌ Rejected', cancelled: '🚫 Cancelled' };
       statusInfo.innerHTML = `<span style="font-size:1rem">${labels[r.status] || r.status}</span> — No further actions available.`;
     }
+  }
+
+  // ── Student Resubmit Panel ───────────────────────────────
+  // Show when the request is revision_requested AND viewer is the owning student
+  if (r.status === 'revision_requested' && currentUser &&
+      (currentUser.user_type === 'student' ||
+       (currentUser.user_type === 'student_staff' && r.student_email === currentUser.email))) {
+    const panel = document.getElementById('student-resubmit-panel');
+    panel.style.display = 'block';
+
+    // Pre-fill editable fields
+    document.getElementById('rs-project-name').value = r.project_name || '';
+    document.getElementById('rs-description').value  = r.description  || '';
+
+    // Show current STL chip if one exists, hide drop zone
+    if (r.stl_file_path) {
+      document.getElementById('rs-current-stl-name').textContent = r.stl_original_name || r.stl_file_path;
+      document.getElementById('rs-current-stl').style.display  = 'block';
+      document.getElementById('rs-dropzone').style.display     = 'none';
+    }
+    // Store request data for submit
+    window._rsRequest = r;
   }
 }
 
@@ -440,6 +518,129 @@ window.adminSendBack = adminSendBack;
 window.handleUfpUpload = handleUfpUpload;
 window.adminApproveWithUfp = adminApproveWithUfp;
 window.cancelUfpUpload = cancelUfpUpload;
+
+// ── Student Resubmit functions (expose to global) ──────────
+window.rsRemoveCurrentStl = rsRemoveCurrentStl;
+window.rsHandleStl        = rsHandleStl;
+window.rsCancelNewStl     = rsCancelNewStl;
+window.submitResubmit     = submitResubmit;
+
+// Track uploaded new STL
+let _rsNewStl = null; // { filename, original_name } or null
+
+function rsRemoveCurrentStl() {
+  // User wants to replace the current STL — show drop zone
+  document.getElementById('rs-current-stl').style.display = 'none';
+  document.getElementById('rs-dropzone').style.display    = 'block';
+  // Mark that the old STL should be cleared (send empty string to backend)
+  _rsNewStl = { filename: '', original_name: '' };
+}
+
+async function rsHandleStl(file) {
+  if (!file) return;
+  if (!file.name.toLowerCase().endsWith('.stl')) {
+    rsShowAlert('Please upload a <strong>.stl</strong> file.');
+    return;
+  }
+
+  document.getElementById('rs-stl-uploading').style.display = 'block';
+  document.getElementById('rs-dropzone').style.display      = 'none';
+
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+    const token = window.getToken ? window.getToken() : localStorage.getItem('dg_token');
+    const res = await fetch('/api/print-requests/upload-stl', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}` },
+      body: formData
+    });
+    const data = await res.json();
+    document.getElementById('rs-stl-uploading').style.display = 'none';
+
+    if (!data.success) {
+      document.getElementById('rs-dropzone').style.display = 'block';
+      rsShowAlert(data.message || 'STL upload failed.');
+      return;
+    }
+
+    _rsNewStl = { filename: data.filename, original_name: data.original_name || file.name };
+    document.getElementById('rs-new-stl-name').textContent      = _rsNewStl.original_name;
+    document.getElementById('rs-new-stl-chip').style.display    = 'block';
+    document.getElementById('rs-current-stl').style.display     = 'none';
+  } catch(e) {
+    document.getElementById('rs-stl-uploading').style.display = 'none';
+    document.getElementById('rs-dropzone').style.display      = 'block';
+    rsShowAlert('Network error during STL upload.');
+  }
+}
+
+async function rsCancelNewStl() {
+  // Delete the newly-uploaded STL from server
+  if (_rsNewStl && _rsNewStl.filename) {
+    try {
+      const token = window.getToken ? window.getToken() : localStorage.getItem('dg_token');
+      await fetch(`/api/print-requests/upload-stl/${_rsNewStl.filename}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+    } catch(e) { /* ignore */ }
+  }
+  _rsNewStl = null;
+  document.getElementById('rs-new-stl-chip').style.display = 'none';
+  // Restore the correct state
+  const r = window._rsRequest;
+  if (r && r.stl_file_path) {
+    document.getElementById('rs-current-stl').style.display = 'block';
+    document.getElementById('rs-dropzone').style.display    = 'none';
+  } else {
+    document.getElementById('rs-dropzone').style.display = 'block';
+  }
+}
+
+function rsShowAlert(msg, type='error') {
+  document.getElementById('resubmit-alert-box').innerHTML =
+    `<div class="alert alert-${type}">${msg}</div>`;
+}
+
+async function submitResubmit() {
+  const btn = document.getElementById('btn-resubmit');
+  btn.disabled = true;
+  btn.textContent = 'Submitting…';
+  document.getElementById('resubmit-alert-box').innerHTML = '';
+
+  const body = {
+    project_name: document.getElementById('rs-project-name').value.trim() || undefined,
+    description:  document.getElementById('rs-description').value.trim()  || undefined,
+  };
+
+  // Include new STL only if user explicitly chose one or cleared the old one
+  if (_rsNewStl !== null) {
+    body.stl_file_path     = _rsNewStl.filename      || null;
+    body.stl_original_name = _rsNewStl.original_name || null;
+  }
+
+  try {
+    const r   = window._rsRequest;
+    const res = await window.apiFetch(`/api/print-requests/${r.id}/resubmit`, {
+      method: 'PATCH',
+      body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    if (data.success) {
+      rsShowAlert('✅ Resubmitted! Reloading…', 'success');
+      setTimeout(() => location.reload(), 1200);
+    } else {
+      rsShowAlert(data.message || 'Resubmit failed.');
+      btn.disabled = false;
+      btn.textContent = '🔄 Resubmit';
+    }
+  } catch(e) {
+    rsShowAlert('Network error. Make sure the backend is running.');
+    btn.disabled = false;
+    btn.textContent = '🔄 Resubmit';
+  }
+}
 
 function adminShowAlert(msg, type='error') {
   document.getElementById('admin-alert-box').innerHTML =

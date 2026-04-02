@@ -596,11 +596,46 @@ def delete_print_request(request_id):
         return jsonify(result), 400
 
 
+@app.route('/api/print-requests/<int:request_id>/resubmit', methods=['PATCH'])
+def resubmit_print_request(request_id):
+    """Student resubmits a revision_requested request in-place (replace STL, edit fields, reset to pending)"""
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({'success': False, 'message': 'No token provided'}), 401
+
+    token = auth_header.split(' ')[1]
+    payload = AuthService.verify_jwt_token(token)
+    if not payload:
+        return jsonify({'success': False, 'message': 'Invalid token'}), 401
+
+    if payload.get('user_type') not in ('student', 'student_staff'):
+        return jsonify({'success': False, 'message': 'Only students can resubmit requests'}), 403
+
+    data = request.json or {}
+
+    result = PrintService.resubmit_request(
+        request_id=request_id,
+        student_email=payload['email'],
+        project_name=data.get('project_name'),
+        description=data.get('description'),
+        stl_file_path=data.get('stl_file_path'),
+        stl_original_name=data.get('stl_original_name'),
+    )
+
+    if result['success']:
+        return jsonify(result), 200
+    if 'not found' in result['message']:
+        return jsonify(result), 404
+    if 'Unauthorized' in result['message']:
+        return jsonify(result), 403
+    return jsonify(result), 400
+
+
 @app.route('/api/print-requests/<int:request_id>/history', methods=['GET'])
 def get_request_history(request_id):
     """Get status change history for a print request"""
     auth_header = request.headers.get('Authorization')
-    
+
     if not auth_header or not auth_header.startswith('Bearer '):
         return jsonify({'success': False, 'message': 'No token provided'}), 401
     

@@ -621,3 +621,86 @@ class PrintService:
                 'success': False,
                 'message': f'Failed to get statistics: {str(e)}'
             }
+
+    @staticmethod
+    def resubmit_request(
+        request_id: int,
+        student_email: str,
+        project_name: Optional[str] = None,
+        description: Optional[str] = None,
+        stl_file_path: Optional[str] = None,
+        stl_original_name: Optional[str] = None,
+    ) -> Dict:
+        """
+        Allow a student to resubmit an in-place revision on a revision_requested request.
+        Updates editable fields, resets status to 'pending', clears admin_notes.
+
+        Args:
+            request_id:        ID of the print request
+            student_email:     Must match the owning student
+            project_name:      Optional updated project name
+            description:       Optional updated description
+            stl_file_path:     Optional new STL filename (UUID on disk)
+            stl_original_name: Original filename for the new STL
+
+        Returns:
+            Dict with success status and message
+        """
+        try:
+            # Verify ownership and status
+            row = db.fetch_one(
+                "SELECT student_email, status, stl_file_path FROM print_requests WHERE request_id = %s",
+                (request_id,)
+            )
+            if not row:
+                return {'success': False, 'message': 'Request not found'}
+            if row['student_email'] != student_email:
+                return {'success': False, 'message': 'Unauthorized: this is not your request'}
+            if row['status'] != 'revision_requested':
+                return {'success': False, 'message': f'Can only resubmit a revision_requested request (current status: {row["status"]})'}
+
+            old_stl = row['stl_file_path']
+
+            # Build SET clause dynamically — only update fields that were provided
+            sets = ["status = 'pending'", "admin_notes = NULL", "reviewed_by = NULL", "reviewed_at = NULL"]
+            params = []
+
+            if project_name is not None:
+                sets.append("project_name = %s")
+                params.append(project_name)
+            if description is not None:
+                sets.append("description = %s")
+                params.append(description)
+            if stl_file_path is not None:
+                sets.append("stl_file_path = %s")
+                params.append(stl_file_path)
+            if stl_original_name is not None:
+                sets.append("stl_original_name = %s")
+                params.append(stl_original_name)
+
+            params.append(request_id)
+            db.execute_query(
+                f"UPDATE print_requests SET {', '.join(sets)} WHERE request_id = %s",
+                tuple(params)
+            )
+
+            # History entry
+            db.execute_query(
+                "INSERT INTO print_request_history (request_id, new_status, changed_by) VALUES (%s, 'pending', %s)",
+                (request_id, student_email)
+            )
+
+            # Delete the old STL from disk only if a new one was provided
+            if stl_file_path and old_stl and old_stl != stl_file_path:
+                old_path = os.path.join(Config.UPLOAD_FOLDER, old_stl)
+                try:
+                    if os.path.isfile(old_path):
+                        os.remove(old_path)
+                except Exception as fe:
+                    print(f"Warning: could not delete old STL {old_path}: {fe}")
+
+            return {'success': True, 'message': 'Request resubmitted successfully'}
+
+        except Exception as e:
+            print(f"Error resubmitting request: {e}")
+            return {'success': False, 'message': f'Failed to resubmit request: {str(e)}'}
