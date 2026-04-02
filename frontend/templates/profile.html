@@ -89,6 +89,25 @@
       <div style="font-size:0.8rem;color:#aaa;text-align:center" id="profile-joined"></div>
     </div>
 
+    <!-- Change password card -->
+    <div class="card" style="margin-bottom:20px">
+      <div class="section-title">🔑 Change Password</div>
+      <div id="pw-alert"></div>
+      <div class="form-group">
+        <label>Current Password</label>
+        <input type="password" id="pw-current" placeholder="Enter current password" style="padding:8px 12px;border:1px solid #ddd;border-radius:4px;width:100%;font-size:0.9rem">
+      </div>
+      <div class="form-group">
+        <label>New Password</label>
+        <input type="password" id="pw-new" placeholder="At least 8 characters" style="padding:8px 12px;border:1px solid #ddd;border-radius:4px;width:100%;font-size:0.9rem">
+      </div>
+      <div class="form-group" style="margin-bottom:0">
+        <label>Confirm New Password</label>
+        <input type="password" id="pw-confirm" placeholder="Repeat new password" style="padding:8px 12px;border:1px solid #ddd;border-radius:4px;width:100%;font-size:0.9rem">
+      </div>
+      <button class="btn btn-sm" style="margin-top:14px" onclick="changePassword()" id="btn-change-pw">Update Password</button>
+    </div>
+
     <!-- 2FA card -->
     <div class="card">
       <div class="section-title">🔐 Two-Factor Authentication</div>
@@ -283,7 +302,7 @@
       const r = await apiFetch('/api/2fa/status');
       const d = await r.json();
       document.getElementById('twofa-loading').style.display = 'none';
-      if (d.is_active) {
+      if (d.is_active || d.enabled) {
         document.getElementById('twofa-enabled').style.display = 'block';
         document.getElementById('twofa-status-box').className = 'twofa-box enabled';
       } else {
@@ -350,6 +369,46 @@
         document.getElementById('disable-error').textContent = d.message || 'Wrong code.';
       }
     } catch(e) { document.getElementById('disable-error').textContent = 'Network error.'; }
+  };
+
+  window.changePassword = async function() {
+    const current = document.getElementById('pw-current').value;
+    const newPw   = document.getElementById('pw-new').value;
+    const confirm = document.getElementById('pw-confirm').value;
+    const alertEl = document.getElementById('pw-alert');
+    alertEl.innerHTML = '';
+
+    if (!current || !newPw || !confirm) {
+      alertEl.innerHTML = '<div class="alert alert-error">All fields are required.</div>'; return;
+    }
+    if (newPw.length < 8) {
+      alertEl.innerHTML = '<div class="alert alert-error">New password must be at least 8 characters.</div>'; return;
+    }
+    if (newPw !== confirm) {
+      alertEl.innerHTML = '<div class="alert alert-error">New passwords do not match.</div>'; return;
+    }
+    const btn = document.getElementById('btn-change-pw');
+    btn.disabled = true; btn.textContent = 'Updating…';
+    try {
+      const r = await apiFetch('/api/profile/change-password', {
+        method: 'POST',
+        body: JSON.stringify({ current_password: current, new_password: newPw })
+      });
+      const d = await r.json();
+      if (d.success) {
+        alertEl.innerHTML = '<div class="alert alert-success">✅ Password updated! Please log in again.</div>';
+        document.getElementById('pw-current').value = '';
+        document.getElementById('pw-new').value = '';
+        document.getElementById('pw-confirm').value = '';
+        setTimeout(() => { logout(); }, 2000);
+      } else {
+        alertEl.innerHTML = `<div class="alert alert-error">${d.message}</div>`;
+      }
+    } catch(e) {
+      alertEl.innerHTML = '<div class="alert alert-error">Network error.</div>';
+    } finally {
+      btn.disabled = false; btn.textContent = 'Update Password';
+    }
   };
 
   /* ── Alert helper ── */

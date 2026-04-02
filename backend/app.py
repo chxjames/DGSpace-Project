@@ -259,6 +259,42 @@ def get_profile():
         return jsonify({'success': False, 'message': 'User not found'}), 404
 
 
+@app.route('/api/profile/change-password', methods=['POST'])
+def change_password():
+    """Change the logged-in user's password.
+    Body: { "current_password": "...", "new_password": "..." }
+    """
+    auth_header = request.headers.get('Authorization', '')
+    if not auth_header.startswith('Bearer '):
+        return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+    token = auth_header.split(' ')[1]
+    payload = AuthService.verify_jwt_token(token)
+    if not payload:
+        return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+
+    data = request.json or {}
+    current_pw = data.get('current_password', '').strip()
+    new_pw = data.get('new_password', '').strip()
+
+    if not current_pw or not new_pw:
+        return jsonify({'success': False, 'message': 'Both fields are required'}), 400
+    if len(new_pw) < 8:
+        return jsonify({'success': False, 'message': 'New password must be at least 8 characters'}), 400
+
+    table = 'students' if payload['user_type'] in ('student', 'student_staff') else 'admins'
+    row = db.fetch_one(f"SELECT password_hash FROM {table} WHERE email = %s", (payload['email'],))
+    if not row:
+        return jsonify({'success': False, 'message': 'User not found'}), 404
+
+    import bcrypt
+    if not bcrypt.checkpw(current_pw.encode(), row['password_hash'].encode()):
+        return jsonify({'success': False, 'message': 'Current password is incorrect'}), 400
+
+    new_hash = bcrypt.hashpw(new_pw.encode(), bcrypt.gensalt()).decode()
+    db.execute_query(f"UPDATE {table} SET password_hash = %s WHERE email = %s", (new_hash, payload['email']))
+    return jsonify({'success': True, 'message': 'Password updated successfully'}), 200
+
+
 # ==================== 3D PRINT REQUEST ENDPOINTS ====================
 
 @app.route('/api/print-requests/upload-stl', methods=['POST'])
