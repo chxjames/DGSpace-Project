@@ -1194,7 +1194,7 @@ def admin_get_statistics():
 # ==================== 2FA (TOTP) ENDPOINTS ====================
 
 def _get_auth_payload(require_type=None):
-    """从 Authorization header 解析 JWT payload，可选校验 user_type"""
+    """Parse the JWT payload from the Authorization header. Optionally validates user_type."""
     auth_header = request.headers.get('Authorization', '')
     if not auth_header.startswith('Bearer '):
         return None
@@ -1209,7 +1209,7 @@ def _get_auth_payload(require_type=None):
 
 @app.route('/api/2fa/status', methods=['GET'])
 def get_2fa_status():
-    """查询当前用户的 2FA 启用状态"""
+    """Return the 2FA enabled status for the current user."""
     payload = _get_auth_payload()
     if not payload:
         return jsonify({'success': False, 'message': 'Unauthorized'}), 401
@@ -1221,9 +1221,9 @@ def get_2fa_status():
 @app.route('/api/2fa/setup', methods=['POST'])
 def setup_2fa():
     """
-    生成新的 TOTP 密钥并返回二维码（Base64 PNG）。
-    用户需要用 Google Authenticator / Duo / 任意 TOTP 应用扫码。
-    扫码后调用 /api/2fa/confirm 提交第一个验证码以激活。
+    Generate a new TOTP secret and return a QR code (Base64 PNG).
+    The user should scan it with Google Authenticator, Duo, or any TOTP app.
+    After scanning, call /api/2fa/confirm with the first displayed code to activate.
     """
     payload = _get_auth_payload()
     if not payload:
@@ -1236,7 +1236,7 @@ def setup_2fa():
 @app.route('/api/2fa/confirm', methods=['POST'])
 def confirm_2fa():
     """
-    用户扫码后，提交 TOTP 应用显示的 6 位验证码来激活 2FA。
+    Activate 2FA: after scanning the QR code, submit the 6-digit code shown in the TOTP app.
     Body: { "code": "123456" }
     """
     payload = _get_auth_payload()
@@ -1246,7 +1246,7 @@ def confirm_2fa():
     data = request.json or {}
     code = data.get('code', '').strip()
     if not code:
-        return jsonify({'success': False, 'message': 'code 字段不能为空'}), 400
+        return jsonify({'success': False, 'message': 'The "code" field is required'}), 400
 
     result = TotpService.confirm_totp(payload['email'], payload['user_type'], code)
     return jsonify(result), 200 if result['success'] else 400
@@ -1255,9 +1255,9 @@ def confirm_2fa():
 @app.route('/api/2fa/verify', methods=['POST'])
 def verify_2fa():
     """
-    登录第二步：密码验证通过后，前端提交 TOTP 验证码获取正式 JWT。
+    Login step 2: after password verification, submit the TOTP code to obtain a full JWT.
     Body: { "email": "...", "user_type": "student|admin", "code": "123456" }
-    注意：此端点不需要 Authorization header（用户还未拿到正式 token）。
+    Note: this endpoint does not require an Authorization header (the user has no token yet).
     """
     data = request.json or {}
     email = data.get('email', '').strip()
@@ -1265,13 +1265,13 @@ def verify_2fa():
     code = data.get('code', '').strip()
 
     if not email or not code:
-        return jsonify({'success': False, 'message': 'email 和 code 均为必填项'}), 400
+        return jsonify({'success': False, 'message': '"email" and "code" are both required'}), 400
 
     result = TotpService.verify_totp(email, user_type, code)
     if not result['success']:
         return jsonify(result), 401
 
-    # TOTP 验证通过，颁发正式 JWT
+    # TOTP verified — issue a full JWT
     # If user_type is admin, include the admin role from the database so the
     # frontend and backend can apply role-based permissions (e.g. professor).
     if user_type == 'admin':
@@ -1290,7 +1290,7 @@ def verify_2fa():
 
     return jsonify({
         'success': True,
-        'message': '2FA 验证通过',
+        'message': '2FA verified successfully',
         'token': token
     }), 200
 
@@ -1298,9 +1298,9 @@ def verify_2fa():
 @app.route('/api/2fa/login-verify', methods=['POST'])
 def login_verify_2fa():
     """
-    登录第二步（安全版）：验证 temp_token + TOTP 码，通过后颁发正式 JWT。
+    Login step 2 (secure): verify temp_token + TOTP code, then issue a full JWT.
     Body: { "temp_token": "...", "code": "123456" }
-    temp_token 由密码验证成功后服务端签发，有效期 5 分钟，scope='2fa_pending'。
+    The temp_token is issued after successful password verification; it expires in 5 minutes with scope='2fa_pending'.
     """
     import datetime as _dt
     data = request.json or {}
@@ -1308,23 +1308,23 @@ def login_verify_2fa():
     code       = data.get('code', '').strip()
 
     if not temp_token or not code:
-        return jsonify({'success': False, 'message': 'temp_token 和 code 均为必填项'}), 400
+        return jsonify({'success': False, 'message': '"temp_token" and "code" are both required'}), 400
 
-    # 解码 temp token
+    # Decode the temp token
     tp = AuthService.verify_jwt_token(temp_token)
     if not tp or tp.get('scope') != '2fa_pending':
-        return jsonify({'success': False, 'message': '无效或已过期的会话，请重新登录'}), 401
+        return jsonify({'success': False, 'message': 'Invalid or expired session — please log in again'}), 401
 
     email         = tp['email']
     user_type     = tp['user_type']
     effective_type = tp.get('effective_type', user_type)
 
-    # 验证 TOTP 码
+    # Verify TOTP code
     result = TotpService.verify_totp(email, user_type, code)
     if not result['success']:
-        return jsonify({'success': False, 'message': '验证码错误，请重试'}), 401
+        return jsonify({'success': False, 'message': 'Invalid code — please try again'}), 401
 
-    # 颁发正式 JWT
+    # Issue a full JWT
     if user_type == 'admin':
         role = tp.get('role')
         payload = {
@@ -1339,7 +1339,7 @@ def login_verify_2fa():
     else:
         token = AuthService.generate_jwt_token(email, effective_type)
 
-    # 查询用户信息以返回给前端
+    # Fetch user info to return to the frontend
     table = 'students' if user_type == 'student' else 'admins'
     user_row = db.fetch_one(f"SELECT email, full_name, role FROM {table} WHERE email = %s", (email,))
     user_obj = {
@@ -1354,9 +1354,7 @@ def login_verify_2fa():
 
 @app.route('/api/2fa/disable', methods=['DELETE'])
 def disable_2fa():
-    """
-    关闭自己的 2FA。只需有效 JWT，无需再提交 TOTP 验证码。
-    """
+    """Disable 2FA for the current user. Only a valid JWT is required — no TOTP code needed."""
     payload = _get_auth_payload()
     if not payload:
         return jsonify({'success': False, 'message': 'Unauthorized'}), 401
@@ -1368,8 +1366,8 @@ def disable_2fa():
 @app.route('/api/admin/students/<email>/2fa', methods=['DELETE'])
 def admin_reset_student_2fa(email):
     """
-    管理员强制清除指定学生的 2FA。
-    仅需 admin JWT，无需学生本人操作。
+    Admin: forcibly clear a specific student's 2FA.
+    Requires admin JWT only — no action required from the student.
     """
     payload = _get_auth_payload()
     if not payload or payload.get('user_type') != 'admin':
