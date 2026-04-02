@@ -897,6 +897,27 @@ def admin_delete_admin(email):
     return jsonify({'success': True, 'message': 'Admin deleted'}), 200
 
 
+@app.route('/api/admin/admins/<path:email>/password', methods=['PATCH'])
+def admin_reset_admin_password(email):
+    """Reset another admin's password (Admin only). Body: { new_password }"""
+    payload = _get_auth_payload()
+    if not payload or payload.get('user_type') != 'admin':
+        return jsonify({'success': False, 'message': 'Admin access required'}), 403
+
+    data = request.json or {}
+    new_password = data.get('new_password', '').strip()
+    if len(new_password) < 6:
+        return jsonify({'success': False, 'message': 'Password must be at least 6 characters'}), 400
+
+    existing = db.fetch_one("SELECT email FROM admins WHERE email = %s", (email,))
+    if not existing:
+        return jsonify({'success': False, 'message': 'Admin not found'}), 404
+
+    new_hash = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+    db.execute_query("UPDATE admins SET password_hash = %s WHERE email = %s", (new_hash, email))
+    return jsonify({'success': True, 'message': 'Password updated successfully'}), 200
+
+
 @app.route('/api/admin/print-requests', methods=['GET'])
 def admin_get_all_requests():
     """Get all print requests (Admin / Student Staff)"""

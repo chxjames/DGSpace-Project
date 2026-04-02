@@ -45,6 +45,18 @@
 <div class="card">
   <div id="loading" style="text-align:center;padding:32px;color:#888">Loading…</div>
 
+  <!-- Reset Password inline modal -->
+  <div id="reset-pw-modal" style="display:none;background:#fff8e1;border:1px solid #ffe082;border-radius:8px;padding:16px;margin-bottom:16px">
+    <div style="font-weight:bold;margin-bottom:10px;color:#7a5800">🔑 Reset password for: <span id="reset-pw-target-label" style="color:#1a1a2e"></span></div>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <input type="password" id="reset-pw-input" placeholder="New password (min 6 chars)"
+        style="flex:1;min-width:180px;padding:8px 12px;border:1px solid #ddd;border-radius:6px;font-size:0.9rem">
+      <button class="btn" style="width:auto;padding:8px 20px" onclick="submitResetPassword()">Save</button>
+      <button class="btn btn-secondary" style="width:auto;padding:8px 16px" onclick="closeResetModal()">Cancel</button>
+    </div>
+    <div id="reset-pw-error" style="color:#c0392b;font-size:0.82rem;margin-top:6px;min-height:16px"></div>
+  </div>
+
   <div style="overflow-x:auto">
   <table id="admins-table" style="display:none;width:100%">
     <thead>
@@ -127,6 +139,7 @@ async function loadAdmins() {
       const deleteBtn = isSelf
         ? '<span style="color:#aaa;font-size:0.78rem">You</span>'
         : `<button class="btn-delete" onclick="deleteAdmin('${safeEmail.replace(/'/g,"&#39;")}')">🗑 Delete</button>`;
+      const resetBtn = `<button style="background:#6f42c1;color:#fff;border:none;padding:3px 8px;border-radius:6px;cursor:pointer;font-size:0.75rem;margin-right:4px;white-space:nowrap" onclick="openResetModal('${safeEmail.replace(/'/g,"&#39;")}')">🔑 Reset PW</button>`;
       return `
         <tr>
           <td>${idx + 1}</td>
@@ -136,7 +149,7 @@ async function loadAdmins() {
           <td style="text-align:center">${a.email_verified ? '✅' : '—'}</td>
           <td>${fmtDate(a.created_at)}</td>
           <td>${fmtDate(a.last_login)}</td>
-          <td style="white-space:nowrap">${deleteBtn}</td>
+          <td style="white-space:nowrap">${resetBtn}${deleteBtn}</td>
         </tr>`;
     }).join('');
 
@@ -189,6 +202,47 @@ async function deleteAdmin(email) {
     }
   } catch(err) {
     showAlert('Failed to delete. Check backend.');
+  }
+}
+
+let _resetTarget = '';
+
+function openResetModal(email) {
+  _resetTarget = email;
+  document.getElementById('reset-pw-target-label').textContent = email;
+  document.getElementById('reset-pw-input').value = '';
+  document.getElementById('reset-pw-error').textContent = '';
+  document.getElementById('reset-pw-modal').style.display = 'block';
+  document.getElementById('reset-pw-modal').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  setTimeout(() => document.getElementById('reset-pw-input').focus(), 100);
+}
+
+function closeResetModal() {
+  _resetTarget = '';
+  document.getElementById('reset-pw-modal').style.display = 'none';
+}
+
+async function submitResetPassword() {
+  const newPw = document.getElementById('reset-pw-input').value;
+  const errEl = document.getElementById('reset-pw-error');
+  errEl.textContent = '';
+  if (!newPw || newPw.length < 6) { errEl.textContent = 'Password must be at least 6 characters.'; return; }
+
+  try {
+    const res  = await apiFetch(`/api/admin/admins/${encodeURIComponent(_resetTarget)}/password`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ new_password: newPw })
+    });
+    const data = await res.json();
+    if (data.success) {
+      closeResetModal();
+      showAlert(`Password reset for ${_resetTarget}.`, 'success');
+    } else {
+      errEl.textContent = data.message || 'Failed to reset password.';
+    }
+  } catch(err) {
+    errEl.textContent = 'Network error. Check backend.';
   }
 }
 </script>
