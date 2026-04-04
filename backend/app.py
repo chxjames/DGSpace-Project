@@ -533,11 +533,11 @@ def create_print_request():
     token = auth_header.split(' ')[1]
     payload = AuthService.verify_jwt_token(token)
     
-    if not payload or payload.get('user_type') not in ('student', 'student_staff'):
+    if not payload or payload.get('user_type') not in ('student', 'student_staff', 'admin'):
         return jsonify({'success': False, 'message': 'Invalid token or not a student'}), 401
-    
+
     data = request.json
-    
+
     if 'project_name' not in data:
         return jsonify({'success': False, 'message': 'Project name is required'}), 400
 

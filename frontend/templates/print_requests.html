@@ -48,7 +48,7 @@ var _cachedUser = null;
   if (!user) { location.href = '/accounts/login'; return; }
 
   if (user.user_type === 'admin') {
-    document.getElementById('btn-new').style.display = 'none';
+    // admin can still submit new requests — keep btn-new visible
   }
 
   loadRequests(user.user_type, user);

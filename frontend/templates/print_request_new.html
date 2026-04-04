@@ -113,7 +113,7 @@
 <script>
 (function() {
   const user = getUser();
-  if (!user || (user.user_type !== 'student' && user.user_type !== 'student_staff')) {
+  if (!user || (user.user_type !== 'student' && user.user_type !== 'student_staff' && user.user_type !== 'admin')) {
     location.href = '/accounts/login';
   }
 })();
