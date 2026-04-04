@@ -152,6 +152,20 @@
 
 /* ── Empty / loading states ─────────────────────────────── */
 .pb-empty { text-align: center; padding: 24px 12px; color: #aaa; font-size: 0.88rem; }
+
+/* ── Countdown timer ─────────────────────────────────────── */
+.job-countdown {
+  font-size: 0.8rem; font-weight: 700; font-family: monospace;
+  padding: 2px 8px; border-radius: 6px; margin-top: 4px; display: inline-block;
+}
+.countdown-ok      { background: #d1e7dd; color: #0a5c2f; }
+.countdown-warn    { background: #fff3cd; color: #7d5a00; }
+.countdown-urgent  { background: #f8d7da; color: #842029; }
+.countdown-overdue { background: #842029; color: #fff; animation: pulse-red 1s infinite; }
+@keyframes pulse-red {
+  0%,100% { opacity: 1; }
+  50%      { opacity: 0.6; }
+}
 </style>
 
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
@@ -232,6 +246,17 @@ let _selectedRts = null; // currently selected RTS request
     return;
   }
   loadBoard();
+
+  // Request browser notification permission
+  if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission();
+  }
+
+  // Start countdown ticker (every second)
+  setInterval(tickCountdowns, 1000);
+
+  // Poll backend for staff notifications every 30 seconds
+  setInterval(pollNotifications, 30000);
 })();
 
 // ── Load board data ───────────────────────────────────────
@@ -383,6 +408,12 @@ function renderJobCard(j, pos) {
 
   const dl = j.deadline_date ? deadlineBadge(j.deadline_date) : '';
 
+  // Countdown row — only for printing jobs with a known end time
+  const countdownHtml = (j.job_status === 'printing' && j.print_end_expected)
+    ? `<span class="job-countdown countdown-ok" id="cd-${j.job_id}"
+            data-end="${j.print_end_expected}">⏱ …</span>`
+    : '';
+
   return `
     <div class="job-card ${jsCls}" draggable="true"
          ondragstart="event.dataTransfer.setData('job_id','${j.job_id}');event.dataTransfer.setData('from_printer','${j.printer_id || ''}')">
@@ -396,6 +427,7 @@ function renderJobCard(j, pos) {
           ${dl}
           ${j.estimated_start ? `<span>🕐 Est. start: ${fmtDt(j.estimated_start)}</span>` : ''}
         </div>
+        ${countdownHtml}
       </div>
       <div class="job-actions">${actionBtns}</div>
     </div>`;
@@ -642,6 +674,86 @@ function showAlert(msg, type) {
   const el = document.getElementById('pb-alert');
   el.innerHTML = `<div class="alert alert-${type === 'success' ? 'success' : 'error'}" style="margin-bottom:14px">${msg}</div>`;
   if (type === 'success') setTimeout(() => { el.innerHTML = ''; }, 4000);
+}
+
+// ── Countdown ticker ──────────────────────────────────────
+// Runs every second; updates all visible countdown elements.
+function tickCountdowns() {
+  const now = Date.now();
+  document.querySelectorAll('[id^="cd-"]').forEach(el => {
+    const endStr = el.dataset.end;
+    if (!endStr) return;
+    // DB returns UTC time — parse as UTC
+    const endMs = parseUtcString(endStr);
+    if (isNaN(endMs)) return;
+
+    const diffMs  = endMs - now;
+    const diffSec = Math.round(diffMs / 1000);
+
+    el.className = 'job-countdown';
+    let label;
+    if (diffSec <= 0) {
+      label = '🔴 Time Up!';
+      el.classList.add('countdown-overdue');
+    } else if (diffSec <= 600) {          // ≤10 min
+      label = `🔴 ${fmtCountdown(diffSec)}`;
+      el.classList.add('countdown-urgent');
+    } else if (diffSec <= 1800) {         // ≤30 min
+      label = `🟡 ${fmtCountdown(diffSec)}`;
+      el.classList.add('countdown-warn');
+    } else {
+      label = `🟢 ${fmtCountdown(diffSec)}`;
+      el.classList.add('countdown-ok');
+    }
+    el.textContent = label;
+  });
+}
+
+function fmtCountdown(totalSec) {
+  const h   = Math.floor(totalSec / 3600);
+  const m   = Math.floor((totalSec % 3600) / 60);
+  const s   = totalSec % 60;
+  const pad = n => String(n).padStart(2, '0');
+  return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
+}
+
+// Parse a datetime string from the DB (assumed to be UTC, no 'Z' suffix)
+function parseUtcString(s) {
+  if (!s) return NaN;
+  // If already has timezone info, use as-is
+  if (s.includes('Z') || s.includes('+')) return new Date(s).getTime();
+  // Otherwise treat as UTC by appending Z
+  return new Date(s.replace(' ', 'T') + 'Z').getTime();
+}
+
+// ── Staff notifications (browser push) ───────────────────
+const _notifiedJobs = new Set();   // track already-shown job IDs in this session
+
+async function pollNotifications() {
+  try {
+    const res  = await apiFetch('/api/admin/notifications');
+    const data = await res.json();
+    if (!data.success) return;
+    (data.notifications || []).forEach(n => {
+      if (_notifiedJobs.has(n.job_id)) return;
+      _notifiedJobs.add(n.job_id);
+      sendBrowserNotification(n.message, n.type);
+    });
+  } catch(e) { /* silent — non-critical */ }
+}
+
+function sendBrowserNotification(message, type) {
+  const icon = type === 'print_done' ? '✅' : '⚠️';
+  if ('Notification' in window && Notification.permission === 'granted') {
+    new Notification('DGSpace — Production Board', {
+      body: message,
+      icon: '/static/favicon.ico',
+      tag:  `dgspace-${Date.now()}`,
+    });
+  } else {
+    // Fallback: in-page banner
+    showAlert(message, type === 'print_done' ? 'success' : 'error');
+  }
 }
 </script>
 {% endblock %}

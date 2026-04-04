@@ -884,6 +884,7 @@ def get_production_board():
                 pj.estimated_start,
                 pj.estimated_end,
                 pj.started_at,
+                pj.print_end_expected,
                 pj.completed_at,
                 pj.notes           AS job_notes,
                 pr.project_name,
@@ -1020,16 +1021,39 @@ def update_job_status(job_id):
         return jsonify({'success': False, 'message': 'Job not found'}), 404
 
     notes = (data.get('notes') or '').strip() or None
-    now_fields = ''
-    if new_status == 'printing':
-        now_fields = ', started_at = NOW()'
-    elif new_status in ('completed', 'failed', 'cancelled'):
-        now_fields = ', completed_at = NOW()'
 
-    db.execute_query(
-        f"UPDATE print_jobs SET status = %s {', notes = %s' if notes else ''} {now_fields} WHERE job_id = %s",
-        ((new_status, notes, job_id) if notes else (new_status, job_id))
-    )
+    if new_status == 'printing':
+        # Fetch print time so we can compute print_end_expected
+        req_row = db.fetch_one(
+            "SELECT pr.ufp_print_time_minutes FROM print_requests pr "
+            "JOIN print_jobs pj ON pj.request_id = pr.request_id "
+            "WHERE pj.job_id = %s", (job_id,)
+        )
+        mins = (req_row or {}).get('ufp_print_time_minutes') or 0
+        note_part = ', notes = %s' if notes else ''
+        params = (new_status,) + ((notes,) if notes else ()) + (mins, job_id)
+        db.execute_query(
+            f"UPDATE print_jobs SET status = %s {note_part}, "
+            f"started_at = NOW(), "
+            f"print_end_expected = DATE_ADD(NOW(), INTERVAL %s MINUTE), "
+            f"staff_notified = 0 "
+            f"WHERE job_id = %s",
+            params
+        )
+    elif new_status in ('completed', 'failed', 'cancelled'):
+        note_part = ', notes = %s' if notes else ''
+        params = (new_status,) + ((notes,) if notes else ()) + (job_id,)
+        db.execute_query(
+            f"UPDATE print_jobs SET status = %s {note_part}, completed_at = NOW() WHERE job_id = %s",
+            params
+        )
+    else:
+        note_part = ', notes = %s' if notes else ''
+        params = (new_status,) + ((notes,) if notes else ()) + (job_id,)
+        db.execute_query(
+            f"UPDATE print_jobs SET status = %s {note_part} WHERE job_id = %s",
+            params
+        )
 
     # ── Failed: retry or send back ────────────────────────────────────────
     if new_status == 'failed':
@@ -1098,6 +1122,110 @@ def update_job_status(job_id):
     )
 
     return jsonify({'success': True, 'message': f'Job status updated to "{new_status}"'}), 200
+
+
+# ── Operating-hours helper ─────────────────────────────────────────────────────
+# Mon=0 10:00-16:00, Tue-Thu=1-3 09:00-17:00, Fri=4 09:00-16:00
+_OP_HOURS = {
+    0: (10, 16),   # Monday
+    1: ( 9, 17),   # Tuesday
+    2: ( 9, 17),   # Wednesday
+    3: ( 9, 17),   # Thursday
+    4: ( 9, 16),   # Friday
+}
+
+def _within_op_hours(dt):
+    """Return True if dt (datetime) falls inside operating hours."""
+    wd = dt.weekday()
+    if wd not in _OP_HOURS:
+        return False
+    open_h, close_h = _OP_HOURS[wd]
+    return open_h <= dt.hour < close_h
+
+def _job_exceeds_hours(print_end_dt):
+    """Return True if print_end_dt is outside operating hours (job will overrun)."""
+    wd = print_end_dt.weekday()
+    if wd not in _OP_HOURS:
+        return True   # weekend
+    _, close_h = _OP_HOURS[wd]
+    closing = print_end_dt.replace(hour=close_h, minute=0, second=0, microsecond=0)
+    return print_end_dt > closing
+
+
+@app.route('/api/admin/notifications', methods=['GET'])
+def get_staff_notifications():
+    """
+    Poll endpoint — returns pending notifications for the logged-in staff member.
+    Notification types:
+      - 'print_done'     : a printing job's print_end_expected has passed
+      - 'overschedule'   : print_end_expected exceeds today's closing time
+    Marks notified jobs as staff_notified=1 so they aren't repeated.
+    """
+    from datetime import datetime
+    auth_header = request.headers.get('Authorization', '')
+    if not auth_header.startswith('Bearer '):
+        return jsonify({'success': False, 'notifications': []}), 401
+    payload = AuthService.verify_jwt_token(auth_header.split(' ')[1])
+    if not payload or payload.get('user_type') not in ('admin', 'student_staff'):
+        return jsonify({'success': False, 'notifications': []}), 403
+
+    staff_email = payload['email']
+    now = datetime.utcnow()
+
+    # Jobs assigned by this staff that are still printing and not yet notified
+    active_jobs = db.fetch_all("""
+        SELECT pj.job_id, pj.print_end_expected, pj.staff_notified,
+               pr.project_name, pr.student_email,
+               s.full_name AS student_name,
+               p.printer_name
+        FROM   print_jobs pj
+        JOIN   print_requests pr ON pr.request_id = pj.request_id
+        LEFT JOIN students s ON s.email = pr.student_email
+        LEFT JOIN printers  p ON p.printer_id = pj.printer_id
+        WHERE  pj.assigned_by = %s
+          AND  pj.status = 'printing'
+          AND  pj.print_end_expected IS NOT NULL
+          AND  pj.staff_notified = 0
+    """, (staff_email,)) or []
+
+    notifications = []
+    for job in active_jobs:
+        end_dt = job.get('print_end_expected')
+        if not end_dt:
+            continue
+        # end_dt comes from DB as a datetime object (UTC)
+        if isinstance(end_dt, str):
+            from datetime import datetime as _dt
+            end_dt = _dt.fromisoformat(end_dt)
+
+        note = None
+        if end_dt <= now:
+            note = {
+                'type':         'print_done',
+                'job_id':       job['job_id'],
+                'project_name': job['project_name'],
+                'student_name': job.get('student_name') or job['student_email'],
+                'printer_name': job.get('printer_name', ''),
+                'message':      f"⏰ Print complete: \"{job['project_name']}\" on {job.get('printer_name','')}",
+            }
+        elif _job_exceeds_hours(end_dt):
+            note = {
+                'type':         'overschedule',
+                'job_id':       job['job_id'],
+                'project_name': job['project_name'],
+                'student_name': job.get('student_name') or job['student_email'],
+                'printer_name': job.get('printer_name', ''),
+                'message':      f"⚠️ \"{job['project_name']}\" will exceed today's closing time on {job.get('printer_name','')}",
+            }
+
+        if note:
+            notifications.append(note)
+            db.execute_query(
+                "UPDATE print_jobs SET staff_notified = 1 WHERE job_id = %s",
+                (job['job_id'],)
+            )
+
+    return jsonify({'success': True, 'notifications': notifications}), 200
 
 
 @app.route('/api/admin/jobs/reorder', methods=['PATCH'])
