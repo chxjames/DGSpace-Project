@@ -196,11 +196,28 @@ def manual_cleanup():
     payload = AuthService.verify_jwt_token(auth_header.split(' ')[1])
     if not payload or payload.get('user_type') not in ('admin', 'student_staff'):
         return jsonify({'success': False, 'message': 'Forbidden'}), 403
-    import io, logging
+
+    # Scan candidate dirs to find where files actually live
+    scan_dirs = ['/app/uploads', '/data', '/app', '/tmp']
+    dir_info = {}
+    for d in scan_dirs:
+        if os.path.isdir(d):
+            try:
+                files = os.listdir(d)
+                stl_ufp = [f for f in files if f.endswith('.stl') or f.endswith('.ufp')]
+                total_bytes = sum(
+                    os.path.getsize(os.path.join(d, f))
+                    for f in stl_ufp
+                    if os.path.isfile(os.path.join(d, f))
+                )
+                dir_info[d] = {'count': len(stl_ufp), 'size_mb': round(total_bytes / 1024 / 1024, 2)}
+            except Exception as ex:
+                dir_info[d] = {'error': str(ex)}
+        else:
+            dir_info[d] = {'exists': False}
+
+    import sys, io
     buf = io.StringIO()
-    handler = logging.StreamHandler(buf)
-    # Capture print() output by temporarily redirecting
-    import sys
     old_stdout = sys.stdout
     sys.stdout = buf
     try:
@@ -208,7 +225,7 @@ def manual_cleanup():
     finally:
         sys.stdout = old_stdout
     log_output = buf.getvalue()
-    return jsonify({'success': True, 'log': log_output}), 200
+    return jsonify({'success': True, 'log': log_output, 'dirs': dir_info}), 200
 
 
 @app.before_request
