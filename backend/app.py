@@ -127,8 +127,11 @@ def _cleanup_old_files():
         print(f"[cleanup] Error: {e}")
 
 
+from datetime import datetime as _dt_now
 _scheduler = BackgroundScheduler(daemon=True)
-_scheduler.add_job(_cleanup_old_files, 'interval', hours=24, id='file_cleanup')
+# next_run_time=_dt_now.now() → runs immediately on startup, then every 24 h
+_scheduler.add_job(_cleanup_old_files, 'interval', hours=24, id='file_cleanup',
+                   next_run_time=_dt_now.now())
 
 # ── Unverified-account cleanup (runs via scheduler, NOT on every request) ─────
 def _cleanup_unverified():
@@ -149,6 +152,30 @@ def _cleanup_unverified():
 
 _scheduler.add_job(_cleanup_unverified, 'interval', minutes=10, id='unverified_cleanup')
 _scheduler.start()
+
+
+@app.route('/api/admin/cleanup', methods=['POST'])
+def manual_cleanup():
+    """Admin-only: trigger file cleanup immediately and return a summary."""
+    auth_header = request.headers.get('Authorization', '')
+    if not auth_header.startswith('Bearer '):
+        return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+    payload = AuthService.verify_jwt_token(auth_header.split(' ')[1])
+    if not payload or payload.get('user_type') not in ('admin', 'student_staff'):
+        return jsonify({'success': False, 'message': 'Forbidden'}), 403
+    import io, logging
+    buf = io.StringIO()
+    handler = logging.StreamHandler(buf)
+    # Capture print() output by temporarily redirecting
+    import sys
+    old_stdout = sys.stdout
+    sys.stdout = buf
+    try:
+        _cleanup_old_files()
+    finally:
+        sys.stdout = old_stdout
+    log_output = buf.getvalue()
+    return jsonify({'success': True, 'log': log_output}), 200
 
 
 @app.before_request
