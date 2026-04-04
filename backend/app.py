@@ -753,6 +753,280 @@ def admin_update_student_role(email: str):
     return jsonify({'success': True, 'message': f'Role updated to {new_role}', 'role': new_role}), 200
 
 
+# ==================== PRODUCTION BOARD ====================
+
+@app.route('/api/admin/production-board', methods=['GET'])
+def get_production_board():
+    """
+    Return everything needed for the Production Board in one call:
+      - ready_to_schedule: approved requests that have a UFP and no active job
+      - printers:          each printer with its active queue (queued/printing jobs)
+    Access: admin or student_staff.
+    """
+    auth_header = request.headers.get('Authorization', '')
+    if not auth_header.startswith('Bearer '):
+        return jsonify({'success': False, 'message': 'No token provided'}), 401
+    payload = AuthService.verify_jwt_token(auth_header.split(' ')[1])
+    if not payload or payload.get('user_type') not in ('admin', 'student_staff'):
+        return jsonify({'success': False, 'message': 'Admin access required'}), 403
+
+    # ── Ready to Schedule ─────────────────────────────────────────────────
+    # Approved requests that have a UFP but no active (non-cancelled) job yet
+    ready = db.fetch_all("""
+        SELECT
+            pr.request_id   AS id,
+            pr.project_name,
+            pr.student_email,
+            s.full_name      AS student_name,
+            pr.material_type,
+            pr.color_preference,
+            pr.priority,
+            pr.deadline_date,
+            pr.ufp_print_time_minutes,
+            pr.ufp_material_g,
+            pr.ufp_file_path,
+            pr.ufp_original_name,
+            pr.status,
+            pr.created_at
+        FROM print_requests pr
+        LEFT JOIN students s ON s.email = pr.student_email
+        WHERE pr.status = 'approved'
+          AND pr.ufp_file_path IS NOT NULL
+          AND NOT EXISTS (
+              SELECT 1 FROM print_jobs pj
+              WHERE pj.request_id = pr.request_id
+                AND pj.status NOT IN ('cancelled', 'failed')
+          )
+        ORDER BY
+            FIELD(pr.priority, 'urgent', 'high', 'normal', 'low'),
+            pr.deadline_date ASC,
+            pr.created_at   ASC
+    """) or []
+
+    # ── Printer Queues ────────────────────────────────────────────────────
+    printers = db.fetch_all(
+        "SELECT printer_id, printer_name, model, location, status, notes FROM printers ORDER BY printer_name"
+    ) or []
+
+    for p in printers:
+        jobs = db.fetch_all("""
+            SELECT
+                pj.job_id,
+                pj.request_id,
+                pj.queue_position,
+                pj.status          AS job_status,
+                pj.assigned_by,
+                pj.assigned_at,
+                pj.estimated_start,
+                pj.estimated_end,
+                pj.started_at,
+                pj.completed_at,
+                pj.notes           AS job_notes,
+                pr.project_name,
+                pr.student_email,
+                s.full_name        AS student_name,
+                pr.material_type,
+                pr.priority,
+                pr.deadline_date,
+                pr.ufp_print_time_minutes,
+                pr.ufp_material_g
+            FROM print_jobs pj
+            JOIN print_requests pr ON pr.request_id = pj.request_id
+            LEFT JOIN students s   ON s.email = pr.student_email
+            WHERE pj.printer_id = %s
+              AND pj.status NOT IN ('completed', 'cancelled', 'failed')
+            ORDER BY pj.queue_position ASC
+        """, (p['printer_id'],)) or []
+        p['queue'] = jobs
+
+    return jsonify({
+        'success': True,
+        'ready_to_schedule': ready,
+        'printers': printers
+    }), 200
+
+
+@app.route('/api/admin/print-requests/<int:request_id>/assign', methods=['POST'])
+def assign_to_printer(request_id):
+    """
+    Assign an approved request to a printer queue.
+    Body: { printer_id, estimated_start?, estimated_end?, notes? }
+    Creates a print_job record and moves the request status to 'queued'.
+    """
+    auth_header = request.headers.get('Authorization', '')
+    if not auth_header.startswith('Bearer '):
+        return jsonify({'success': False, 'message': 'No token provided'}), 401
+    payload = AuthService.verify_jwt_token(auth_header.split(' ')[1])
+    if not payload or payload.get('user_type') not in ('admin', 'student_staff'):
+        return jsonify({'success': False, 'message': 'Admin access required'}), 403
+
+    data = request.json or {}
+    printer_id = data.get('printer_id')
+    if not printer_id:
+        return jsonify({'success': False, 'message': 'printer_id is required'}), 400
+
+    # Validate request
+    req = db.fetch_one(
+        "SELECT request_id, status, ufp_file_path FROM print_requests WHERE request_id = %s",
+        (request_id,)
+    )
+    if not req:
+        return jsonify({'success': False, 'message': 'Request not found'}), 404
+    if req['status'] not in ('approved',):
+        return jsonify({'success': False, 'message': f'Request must be in "approved" state (currently "{req["status"]}")'}), 409
+    if not req['ufp_file_path']:
+        return jsonify({'success': False, 'message': 'Request has no UFP file — cannot schedule'}), 409
+
+    # Validate printer
+    printer = db.fetch_one("SELECT printer_id, status FROM printers WHERE printer_id = %s", (printer_id,))
+    if not printer:
+        return jsonify({'success': False, 'message': 'Printer not found'}), 404
+    if printer['status'] != 'active':
+        return jsonify({'success': False, 'message': f'Printer is not active (status: {printer["status"]})'}), 409
+
+    # Check for existing active job on this request
+    existing_job = db.fetch_one(
+        "SELECT job_id FROM print_jobs WHERE request_id = %s AND status NOT IN ('cancelled','failed')",
+        (request_id,)
+    )
+    if existing_job:
+        return jsonify({'success': False, 'message': 'This request already has an active print job'}), 409
+
+    # Determine queue position (append to end)
+    pos_row = db.fetch_one(
+        "SELECT COALESCE(MAX(queue_position), 0) + 1 AS next_pos FROM print_jobs WHERE printer_id = %s AND status NOT IN ('completed','cancelled','failed')",
+        (printer_id,)
+    )
+    next_pos = pos_row['next_pos'] if pos_row else 1
+
+    estimated_start = data.get('estimated_start') or None
+    estimated_end   = data.get('estimated_end')   or None
+    notes           = (data.get('notes') or '').strip() or None
+
+    job_id = db.execute_query(
+        """INSERT INTO print_jobs
+           (request_id, printer_id, queue_position, status, assigned_by, estimated_start, estimated_end, notes)
+           VALUES (%s, %s, %s, 'queued', %s, %s, %s, %s)""",
+        (request_id, printer_id, next_pos, payload['email'], estimated_start, estimated_end, notes)
+    )
+
+    # Advance request status to 'queued'
+    db.execute_query(
+        "UPDATE print_requests SET status = 'queued' WHERE request_id = %s",
+        (request_id,)
+    )
+
+    return jsonify({
+        'success': True,
+        'message': 'Request assigned to printer queue',
+        'job_id': job_id,
+        'queue_position': next_pos
+    }), 201
+
+
+@app.route('/api/admin/jobs/<int:job_id>/status', methods=['PATCH'])
+def update_job_status(job_id):
+    """
+    Advance a print job through its lifecycle.
+    Body: { status: 'file_transferred'|'printing'|'completed'|'failed'|'cancelled', notes? }
+    Automatically mirrors the status back to print_requests.
+    """
+    auth_header = request.headers.get('Authorization', '')
+    if not auth_header.startswith('Bearer '):
+        return jsonify({'success': False, 'message': 'No token provided'}), 401
+    payload = AuthService.verify_jwt_token(auth_header.split(' ')[1])
+    if not payload or payload.get('user_type') not in ('admin', 'student_staff'):
+        return jsonify({'success': False, 'message': 'Admin access required'}), 403
+
+    data      = request.json or {}
+    new_status = (data.get('status') or '').strip()
+    valid = ('file_transferred', 'printing', 'completed', 'failed', 'cancelled')
+    if new_status not in valid:
+        return jsonify({'success': False, 'message': f'Invalid status. Must be one of: {", ".join(valid)}'}), 400
+
+    job = db.fetch_one(
+        "SELECT job_id, request_id, status FROM print_jobs WHERE job_id = %s", (job_id,)
+    )
+    if not job:
+        return jsonify({'success': False, 'message': 'Job not found'}), 404
+
+    notes = (data.get('notes') or '').strip() or None
+    now_fields = ''
+    if new_status == 'printing':
+        now_fields = ', started_at = NOW()'
+    elif new_status in ('completed', 'failed', 'cancelled'):
+        now_fields = ', completed_at = NOW()'
+
+    db.execute_query(
+        f"UPDATE print_jobs SET status = %s {', notes = %s' if notes else ''} {now_fields} WHERE job_id = %s",
+        ((new_status, notes, job_id) if notes else (new_status, job_id))
+    )
+
+    # Mirror to print_requests
+    req_status_map = {
+        'file_transferred': 'queued',
+        'printing':         'printing',
+        'completed':        'completed',
+        'failed':           'failed',
+        'cancelled':        'approved',   # return to approved so it can be re-scheduled
+    }
+    db.execute_query(
+        "UPDATE print_requests SET status = %s WHERE request_id = %s",
+        (req_status_map[new_status], job['request_id'])
+    )
+
+    return jsonify({'success': True, 'message': f'Job status updated to "{new_status}"'}), 200
+
+
+@app.route('/api/admin/jobs/reorder', methods=['PATCH'])
+def reorder_printer_queue(  ):
+    """
+    Reorder jobs in a printer's queue.
+    Body: { printer_id, order: [job_id, job_id, ...] }
+    The array defines the new queue_position (index+1).
+    """
+    auth_header = request.headers.get('Authorization', '')
+    if not auth_header.startswith('Bearer '):
+        return jsonify({'success': False, 'message': 'No token provided'}), 401
+    payload = AuthService.verify_jwt_token(auth_header.split(' ')[1])
+    if not payload or payload.get('user_type') not in ('admin', 'student_staff'):
+        return jsonify({'success': False, 'message': 'Admin access required'}), 403
+
+    data       = request.json or {}
+    printer_id = data.get('printer_id')
+    order      = data.get('order', [])
+    if not printer_id or not order:
+        return jsonify({'success': False, 'message': 'printer_id and order[] are required'}), 400
+
+    for pos, job_id in enumerate(order, start=1):
+        db.execute_query(
+            "UPDATE print_jobs SET queue_position = %s WHERE job_id = %s AND printer_id = %s",
+            (pos, job_id, printer_id)
+        )
+
+    return jsonify({'success': True, 'message': 'Queue reordered'}), 200
+
+
+@app.route('/api/admin/jobs/<int:job_id>', methods=['DELETE'])
+def remove_job(job_id):
+    """Remove a job from the queue (sets status to 'cancelled' and returns request to 'approved')."""
+    auth_header = request.headers.get('Authorization', '')
+    if not auth_header.startswith('Bearer '):
+        return jsonify({'success': False, 'message': 'No token provided'}), 401
+    payload = AuthService.verify_jwt_token(auth_header.split(' ')[1])
+    if not payload or payload.get('user_type') not in ('admin', 'student_staff'):
+        return jsonify({'success': False, 'message': 'Admin access required'}), 403
+
+    job = db.fetch_one("SELECT job_id, request_id FROM print_jobs WHERE job_id = %s", (job_id,))
+    if not job:
+        return jsonify({'success': False, 'message': 'Job not found'}), 404
+
+    db.execute_query("UPDATE print_jobs SET status = 'cancelled', completed_at = NOW() WHERE job_id = %s", (job_id,))
+    db.execute_query("UPDATE print_requests SET status = 'approved' WHERE request_id = %s", (job['request_id'],))
+
+    return jsonify({'success': True, 'message': 'Job removed from queue'}), 200
+
+
 # ==================== PRINTER MANAGEMENT ====================
 
 @app.route('/api/admin/printers', methods=['GET'])

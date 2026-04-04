@@ -49,6 +49,10 @@ class ManageAdminsView(TemplateView):
     template_name = "manage_admins.html"
 
 
+class ProductionBoardView(TemplateView):
+    template_name = "production_board.html"
+
+
 @method_decorator(csrf_exempt, name='dispatch')
 class ApiProxyView(View):
     """Forward every /api/... request to the Flask backend transparently."""

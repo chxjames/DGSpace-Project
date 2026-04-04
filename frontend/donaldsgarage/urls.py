@@ -17,7 +17,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include, re_path
 from django.views.generic.base import TemplateView
-from accounts.views import PrintRequestsView, PrintRequestNewView, PrintRequestDetailView, PrintRequestReturnView, AdminStudentsView, ApiProxyView, WeeklyReportView, ManagePrintersView, ManageAdminsView, ProfileView
+from accounts.views import PrintRequestsView, PrintRequestNewView, PrintRequestDetailView, PrintRequestReturnView, AdminStudentsView, ApiProxyView, WeeklyReportView, ManagePrintersView, ManageAdminsView, ProfileView, ProductionBoardView
 
 urlpatterns = [
     path("accounts/", include("accounts.urls")),
@@ -30,6 +30,7 @@ urlpatterns = [
     path("admin/students/", AdminStudentsView.as_view(), name="admin-students"),
     path("admin/printers/", ManagePrintersView.as_view(), name="manage-printers"),
     path("admin/admins/",   ManageAdminsView.as_view(),   name="manage-admins"),
+    path("production/",     ProductionBoardView.as_view(), name="production-board"),
     # Reports
     path("reports/weekly/",                    WeeklyReportView.as_view(),   name="weekly-report"),
     # Profile
