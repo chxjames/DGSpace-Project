@@ -60,10 +60,10 @@ def _cleanup_old_files():
         # Statuses eligible for file purge after 14 days
         eligible = db.fetch_all(
             """
-            SELECT request_id, ufp_file_path
+            SELECT request_id, ufp_file_path, stl_file_path
             FROM   print_requests
             WHERE  file_deleted = 0
-              AND  ufp_file_path IS NOT NULL
+              AND  (ufp_file_path IS NOT NULL OR stl_file_path IS NOT NULL)
               AND  updated_at < DATE_SUB(NOW(), INTERVAL 14 DAY)
               AND  status IN ('completed', 'failed', 'revision_requested')
             """,
@@ -71,28 +71,58 @@ def _cleanup_old_files():
         )
         purged = 0
         for row in (eligible or []):
-            path = row.get('ufp_file_path')
-            if path:
-                # path is stored as just the filename (e.g. "abc123.ufp")
-                # join with the resolved upload dir
-                full_path = os.path.join(upload_dir, os.path.basename(path))
-                deleted = False
-                try:
-                    if os.path.exists(full_path):
-                        os.remove(full_path)
-                        deleted = True
-                        print(f"[cleanup] Deleted: {full_path}")
-                    else:
-                        print(f"[cleanup] File not found (already gone?): {full_path}")
-                except Exception as ex:
-                    print(f"[cleanup] Failed to delete {full_path}: {ex}")
+            for col in ('ufp_file_path', 'stl_file_path'):
+                path = row.get(col)
+                if path:
+                    full_path = os.path.join(upload_dir, os.path.basename(path))
+                    try:
+                        if os.path.exists(full_path):
+                            os.remove(full_path)
+                            print(f"[cleanup] Deleted: {full_path}")
+                        else:
+                            print(f"[cleanup] Already gone: {full_path}")
+                    except Exception as ex:
+                        print(f"[cleanup] Failed to delete {full_path}: {ex}")
             db.execute_query(
-                "UPDATE print_requests SET file_deleted = 1, ufp_file_path = NULL WHERE request_id = %s",
+                "UPDATE print_requests SET file_deleted = 1, ufp_file_path = NULL, stl_file_path = NULL WHERE request_id = %s",
                 (row['request_id'],)
             )
             purged += 1
 
-        print(f"[cleanup] Done — processed {purged} record(s).")
+        print(f"[cleanup] 14-day purge — processed {purged} record(s).")
+
+        # STL files are only needed during review; once a request is approved
+        # the slicer UFP has replaced it — clean them up immediately (>1 day old).
+        stl_early = db.fetch_all(
+            """
+            SELECT request_id, stl_file_path
+            FROM   print_requests
+            WHERE  stl_file_path IS NOT NULL
+              AND  status IN ('approved', 'queued', 'printing', 'completed', 'failed')
+              AND  updated_at < DATE_SUB(NOW(), INTERVAL 1 DAY)
+            """,
+            ()
+        )
+        stl_purged = 0
+        for row in (stl_early or []):
+            path = row.get('stl_file_path')
+            if path:
+                full_path = os.path.join(upload_dir, os.path.basename(path))
+                try:
+                    if os.path.exists(full_path):
+                        os.remove(full_path)
+                        print(f"[cleanup] Deleted STL: {full_path}")
+                    else:
+                        print(f"[cleanup] STL already gone: {full_path}")
+                except Exception as ex:
+                    print(f"[cleanup] Failed to delete STL {full_path}: {ex}")
+            db.execute_query(
+                "UPDATE print_requests SET stl_file_path = NULL WHERE request_id = %s",
+                (row['request_id'],)
+            )
+            stl_purged += 1
+        print(f"[cleanup] Early STL purge — processed {stl_purged} record(s).")
+
     except Exception as e:
         print(f"[cleanup] Error: {e}")
 
