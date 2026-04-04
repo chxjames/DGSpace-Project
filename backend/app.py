@@ -78,23 +78,34 @@ def _cleanup_old_files():
 
 _scheduler = BackgroundScheduler(daemon=True)
 _scheduler.add_job(_cleanup_old_files, 'interval', hours=24, id='file_cleanup')
+
+# ── Unverified-account cleanup (runs via scheduler, NOT on every request) ─────
+def _cleanup_unverified():
+    """Delete unverified accounts/codes older than 10 minutes. Runs every 10 min."""
+    try:
+        db.execute_query(
+            "DELETE FROM email_verification_codes "
+            "WHERE is_used = FALSE AND expires_at < NOW() "
+            "AND email IN (SELECT email FROM students WHERE email_verified = FALSE)"
+        )
+        db.execute_query(
+            "DELETE FROM students "
+            "WHERE email_verified = FALSE "
+            "AND created_at < DATE_SUB(NOW(), INTERVAL 10 MINUTE)"
+        )
+    except Exception as e:
+        print(f"[cleanup_unverified] {e}")
+
+_scheduler.add_job(_cleanup_unverified, 'interval', minutes=10, id='unverified_cleanup')
 _scheduler.start()
 
 
 @app.before_request
 def before_request():
+    # Connection check is a no-op now (pool handles reconnects),
+    # but kept for backward-compat in case anything calls db.connect() directly.
     if not db.connection or not db.connection.is_connected():
         db.connect()
-    # Auto-cleanup: delete unverified accounts older than 10 minutes
-    try:
-        db.execute_query(
-            "DELETE FROM email_verification_codes WHERE is_used = FALSE AND expires_at < NOW() AND email IN (SELECT email FROM students WHERE email_verified = FALSE)"
-        )
-        db.execute_query(
-            "DELETE FROM students WHERE email_verified = FALSE AND created_at < DATE_SUB(NOW(), INTERVAL 10 MINUTE)"
-        )
-    except Exception:
-        pass
 
 # Health check endpoint
 @app.route('/', methods=['GET'])
