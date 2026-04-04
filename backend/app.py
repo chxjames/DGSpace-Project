@@ -1040,6 +1040,20 @@ def update_job_status(job_id):
     if not job:
         return jsonify({'success': False, 'message': 'Job not found'}), 404
 
+    # ── Guard: only one job can be printing per printer ───────────────────
+    if new_status == 'printing':
+        already = db.fetch_one(
+            "SELECT job_id FROM print_jobs "
+            "WHERE printer_id = %s AND status = 'printing' AND job_id != %s",
+            (job['printer_id'], job_id)
+        )
+        if already:
+            return jsonify({
+                'success': False,
+                'message': 'Another job is already printing on this printer. '
+                           'Finish or fail that job first.'
+            }), 400
+
     notes = (data.get('notes') or '').strip() or None
 
     if new_status == 'printing':
