@@ -11,8 +11,23 @@ from apscheduler.schedulers.background import BackgroundScheduler
 import os
 import uuid
 import bcrypt
+from datetime import date, datetime
+import decimal
 
 app = Flask(__name__)
+CORS(app)  # Enable CORS for frontend requests
+
+# ── Custom JSON serializer — handles datetime / date / Decimal ────────────────
+class _AppEncoder(app.json_provider_class):
+    def default(self, o):
+        if isinstance(o, (datetime, date)):
+            return o.isoformat()
+        if isinstance(o, decimal.Decimal):
+            return float(o)
+        return super().default(o)
+
+app.json_provider_class = _AppEncoder
+app.json = _AppEncoder(app)
 CORS(app)  # Enable CORS for frontend requests
 
 # Configure Flask-Mail

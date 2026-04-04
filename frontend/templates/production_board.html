@@ -410,10 +410,16 @@ function renderJobCard(j, pos) {
   const dl = j.deadline_date ? deadlineBadge(j.deadline_date) : '';
 
   // Countdown row — only for printing jobs with a known end time
-  const countdownHtml = (j.job_status === 'printing' && j.print_end_expected)
+  const endRaw = j.print_end_expected;
+  const hasEnd = endRaw && endRaw !== 'null' && endRaw !== 'None';
+  const countdownHtml = (j.job_status === 'printing' && hasEnd)
     ? `<span class="job-countdown countdown-ok" id="cd-${j.job_id}"
-            data-end="${j.print_end_expected}">⏱ …</span>`
-    : '';
+            data-end="${endRaw}">⏱ …</span>`
+    : (j.job_status === 'printing'
+        ? `<span class="job-countdown countdown-ok" id="cd-${j.job_id}"
+                data-mins="${j.ufp_print_time_minutes || 0}"
+                data-started="${j.started_at || ''}">⏱ …</span>`
+        : '');
 
   return `
     <div class="job-card ${jsCls}" draggable="true"
@@ -682,11 +688,29 @@ function showAlert(msg, type) {
 function tickCountdowns() {
   const now = Date.now();
   document.querySelectorAll('[id^="cd-"]').forEach(el => {
+    let endMs;
+
+    // Method 1: explicit print_end_expected from DB
     const endStr = el.dataset.end;
-    if (!endStr) return;
-    // DB returns UTC time — parse as UTC
-    const endMs = parseUtcString(endStr);
-    if (isNaN(endMs)) return;
+    if (endStr && endStr !== 'null' && endStr !== 'None' && endStr !== 'undefined') {
+      endMs = parseUtcString(endStr);
+    }
+
+    // Method 2: fallback — compute from started_at + ufp_print_time_minutes
+    if (!endMs || isNaN(endMs)) {
+      const startStr = el.dataset.started;
+      const mins     = parseFloat(el.dataset.mins || '0');
+      if (startStr && startStr !== 'null' && startStr !== '' && mins > 0) {
+        const startMs = parseUtcString(startStr);
+        if (!isNaN(startMs)) endMs = startMs + mins * 60000;
+      }
+    }
+
+    // Still no valid end time — show dashes
+    if (!endMs || isNaN(endMs)) {
+      el.textContent = '⏱ —';
+      return;
+    }
 
     const diffMs  = endMs - now;
     const diffSec = Math.round(diffMs / 1000);
@@ -696,10 +720,10 @@ function tickCountdowns() {
     if (diffSec <= 0) {
       label = '🔴 Time Up!';
       el.classList.add('countdown-overdue');
-    } else if (diffSec <= 600) {          // ≤10 min
+    } else if (diffSec <= 600) {
       label = `🔴 ${fmtCountdown(diffSec)}`;
       el.classList.add('countdown-urgent');
-    } else if (diffSec <= 1800) {         // ≤30 min
+    } else if (diffSec <= 1800) {
       label = `🟡 ${fmtCountdown(diffSec)}`;
       el.classList.add('countdown-warn');
     } else {
