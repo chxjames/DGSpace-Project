@@ -321,14 +321,27 @@ function renderPrinters() {
 }
 
 function renderPrinterCol(p) {
-  const sbClass = p.status === 'active' ? 'psb-active' : p.status === 'maintenance' ? 'psb-maintenance' : 'psb-idle';
-  const sbLabel = p.status.charAt(0).toUpperCase() + p.status.slice(1);
-  const queue   = p.queue || [];
-  const hasJobs = queue.length > 0;
+  const sbClass  = p.status === 'active' ? 'psb-active' : p.status === 'maintenance' ? 'psb-maintenance' : 'psb-idle';
+  const sbLabel  = p.status.charAt(0).toUpperCase() + p.status.slice(1);
+  const isActive = p.status === 'active';
+  const queue    = p.queue || [];
+  const hasJobs  = queue.length > 0;
 
   const jobsHtml = hasJobs
     ? queue.map((j, idx) => renderJobCard(j, idx + 1)).join('')
     : '<div class="pb-empty" style="padding:14px 0">— Queue empty —</div>';
+
+  const queueSection = isActive ? `
+      <div class="queue-drop-zone ${hasJobs ? 'has-jobs' : ''}"
+           id="dz-${p.printer_id}"
+           ondragover="event.preventDefault();document.getElementById('dz-${p.printer_id}').classList.add('drag-over')"
+           ondragleave="document.getElementById('dz-${p.printer_id}').classList.remove('drag-over')"
+           ondrop="handleDrop(event, ${p.printer_id})">
+        ${jobsHtml}
+      </div>` : `
+      <div style="font-size:0.8rem;color:#aaa;padding:6px 2px;font-style:italic">
+        Not accepting jobs while under maintenance.
+      </div>`;
 
   return `
     <div class="printer-col">
@@ -339,13 +352,7 @@ function renderPrinterCol(p) {
         </div>
         <span class="printer-status-badge ${sbClass}">${sbLabel}</span>
       </div>
-      <div class="queue-drop-zone ${hasJobs ? 'has-jobs' : ''}"
-           id="dz-${p.printer_id}"
-           ondragover="event.preventDefault();document.getElementById('dz-${p.printer_id}').classList.add('drag-over')"
-           ondragleave="document.getElementById('dz-${p.printer_id}').classList.remove('drag-over')"
-           ondrop="handleDrop(event, ${p.printer_id})">
-        ${jobsHtml}
-      </div>
+      ${queueSection}
     </div>`;
 }
 
@@ -354,20 +361,24 @@ function renderJobCard(j, pos) {
   const timeStr = mins ? formatMinutes(mins) : '—';
   const jsCls   = j.job_status;
   const jsLabel = { queued: 'Queued', file_transferred: 'File Copied', printing: 'Printing' }[j.job_status] || j.job_status;
+  const attempt = j.attempt_number || 1;
+  const attemptBadge = attempt > 1
+    ? `<span style="background:#dc3545;color:#fff;border-radius:99px;padding:1px 7px;font-size:0.68rem;font-weight:700">Retry #${attempt - 1}</span> `
+    : '';
 
   let actionBtns = '';
   if (j.job_status === 'queued') {
     actionBtns = `
-      <button class="job-btn btn-transfer" onclick="advanceJob(${j.job_id},'file_transferred')">📁 File Copied</button>
+      <button class="job-btn btn-transfer" onclick="advanceJob(${j.job_id},'file_transferred',${attempt})">📁 File Copied</button>
       <button class="job-btn btn-remove"   onclick="removeJob(${j.job_id})">✕</button>`;
   } else if (j.job_status === 'file_transferred') {
     actionBtns = `
-      <button class="job-btn btn-printing" onclick="advanceJob(${j.job_id},'printing')">▶ Start Print</button>
+      <button class="job-btn btn-printing" onclick="advanceJob(${j.job_id},'printing',${attempt})">▶ Start Print</button>
       <button class="job-btn btn-remove"   onclick="removeJob(${j.job_id})">✕</button>`;
   } else if (j.job_status === 'printing') {
     actionBtns = `
-      <button class="job-btn btn-complete" onclick="advanceJob(${j.job_id},'completed')">✅ Done</button>
-      <button class="job-btn btn-fail"     onclick="advanceJob(${j.job_id},'failed')">❌ Failed</button>`;
+      <button class="job-btn btn-complete" onclick="advanceJob(${j.job_id},'completed',${attempt})">✅ Done</button>
+      <button class="job-btn btn-fail"     onclick="advanceJob(${j.job_id},'failed',${attempt})">❌ Failed</button>`;
   }
 
   const dl = j.deadline_date ? deadlineBadge(j.deadline_date) : '';
@@ -377,7 +388,7 @@ function renderJobCard(j, pos) {
          ondragstart="event.dataTransfer.setData('job_id','${j.job_id}');event.dataTransfer.setData('from_printer','${j.printer_id || ''}')">
       <div class="job-pos">${pos}</div>
       <div class="job-body">
-        <div class="job-title">${escHtml(j.project_name)}</div>
+        <div class="job-title">${attemptBadge}${escHtml(j.project_name)}</div>
         <div class="job-meta">
           <span><span class="job-status-badge jsb-${jsCls}">${jsLabel}</span></span>
           <span>⏱ ${timeStr}</span>
@@ -395,8 +406,11 @@ function rtsCardDragStart(event, requestId) {
   event.dataTransfer.setData('rts_id', String(requestId));
   event.dataTransfer.effectAllowed = 'move';
   event.currentTarget.classList.add('dragging');
-  // Highlight all active printer drop zones
-  document.querySelectorAll('.queue-drop-zone').forEach(dz => dz.classList.add('rts-droppable'));
+  // Highlight only active printer drop zones
+  _printers.filter(p => p.status === 'active').forEach(p => {
+    const dz = document.getElementById(`dz-${p.printer_id}`);
+    if (dz) dz.classList.add('rts-droppable');
+  });
 }
 
 function rtsCardDragEnd(event) {
@@ -533,14 +547,28 @@ async function confirmAssign() {
 }
 
 // ── Job lifecycle buttons ─────────────────────────────────
-async function advanceJob(jobId, newStatus) {
-  const labels = {
-    file_transferred: 'Mark file as copied to printer?',
-    printing:         'Mark print as started?',
-    completed:        'Mark print as completed?',
-    failed:           'Mark print as FAILED? (request will return to "approved" for rescheduling)',
-  };
-  if (!confirm(labels[newStatus] || `Set status to "${newStatus}"?`)) return;
+async function advanceJob(jobId, newStatus, attempt) {
+  const MAX = 3;
+  attempt = attempt || 1;
+
+  // Build confirm message
+  let msg;
+  if (newStatus === 'failed') {
+    if (attempt < MAX) {
+      msg = `Mark as FAILED?\n\nAttempt ${attempt} of ${MAX}. A Retry #${attempt} job will be automatically queued on the same printer.`;
+    } else {
+      msg = `Mark as FAILED?\n\nThis is attempt ${MAX} of ${MAX} — the final allowed attempt.\nThe request will be sent back to the student for revision.`;
+    }
+  } else {
+    const labels = {
+      file_transferred: 'Mark file as copied to printer?',
+      printing:         'Mark print as started?',
+      completed:        'Mark print as completed? ✅',
+    };
+    msg = labels[newStatus] || `Set status to "${newStatus}"?`;
+  }
+
+  if (!confirm(msg)) return;
 
   try {
     const res  = await apiFetch(`/api/admin/jobs/${jobId}/status`, {
@@ -548,7 +576,13 @@ async function advanceJob(jobId, newStatus) {
     });
     const data = await res.json();
     if (data.success) {
-      showAlert(`Job updated: ${newStatus}`, 'success');
+      if (data.retry) {
+        showAlert(`❌ Failed — Retry #${data.attempt - 1} automatically queued (${data.attempts_remaining} attempt(s) left).`, 'success');
+      } else if (data.sent_back) {
+        showAlert('❌ All 3 attempts failed — request sent back to student for revision.', 'success');
+      } else {
+        showAlert(`Job updated: ${newStatus}`, 'success');
+      }
       loadBoard();
     } else {
       showAlert(data.message || 'Failed to update job.');

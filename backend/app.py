@@ -867,6 +867,7 @@ def get_production_board():
                 pj.request_id,
                 pj.queue_position,
                 pj.status          AS job_status,
+                pj.attempt_number,
                 pj.assigned_by,
                 pj.assigned_at,
                 pj.estimated_start,
@@ -981,7 +982,11 @@ def update_job_status(job_id):
     """
     Advance a print job through its lifecycle.
     Body: { status: 'file_transferred'|'printing'|'completed'|'failed'|'cancelled', notes? }
-    Automatically mirrors the status back to print_requests.
+
+    Special behaviour on 'failed':
+      - Attempt 1 or 2 → mark job failed, create a new job (attempt+1) on same printer,
+        return request to 'queued' so it stays in the queue.
+      - Attempt 3 → mark job failed, send request back to student with auto feedback.
     """
     auth_header = request.headers.get('Authorization', '')
     if not auth_header.startswith('Bearer '):
@@ -990,14 +995,15 @@ def update_job_status(job_id):
     if not payload or payload.get('user_type') not in ('admin', 'student_staff'):
         return jsonify({'success': False, 'message': 'Admin access required'}), 403
 
-    data      = request.json or {}
+    data       = request.json or {}
     new_status = (data.get('status') or '').strip()
     valid = ('file_transferred', 'printing', 'completed', 'failed', 'cancelled')
     if new_status not in valid:
         return jsonify({'success': False, 'message': f'Invalid status. Must be one of: {", ".join(valid)}'}), 400
 
     job = db.fetch_one(
-        "SELECT job_id, request_id, status FROM print_jobs WHERE job_id = %s", (job_id,)
+        "SELECT job_id, request_id, printer_id, status, attempt_number FROM print_jobs WHERE job_id = %s",
+        (job_id,)
     )
     if not job:
         return jsonify({'success': False, 'message': 'Job not found'}), 404
@@ -1014,13 +1020,66 @@ def update_job_status(job_id):
         ((new_status, notes, job_id) if notes else (new_status, job_id))
     )
 
-    # Mirror to print_requests
+    # ── Failed: retry or send back ────────────────────────────────────────
+    if new_status == 'failed':
+        attempt = job.get('attempt_number') or 1
+        MAX_ATTEMPTS = 3
+
+        if attempt < MAX_ATTEMPTS:
+            # Still have retries left → create a new job on the same printer
+            next_attempt = attempt + 1
+            pos_row = db.fetch_one(
+                "SELECT COALESCE(MAX(queue_position), 0) + 1 AS next_pos FROM print_jobs "
+                "WHERE printer_id = %s AND status NOT IN ('completed','cancelled','failed')",
+                (job['printer_id'],)
+            )
+            next_pos = pos_row['next_pos'] if pos_row else 1
+            db.execute_query(
+                """INSERT INTO print_jobs
+                   (request_id, printer_id, queue_position, status, assigned_by, attempt_number)
+                   VALUES (%s, %s, %s, 'queued', %s, %s)""",
+                (job['request_id'], job['printer_id'], next_pos, payload['email'], next_attempt)
+            )
+            # Put request back to queued
+            db.execute_query(
+                "UPDATE print_requests SET status = 'queued' WHERE request_id = %s",
+                (job['request_id'],)
+            )
+            return jsonify({
+                'success': True,
+                'message': f'Attempt {attempt} failed. Retry #{next_attempt - 1} queued automatically.',
+                'retry': True,
+                'attempt': next_attempt,
+                'attempts_remaining': MAX_ATTEMPTS - next_attempt
+            }), 200
+        else:
+            # 3rd failure → send back to student
+            auto_note = (
+                f"Your print failed after {MAX_ATTEMPTS} attempts. "
+                "Please review your model for printability issues "
+                "(overhangs, thin walls, supports, etc.) and resubmit."
+            )
+            db.execute_query(
+                """UPDATE print_requests
+                   SET status = 'revision_requested',
+                       admin_notes = %s,
+                       unlocked_fields = NULL
+                   WHERE request_id = %s""",
+                (auto_note, job['request_id'])
+            )
+            return jsonify({
+                'success': True,
+                'message': f'All {MAX_ATTEMPTS} attempts failed. Request sent back to student for revision.',
+                'retry': False,
+                'sent_back': True
+            }), 200
+
+    # ── All other statuses: normal mirror ─────────────────────────────────
     req_status_map = {
         'file_transferred': 'queued',
         'printing':         'printing',
         'completed':        'completed',
-        'failed':           'failed',
-        'cancelled':        'approved',   # return to approved so it can be re-scheduled
+        'cancelled':        'approved',
     }
     db.execute_query(
         "UPDATE print_requests SET status = %s WHERE request_id = %s",

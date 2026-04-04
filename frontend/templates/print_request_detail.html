@@ -410,13 +410,25 @@ function renderDetail(r) {
     const dl      = new Date(datePart + 'T00:00:00');
     const today   = new Date(); today.setHours(0,0,0,0);
     const daysLeft = Math.round((dl - today) / (1000 * 60 * 60 * 24));
-    const dlStr   = dl.toLocaleDateString('en-US', { year:'numeric', month:'short', day:'numeric' });
-    let badge = '';
-    if (daysLeft < 0)      badge = ` <span style="color:#dc3545;font-size:0.8rem">(overdue)</span>`;
-    else if (daysLeft <= 3) badge = ` <span style="color:#dc3545;font-size:0.8rem">(${daysLeft}d left ⚠️)</span>`;
-    else if (daysLeft <= 7) badge = ` <span style="color:#fd7e14;font-size:0.8rem">(${daysLeft}d left)</span>`;
-    else                    badge = ` <span style="color:#888;font-size:0.8rem">(${daysLeft}d left)</span>`;
-    document.getElementById('d-deadline').innerHTML = dlStr + badge;
+    let label, color;
+    if (daysLeft < 0) {
+      label = `Overdue by ${Math.abs(daysLeft)}d`;
+      color = '#dc3545';
+    } else if (daysLeft === 0) {
+      label = 'Due today';
+      color = '#dc3545';
+    } else if (daysLeft <= 3) {
+      label = `${daysLeft}d left`;
+      color = '#dc3545';
+    } else if (daysLeft <= 7) {
+      label = `${daysLeft}d left`;
+      color = '#fd7e14';
+    } else {
+      label = `${daysLeft}d left`;
+      color = '#888';
+    }
+    document.getElementById('d-deadline').innerHTML =
+      `<span style="color:${color};font-weight:600">${label}</span>`;
     document.getElementById('d-deadline-row').style.display = '';
     // Show "Cannot Complete by Deadline" button for staff when deadline exists
     const deadlineBtn = document.getElementById('btn-cannot-deadline');
