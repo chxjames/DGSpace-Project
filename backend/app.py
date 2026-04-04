@@ -48,23 +48,29 @@ mail.init_app(app)
 # ── 2-week file cleanup job ───────────────────────────────────────────────────
 def _cleanup_old_files():
     """
-    Runs every 24 h.  Deletes UFP files for requests that are:
-      - completed / failed / OR returned-to-student with no revision in 14+ days
-    Sets file_deleted = 1 so the request stays in the DB but disappears from
-    the Production Board's "Ready to Schedule" list.
+    Runs every 24 h.
+    - UFP + STL: purge for completed/failed/revision_requested (no time gate — safe to delete once terminal)
+    - STL only:  also purge for approved/queued/printing (STL not needed once UFP uploaded)
+    Sets file_deleted = 1 so record stays in DB.
     """
     try:
         upload_dir = Config.UPLOAD_FOLDER
         print(f"[cleanup] UPLOAD_FOLDER = {upload_dir}")
 
-        # Statuses eligible for file purge after 14 days
+        # Diagnostic: how many records have files at all?
+        total_with_files = db.fetch_one(
+            "SELECT COUNT(*) AS cnt FROM print_requests WHERE ufp_file_path IS NOT NULL OR stl_file_path IS NOT NULL",
+            ()
+        )
+        print(f"[cleanup] Records with files in DB: {(total_with_files or {}).get('cnt', '?')}")
+
+        # ── Batch 1: terminal statuses — delete both UFP and STL (no time gate) ──
         eligible = db.fetch_all(
             """
             SELECT request_id, ufp_file_path, stl_file_path
             FROM   print_requests
             WHERE  file_deleted = 0
               AND  (ufp_file_path IS NOT NULL OR stl_file_path IS NOT NULL)
-              AND  updated_at < DATE_SUB(NOW(), INTERVAL 14 DAY)
               AND  status IN ('completed', 'failed', 'revision_requested')
             """,
             ()
@@ -88,18 +94,15 @@ def _cleanup_old_files():
                 (row['request_id'],)
             )
             purged += 1
+        print(f"[cleanup] Terminal purge — processed {purged} record(s).")
 
-        print(f"[cleanup] 14-day purge — processed {purged} record(s).")
-
-        # STL files are only needed during review; once a request is approved
-        # the slicer UFP has replaced it — clean them up immediately (>1 day old).
+        # ── Batch 2: active statuses — delete STL only (UFP still needed) ──
         stl_early = db.fetch_all(
             """
             SELECT request_id, stl_file_path
             FROM   print_requests
             WHERE  stl_file_path IS NOT NULL
-              AND  status IN ('approved', 'queued', 'printing', 'completed', 'failed')
-              AND  updated_at < DATE_SUB(NOW(), INTERVAL 1 DAY)
+              AND  status IN ('approved', 'queued', 'printing')
             """,
             ()
         )
@@ -121,7 +124,7 @@ def _cleanup_old_files():
                 (row['request_id'],)
             )
             stl_purged += 1
-        print(f"[cleanup] Early STL purge — processed {stl_purged} record(s).")
+        print(f"[cleanup] Active STL purge — processed {stl_purged} record(s).")
 
     except Exception as e:
         print(f"[cleanup] Error: {e}")
