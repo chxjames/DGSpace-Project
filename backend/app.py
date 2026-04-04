@@ -7,6 +7,7 @@ from config import Config
 from print_service import PrintService
 from totp_service import TotpService
 from ufp_analysis import analyze_ufp
+from apscheduler.schedulers.background import BackgroundScheduler
 import os
 import uuid
 import bcrypt
@@ -29,7 +30,57 @@ os.makedirs(Config.UPLOAD_FOLDER, exist_ok=True)
 
 mail.init_app(app)
 
-# Connect to database on startup
+# ── 2-week file cleanup job ───────────────────────────────────────────────────
+def _cleanup_old_files():
+    """
+    Runs every 24 h.  Deletes UFP files for requests that are:
+      - completed / failed / OR returned-to-student with no revision in 14+ days
+    Sets file_deleted = 1 so the request stays in the DB but disappears from
+    the Production Board's "Ready to Schedule" list.
+    """
+    try:
+        if not db.connection or not db.connection.is_connected():
+            db.connect()
+
+        # Statuses eligible for file purge after 14 days
+        eligible = db.fetch_all(
+            """
+            SELECT request_id, ufp_file_path
+            FROM   print_requests
+            WHERE  file_deleted = 0
+              AND  ufp_file_path IS NOT NULL
+              AND  updated_at < DATE_SUB(NOW(), INTERVAL 14 DAY)
+              AND  status IN ('completed', 'failed', 'revision_requested')
+            """,
+            ()
+        )
+        purged = 0
+        for row in (eligible or []):
+            path = row.get('ufp_file_path')
+            if path:
+                full_path = os.path.join(Config.UPLOAD_FOLDER, os.path.basename(path))
+                try:
+                    if os.path.exists(full_path):
+                        os.remove(full_path)
+                except Exception:
+                    pass
+            db.execute_query(
+                "UPDATE print_requests SET file_deleted = 1, ufp_file_path = NULL WHERE request_id = %s",
+                (row['request_id'],)
+            )
+            purged += 1
+
+        if purged:
+            print(f"[cleanup] Purged UFP files for {purged} request(s).")
+    except Exception as e:
+        print(f"[cleanup] Error: {e}")
+
+
+_scheduler = BackgroundScheduler(daemon=True)
+_scheduler.add_job(_cleanup_old_files, 'interval', hours=24, id='file_cleanup')
+_scheduler.start()
+
+
 @app.before_request
 def before_request():
     if not db.connection or not db.connection.is_connected():
@@ -792,6 +843,7 @@ def get_production_board():
         LEFT JOIN students s ON s.email = pr.student_email
         WHERE pr.status = 'approved'
           AND pr.ufp_file_path IS NOT NULL
+          AND pr.file_deleted  = 0
           AND NOT EXISTS (
               SELECT 1 FROM print_jobs pj
               WHERE pj.request_id = pr.request_id

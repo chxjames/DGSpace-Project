@@ -31,12 +31,13 @@
   border-radius: 10px;
   padding: 12px 14px;
   margin-bottom: 10px;
-  cursor: pointer;
+  cursor: grab;
   transition: box-shadow 0.15s, border-color 0.15s;
   position: relative;
 }
 .rts-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.1); border-color: #007bff; }
 .rts-card.selected { border-color: #007bff; box-shadow: 0 0 0 2px rgba(0,123,255,0.25); }
+.rts-card.dragging { opacity: 0.4; }
 .rts-card .card-title { font-weight: 600; font-size: 0.9rem; color: #1a1a2e; margin-bottom: 4px; }
 .rts-card .card-meta  { font-size: 0.78rem; color: #888; display: flex; flex-wrap: wrap; gap: 8px; }
 .rts-card .card-meta span { white-space: nowrap; }
@@ -77,8 +78,9 @@
   padding: 10px;
   transition: background 0.15s, border-color 0.15s;
 }
-.queue-drop-zone.drag-over { background: #e8f4ff; border-color: #007bff; }
-.queue-drop-zone.has-jobs  { border-style: solid; border-color: #dee2e6; }
+.queue-drop-zone.drag-over     { background: #e8f4ff; border-color: #007bff; }
+.queue-drop-zone.has-jobs      { border-style: solid; border-color: #dee2e6; }
+.queue-drop-zone.rts-droppable { border-color: #28a745; border-style: dashed; }
 
 /* ── Job card in queue ───────────────────────────────────── */
 .job-card {
@@ -278,7 +280,11 @@ function renderRts() {
     const sel      = _selectedRts && _selectedRts.id === r.id ? 'selected' : '';
     const dotClass = r.priority === 'urgent' ? 'dot-urgent' : r.priority === 'high' ? 'dot-high' : 'dot-normal';
     return `
-      <div class="rts-card ${sel}" onclick="selectRts(${r.id})" data-id="${r.id}">
+      <div class="rts-card ${sel}" data-id="${r.id}"
+           draggable="true"
+           ondragstart="rtsCardDragStart(event, ${r.id})"
+           ondragend="rtsCardDragEnd(event)"
+           onclick="selectRts(${r.id})">
         <div class="card-title">
           <span class="priority-dot ${dotClass}"></span>
           ${escHtml(r.project_name)}
@@ -290,8 +296,9 @@ function renderRts() {
           ${dl}
         </div>
         <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <span style="font-size:0.72rem;color:#aaa">↖ drag to printer or click to assign</span>
           <a href="/print-requests/${r.id}/" target="_blank"
-             style="font-size:0.75rem;color:#007bff" onclick="event.stopPropagation()">🔗 View details</a>
+             style="font-size:0.75rem;color:#007bff" onclick="event.stopPropagation()">🔗 View</a>
         </div>
       </div>`;
   }).join('');
@@ -383,11 +390,67 @@ function renderJobCard(j, pos) {
     </div>`;
 }
 
-// ── Drag & drop: move job between printers (future) / reorder ──
-function handleDrop(event, targetPrinterId) {
+// ── RTS card drag events ──────────────────────────────────
+function rtsCardDragStart(event, requestId) {
+  event.dataTransfer.setData('rts_id', String(requestId));
+  event.dataTransfer.effectAllowed = 'move';
+  event.currentTarget.classList.add('dragging');
+  // Highlight all active printer drop zones
+  document.querySelectorAll('.queue-drop-zone').forEach(dz => dz.classList.add('rts-droppable'));
+}
+
+function rtsCardDragEnd(event) {
+  event.currentTarget.classList.remove('dragging');
+  document.querySelectorAll('.queue-drop-zone').forEach(dz => {
+    dz.classList.remove('drag-over', 'rts-droppable');
+  });
+}
+
+// ── Drop handler: handles BOTH rts→printer and job reorder ──
+async function handleDrop(event, targetPrinterId) {
   event.preventDefault();
-  document.getElementById(`dz-${targetPrinterId}`).classList.remove('drag-over');
-  // For now: drag within the same printer reorders; cross-printer not implemented in MVP
+  document.getElementById(`dz-${targetPrinterId}`).classList.remove('drag-over', 'rts-droppable');
+
+  const rtsId = event.dataTransfer.getData('rts_id');
+  if (rtsId) {
+    // ── Drag from RTS → assign to this printer ──
+    const req = _rts.find(r => r.id === parseInt(rtsId));
+    if (!req) return;
+
+    // Find target printer
+    const printer = _printers.find(p => p.printer_id === targetPrinterId);
+    if (!printer || printer.status !== 'active') {
+      showAlert('Cannot assign to a non-active printer.');
+      return;
+    }
+
+    const body = {
+      printer_id:      targetPrinterId,
+      estimated_start: null,
+      estimated_end:   (() => {
+        if (!req.ufp_print_time_minutes) return null;
+        const now = new Date();
+        return new Date(now.getTime() + req.ufp_print_time_minutes * 60000).toISOString();
+      })(),
+      notes: null,
+    };
+
+    try {
+      const res  = await apiFetch(`/api/admin/print-requests/${req.id}/assign`, {
+        method: 'POST', body: JSON.stringify(body)
+      });
+      const data = await res.json();
+      if (data.success) {
+        showAlert(`✅ "${escHtml(req.project_name)}" → ${escHtml(printer.printer_name)} #${data.queue_position}`, 'success');
+        loadBoard();
+      } else {
+        showAlert(data.message || 'Failed to assign.');
+      }
+    } catch(e) { showAlert('Network error.'); }
+    return;
+  }
+
+  // ── Job reorder (job dragged within or between printers) ──
   loadBoard();
 }
 

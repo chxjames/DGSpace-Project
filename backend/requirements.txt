@@ -11,3 +11,4 @@ Pillow==10.4.0
 numpy-stl==3.1.2
 numpy==1.26.4
 gunicorn==21.2.0
+APScheduler==3.10.4
