@@ -33,6 +33,8 @@ class Config:
     PORT = int(os.getenv('PORT', '5000') or '5000')
 
     # File uploads
-    UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), 'uploads')
+    # On Railway, set UPLOAD_FOLDER env var to the volume mount path (e.g. /data)
+    # Locally, falls back to backend/uploads/
+    UPLOAD_FOLDER = os.getenv('UPLOAD_FOLDER', os.path.join(os.path.dirname(__file__), 'uploads'))
     MAX_UPLOAD_SIZE_MB = 50  # 50 MB limit for STL files
     ALLOWED_EXTENSIONS = {'stl'}

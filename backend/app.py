@@ -54,8 +54,8 @@ def _cleanup_old_files():
     the Production Board's "Ready to Schedule" list.
     """
     try:
-        if not db.connection or not db.connection.is_connected():
-            db.connect()
+        upload_dir = Config.UPLOAD_FOLDER
+        print(f"[cleanup] UPLOAD_FOLDER = {upload_dir}")
 
         # Statuses eligible for file purge after 14 days
         eligible = db.fetch_all(
@@ -73,20 +73,26 @@ def _cleanup_old_files():
         for row in (eligible or []):
             path = row.get('ufp_file_path')
             if path:
-                full_path = os.path.join(Config.UPLOAD_FOLDER, os.path.basename(path))
+                # path is stored as just the filename (e.g. "abc123.ufp")
+                # join with the resolved upload dir
+                full_path = os.path.join(upload_dir, os.path.basename(path))
+                deleted = False
                 try:
                     if os.path.exists(full_path):
                         os.remove(full_path)
-                except Exception:
-                    pass
+                        deleted = True
+                        print(f"[cleanup] Deleted: {full_path}")
+                    else:
+                        print(f"[cleanup] File not found (already gone?): {full_path}")
+                except Exception as ex:
+                    print(f"[cleanup] Failed to delete {full_path}: {ex}")
             db.execute_query(
                 "UPDATE print_requests SET file_deleted = 1, ufp_file_path = NULL WHERE request_id = %s",
                 (row['request_id'],)
             )
             purged += 1
 
-        if purged:
-            print(f"[cleanup] Purged UFP files for {purged} request(s).")
+        print(f"[cleanup] Done — processed {purged} record(s).")
     except Exception as e:
         print(f"[cleanup] Error: {e}")
 
