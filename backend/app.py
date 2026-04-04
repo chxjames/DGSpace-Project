@@ -126,6 +126,36 @@ def _cleanup_old_files():
             stl_purged += 1
         print(f"[cleanup] Active STL purge — processed {stl_purged} record(s).")
 
+        # ── Batch 3: orphan files — on disk but no matching DB record ──
+        # Covers files whose DB path was already NULLed but file was never deleted
+        # (e.g. when UPLOAD_FOLDER env var was wrong on a previous deploy)
+        try:
+            all_files = set(os.listdir(upload_dir))
+        except Exception as ex:
+            print(f"[cleanup] Cannot list upload dir: {ex}")
+            all_files = set()
+
+        # Collect all filenames still referenced in DB
+        referenced = set()
+        for col in ('ufp_file_path', 'stl_file_path'):
+            rows = db.fetch_all(f"SELECT {col} AS p FROM print_requests WHERE {col} IS NOT NULL", ()) or []
+            for r in rows:
+                p = r.get('p')
+                if p:
+                    referenced.add(os.path.basename(p))
+
+        orphans = [f for f in all_files if f not in referenced and (f.endswith('.stl') or f.endswith('.ufp'))]
+        orphan_purged = 0
+        for fname in orphans:
+            full_path = os.path.join(upload_dir, fname)
+            try:
+                os.remove(full_path)
+                print(f"[cleanup] Deleted orphan: {full_path}")
+                orphan_purged += 1
+            except Exception as ex:
+                print(f"[cleanup] Failed to delete orphan {full_path}: {ex}")
+        print(f"[cleanup] Orphan purge — deleted {orphan_purged} of {len(orphans)} orphan file(s) found.")
+
     except Exception as e:
         print(f"[cleanup] Error: {e}")
 
