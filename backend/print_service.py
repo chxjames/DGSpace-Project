@@ -76,10 +76,7 @@ class PrintService:
                 deadline_date or None
             )
             
-            db.execute_query(query, values)
-            
-            # Get the created request ID
-            request_id = db.connection.cursor().lastrowid
+            request_id = db.execute_query(query, values)
             
             # Add to history
             history_query = """
