@@ -420,13 +420,19 @@ function renderJobCard(j, pos) {
   // Countdown row — only for printing jobs with a known end time
   const endRaw = j.print_end_expected;
   const hasEnd = endRaw && endRaw !== 'null' && endRaw !== 'None';
+  const cdProject  = escHtml(j.project_name || '');
+  const cdPrinter  = escHtml(j.printer_name || '');
   const countdownHtml = (j.job_status === 'printing' && hasEnd)
     ? `<span class="job-countdown countdown-ok" id="cd-${j.job_id}"
-            data-end="${endRaw}">⏱ …</span>`
+            data-end="${endRaw}"
+            data-project="${cdProject}"
+            data-printer="${cdPrinter}">⏱ …</span>`
     : (j.job_status === 'printing'
         ? `<span class="job-countdown countdown-ok" id="cd-${j.job_id}"
                 data-mins="${j.ufp_print_time_minutes || 0}"
-                data-started="${j.started_at || ''}">⏱ …</span>`
+                data-started="${j.started_at || ''}"
+                data-project="${cdProject}"
+                data-printer="${cdPrinter}">⏱ …</span>`
         : '');
 
   return `
@@ -693,6 +699,9 @@ function showAlert(msg, type) {
 
 // ── Countdown ticker ──────────────────────────────────────
 // Runs every second; updates all visible countdown elements.
+// Also fires a browser notification the first time a job crosses zero.
+const _firedTimesUp = new Set();   // job IDs that have already triggered a notification
+
 function tickCountdowns() {
   const now = Date.now();
   document.querySelectorAll('[id^="cd-"]').forEach(el => {
@@ -728,6 +737,16 @@ function tickCountdowns() {
     if (diffSec <= 0) {
       label = '🔴 Time Up!';
       el.classList.add('countdown-overdue');
+
+      // Fire notification exactly once per job per page session
+      const jobId = el.id.replace('cd-', '');
+      if (!_firedTimesUp.has(jobId)) {
+        _firedTimesUp.add(jobId);
+        const project = el.dataset.project || 'Unknown project';
+        const printer = el.dataset.printer || '';
+        const msg = `⏰ Print complete: "${project}"${printer ? ' on ' + printer : ''}`;
+        sendBrowserNotification(msg, 'print_done');
+      }
     } else if (diffSec <= 600) {
       label = `🔴 ${fmtCountdown(diffSec)}`;
       el.classList.add('countdown-urgent');
@@ -776,16 +795,34 @@ async function pollNotifications() {
 }
 
 function sendBrowserNotification(message, type) {
-  const icon = type === 'print_done' ? '✅' : '⚠️';
-  if ('Notification' in window && Notification.permission === 'granted') {
-    new Notification('DGSpace — Production Board', {
-      body: message,
-      icon: '/static/favicon.ico',
-      tag:  `dgspace-${Date.now()}`,
+  const alertType = type === 'print_done' ? 'success' : 'error';
+
+  function _fire() {
+    if ('Notification' in window && Notification.permission === 'granted') {
+      new Notification('DGSpace — Production Board', {
+        body: message,
+        icon: '/static/favicon.ico',
+        tag:  `dgspace-${type}-${Date.now()}`,
+      });
+    }
+    // Always also show the in-page banner so it can't be missed
+    showAlert(message, alertType);
+  }
+
+  if (!('Notification' in window)) {
+    showAlert(message, alertType);
+    return;
+  }
+  if (Notification.permission === 'granted') {
+    _fire();
+  } else if (Notification.permission === 'default') {
+    Notification.requestPermission().then(perm => {
+      if (perm === 'granted') _fire();
+      else showAlert(message, alertType);
     });
   } else {
-    // Fallback: in-page banner
-    showAlert(message, type === 'print_done' ? 'success' : 'error');
+    // 'denied' — only in-page banner
+    showAlert(message, alertType);
   }
 }
 </script>

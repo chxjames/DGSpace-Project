@@ -1239,10 +1239,10 @@ def get_staff_notifications():
     if not payload or payload.get('user_type') not in ('admin', 'student_staff'):
         return jsonify({'success': False, 'notifications': []}), 403
 
-    staff_email = payload['email']
     now = datetime.utcnow()
 
-    # Jobs assigned by this staff that are still printing and not yet notified
+    # All printing jobs that are overdue and not yet notified —
+    # any logged-in staff member should see these (not just the one who started it)
     active_jobs = db.fetch_all("""
         SELECT pj.job_id, pj.print_end_expected, pj.staff_notified,
                pr.project_name, pr.student_email,
@@ -1252,11 +1252,10 @@ def get_staff_notifications():
         JOIN   print_requests pr ON pr.request_id = pj.request_id
         LEFT JOIN students s ON s.email = pr.student_email
         LEFT JOIN printers  p ON p.printer_id = pj.printer_id
-        WHERE  pj.assigned_by = %s
-          AND  pj.status = 'printing'
+        WHERE  pj.status = 'printing'
           AND  pj.print_end_expected IS NOT NULL
           AND  pj.staff_notified = 0
-    """, (staff_email,)) or []
+    """, ()) or []
 
     notifications = []
     for job in active_jobs:
