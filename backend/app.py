@@ -884,7 +884,12 @@ def get_production_board():
                 pj.estimated_start,
                 pj.estimated_end,
                 pj.started_at,
-                pj.print_end_expected,
+                COALESCE(
+                    pj.print_end_expected,
+                    CASE WHEN pj.status = 'printing' AND pj.started_at IS NOT NULL
+                         THEN DATE_ADD(pj.started_at, INTERVAL pr.ufp_print_time_minutes MINUTE)
+                         ELSE NULL END
+                )                  AS print_end_expected,
                 pj.completed_at,
                 pj.notes           AS job_notes,
                 pr.project_name,

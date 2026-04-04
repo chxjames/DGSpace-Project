@@ -280,6 +280,7 @@ async function loadBoard() {
 
     renderRts();
     renderPrinters();
+    tickCountdowns();   // immediately tick after render (don't wait 1 s)
   } catch(e) {
     showAlert('Network error — make sure the backend is running.');
     document.getElementById('rts-loading').style.display      = 'none';
