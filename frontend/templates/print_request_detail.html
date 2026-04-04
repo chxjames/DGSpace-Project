@@ -406,7 +406,8 @@ function renderDetail(r) {
 
   // Deadline
   if (r.deadline_date) {
-    const dl      = new Date(r.deadline_date + 'T00:00:00');
+    const datePart = String(r.deadline_date).slice(0, 10);
+    const dl      = new Date(datePart + 'T00:00:00');
     const today   = new Date(); today.setHours(0,0,0,0);
     const daysLeft = Math.round((dl - today) / (1000 * 60 * 60 * 24));
     const dlStr   = dl.toLocaleDateString('en-US', { year:'numeric', month:'short', day:'numeric' });
@@ -908,7 +909,7 @@ async function adminReject() {
 async function adminCannotCompleteByDeadline() {
   const r = window._currentRequest;
   const deadlineStr = r && r.deadline_date
-    ? new Date(r.deadline_date + 'T00:00:00').toLocaleDateString('en-US', { year:'numeric', month:'short', day:'numeric' })
+    ? new Date(String(r.deadline_date).slice(0, 10) + 'T00:00:00').toLocaleDateString('en-US', { year:'numeric', month:'short', day:'numeric' })
     : 'the deadline';
   if (!confirm(`Send back to student with reason: "Cannot complete by ${deadlineStr}"?`)) return;
 
