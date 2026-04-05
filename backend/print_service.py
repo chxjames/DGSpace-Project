@@ -606,50 +606,49 @@ class PrintService:
         """
         try:
             stats = {}
-            
+
             # Total requests
-            total_query = "SELECT COUNT(*) FROM print_requests"
-            result = db.execute_query(total_query)
-            stats['total_requests'] = result[0][0] if result else 0
-            
-            # Requests by status
-            status_query = """
-                SELECT status, COUNT(*) 
-                FROM print_requests 
-                GROUP BY status
-            """
-            results = db.execute_query(status_query)
-            stats['by_status'] = {row[0]: row[1] for row in results} if results else {}
-            
+            row = db.fetch_one("SELECT COUNT(*) AS cnt FROM print_requests", ())
+            stats['total_requests'] = (row or {}).get('cnt', 0)
+
+            # Requests by status — returns dict keyed by status name
+            rows = db.fetch_all(
+                "SELECT status, COUNT(*) AS cnt FROM print_requests GROUP BY status", ()
+            ) or []
+            by_status = {r['status']: r['cnt'] for r in rows}
+            stats['by_status'] = by_status
+
+            # "In Progress" = approved + queued + printing (no 'in_progress' status in DB)
+            in_progress = (
+                by_status.get('approved', 0) +
+                by_status.get('queued',   0) +
+                by_status.get('printing', 0)
+            )
+            stats['by_status']['in_progress'] = in_progress
+
             # Requests by priority
-            priority_query = """
-                SELECT priority, COUNT(*) 
-                FROM print_requests 
-                GROUP BY priority
-            """
-            results = db.execute_query(priority_query)
-            stats['by_priority'] = {row[0]: row[1] for row in results} if results else {}
-            
-            # Pending requests
-            pending_query = "SELECT COUNT(*) FROM print_requests WHERE status = 'pending'"
-            result = db.execute_query(pending_query)
-            stats['pending_count'] = result[0][0] if result else 0
-            
+            rows = db.fetch_all(
+                "SELECT priority, COUNT(*) AS cnt FROM print_requests GROUP BY priority", ()
+            ) or []
+            stats['by_priority'] = {r['priority']: r['cnt'] for r in rows}
+
+            # Pending count (convenience)
+            stats['pending_count'] = by_status.get('pending', 0)
+
             # Completed this month
-            completed_query = """
-                SELECT COUNT(*) FROM print_requests 
-                WHERE status = 'completed' 
-                AND MONTH(completed_at) = MONTH(CURRENT_DATE())
-                AND YEAR(completed_at) = YEAR(CURRENT_DATE())
-            """
-            result = db.execute_query(completed_query)
-            stats['completed_this_month'] = result[0][0] if result else 0
-            
+            row = db.fetch_one(
+                """SELECT COUNT(*) AS cnt FROM print_requests
+                   WHERE status = 'completed'
+                     AND MONTH(updated_at) = MONTH(CURRENT_DATE())
+                     AND YEAR(updated_at)  = YEAR(CURRENT_DATE())""", ()
+            )
+            stats['completed_this_month'] = (row or {}).get('cnt', 0)
+
             return {
                 'success': True,
                 'statistics': stats
             }
-            
+
         except Exception as e:
             print(f"Error getting statistics: {e}")
             return {
