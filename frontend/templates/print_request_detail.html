@@ -223,11 +223,11 @@
 
         <!-- Status update buttons for in_progress / approved -->
         <div id="admin-progress-group" style="display:none;margin-top:12px;display:flex;gap:12px;flex-wrap:wrap;align-items:center">
-          <button class="btn" onclick="adminSetStatus('completed')"
+          <button id="btn-mark-completed" class="btn" onclick="adminSetStatus('completed')"
                   style="width:auto;padding:10px 24px;background:#28a745;font-size:0.95rem">
             ✅ Mark Completed
           </button>
-          <button class="btn" onclick="adminSetStatus('cancelled')"
+          <button id="btn-cancel-job" class="btn" onclick="adminSetStatus('cancelled')"
                   style="width:auto;padding:10px 24px;background:#6c757d;font-size:0.95rem">
             🚫 Cancel
           </button>
@@ -509,8 +509,18 @@ function renderDetail(r) {
       }
     } else if (r.status === 'approved' || r.status === 'in_progress') {
       progressGroup.style.display = 'flex';
-      const btnBoard = document.getElementById('btn-go-board');
-      if (btnBoard && r.status === 'approved') btnBoard.style.display = 'inline-block';
+      const btnBoard     = document.getElementById('btn-go-board');
+      const btnCompleted = document.getElementById('btn-mark-completed');
+      const btnCancel    = document.getElementById('btn-cancel-job');
+      if (r.status === 'approved') {
+        if (btnBoard)     btnBoard.style.display     = 'inline-block';
+        if (btnCompleted) btnCompleted.style.display = 'none';
+        if (btnCancel)    btnCancel.style.display    = 'none';
+      } else {
+        if (btnBoard)     btnBoard.style.display     = 'none';
+        if (btnCompleted) btnCompleted.style.display = '';
+        if (btnCancel)    btnCancel.style.display    = '';
+      }
     } else {
       statusInfo.style.display = 'block';
       const labels = { completed: '✅ Completed', rejected: '❌ Rejected', cancelled: '🚫 Cancelled' };
