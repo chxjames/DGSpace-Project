@@ -152,7 +152,7 @@
         </div>
 
         <!-- Status update buttons for in_progress -->
-        <div id="admin-progress-group" style="display:none;margin-top:12px;display:flex;gap:12px;flex-wrap:wrap">
+        <div id="admin-progress-group" style="display:none;margin-top:12px;display:flex;gap:12px;flex-wrap:wrap;align-items:center">
           <button class="btn" onclick="adminSetStatus('completed')"
                   style="width:auto;padding:10px 24px;background:#28a745;font-size:0.95rem">
             鉁?Mark Completed
@@ -161,6 +161,10 @@
                   style="width:auto;padding:10px 24px;background:#6c757d;font-size:0.95rem">
             馃毇 Cancel
           </button>
+          <a id="btn-go-board" href="/production/"
+             style="display:none;width:auto;padding:10px 24px;background:#1a1a2e;color:#fff;border-radius:8px;font-size:0.95rem;text-decoration:none;font-weight:600">
+            🖨️ Go to Production Board
+          </a>
         </div>
       </div>
     </div>
@@ -292,6 +296,9 @@ function renderDetail(r) {
       btnGroup.style.display = 'flex';
     } else if (r.status === 'approved' || r.status === 'in_progress') {
       progressGroup.style.display = 'flex';
+      // Show "Go to Production Board" only when approved (queued for scheduling)
+      const btnBoard = document.getElementById('btn-go-board');
+      if (btnBoard && r.status === 'approved') btnBoard.style.display = 'inline-block';
     } else {
       statusInfo.style.display = 'block';
       const labels = { completed: '鉁?Completed', rejected: '鉂?Rejected', cancelled: '馃毇 Cancelled' };
