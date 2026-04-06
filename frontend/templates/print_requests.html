@@ -93,6 +93,7 @@ function renderTable(list, userType, user) {
   ];
 
   const showPriority = (userType === 'admin' || userType === 'student_staff');
+  const showStudent  = (userType === 'admin' || userType === 'student_staff');
 
   // Build a flat numbered index across all groups for the # column
   let globalIdx = 0;
@@ -118,9 +119,14 @@ function renderTable(list, userType, user) {
     table.innerHTML = `
       <thead>
         <tr style="background:${g.border}22">
-          <th>#</th><th>Project Name</th><th>Material</th>
+          <th>#</th>
+          <th>Project Name</th>
+          ${showStudent  ? '<th>Student</th>' : ''}
+          <th>Status</th>
+          <th>Deadline</th>
           ${showPriority ? '<th class="col-priority">Priority</th>' : ''}
-          <th>Status</th><th>Submitted</th><th>Action</th>
+          <th style="color:#999">Submitted</th>
+          <th>Action</th>
         </tr>
       </thead>`;
     const tbody = document.createElement('tbody');
@@ -130,14 +136,31 @@ function renderTable(list, userType, user) {
       const isOwn = (userType === 'student_staff') ? (r.student_email === user.email) : true;
       const canDelete = isOwn && ['pending','revision_requested','rejected'].includes(r.status) && userType !== 'admin';
 
+      // Deadline display
+      let deadlineHtml = '<span style="color:#aaa">—</span>';
+      if (r.deadline_date) {
+        const dl   = new Date(r.deadline_date);
+        const now  = new Date();
+        const days = Math.ceil((dl - now) / 86400000);
+        const fmt  = dl.toLocaleDateString('en-US', {month:'short', day:'numeric'});
+        if (days < 0) {
+          deadlineHtml = `<span style="color:#e74c3c;font-weight:600">⚠️ ${fmt}</span>`;
+        } else if (days <= 3) {
+          deadlineHtml = `<span style="color:#e67e22;font-weight:600">🔶 ${fmt} (${days}d)</span>`;
+        } else {
+          deadlineHtml = `<span style="color:#27ae60">📅 ${fmt} (${days}d)</span>`;
+        }
+      }
+
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td>${globalIdx}</td>
         <td>${r.project_name}</td>
-        <td>${r.material_type || 'PLA'}</td>
-        ${showPriority ? `<td class="col-priority">${priorityLabel(r.priority)}</td>` : ''}
+        ${showStudent  ? `<td style="font-size:0.82rem;color:#555">${r.student_name || r.student_email || '—'}</td>` : ''}
         <td>${statusBadge(r.status)}</td>
-        <td>${new Date(r.created_at).toLocaleDateString('en-US')}</td>
+        <td>${deadlineHtml}</td>
+        ${showPriority ? `<td class="col-priority">${priorityLabel(r.priority)}</td>` : ''}
+        <td style="color:#999;font-size:0.85rem">${new Date(r.created_at).toLocaleDateString('en-US')}</td>
         <td style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <a href="/print-requests/${r.id}/" style="color:#e94560">Details</a>
           ${canDelete ? `<button onclick="deleteRequest(${r.id},'${r.project_name.replace(/'/g,"&#39;")}')" class="btn-delete">🗑 Delete</button>` : ''}
@@ -148,8 +171,10 @@ function renderTable(list, userType, user) {
       if (userType !== 'admin' && isOwn && r.status === 'revision_requested' && r.admin_notes) {
         const feedbackTr = document.createElement('tr');
         feedbackTr.className = 'feedback-row';
+        // cols: # + name + status + deadline + submitted + action = 6, +priority if shown
+        const cols = 6 + (showPriority ? 1 : 0);
         feedbackTr.innerHTML = `
-          <td colspan="${showPriority ? 7 : 6}" style="padding:0 12px 10px 32px">
+          <td colspan="${cols}" style="padding:0 12px 10px 32px">
             <div class="feedback-banner">
               <strong>⚠️ Admin Feedback:</strong> ${r.admin_notes}
               &nbsp;—&nbsp; <em>Please review and delete or resubmit a new request.</em>
