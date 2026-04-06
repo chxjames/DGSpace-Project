@@ -24,14 +24,7 @@
   </div>
 
   <div id="loading" style="text-align:center;padding:32px;color:#888">Loading…</div>
-  <table id="req-table" style="display:none">
-    <thead>
-      <tr>
-        <th>#</th><th>Project Name</th><th>Material</th><th class="col-priority">Priority</th><th>Status</th><th>Submitted</th><th>Action</th>
-      </tr>
-    </thead>
-    <tbody id="req-body"></tbody>
-  </table>
+  <div id="req-groups"></div>
   <p id="no-data" style="display:none;text-align:center;color:#888;padding:32px">
     No print requests yet. <a href="/print-requests/new/">Submit one now</a>
   </p>
@@ -91,36 +84,84 @@ function sortList(list, mode) {
 }
 
 function renderTable(list, userType, user) {
-  const tbody = document.getElementById('req-body');
-  tbody.innerHTML = list.map((r, idx) => {
-      const isOwnRequest = (userType === 'student_staff') ? (r.student_email === user.email) : true;
-      const feedbackBanner = (userType !== 'admin' && isOwnRequest && r.status === 'revision_requested' && r.admin_notes)
-        ? `<tr class="feedback-row">
-             <td colspan="7" style="padding:0 12px 10px 32px">
-               <div class="feedback-banner">
-                 <strong>⚠️ Admin Feedback:</strong> ${r.admin_notes}
-                 &nbsp;—&nbsp; <em>Please review and delete or resubmit a new request.</em>
-               </div>
-             </td>
-           </tr>`
-        : '';
+  // ── Group definitions (in display order) ────────────────
+  const groups = [
+    { key: 'feedback',    label: '⚠️ Needs Your Attention',  statuses: ['revision_requested'],            color: '#fff3cd', border: '#f0ad4e' },
+    { key: 'pending',     label: '🕐 Pending Review',         statuses: ['pending'],                       color: '#e8f4fd', border: '#3498db' },
+    { key: 'inprogress',  label: '🖨️ In Progress',            statuses: ['approved','queued','printing'],  color: '#eaf7ef', border: '#2ecc71' },
+    { key: 'done',        label: '✅ Completed',               statuses: ['completed','failed','cancelled','rejected'], color: '#f8f9fa', border: '#adb5bd' },
+  ];
 
-      const row = `
-        <tr>
-          <td>${idx + 1}</td>
-          <td>${r.project_name}</td>
-          <td>${r.material_type || 'PLA'}</td>
-          <td class="col-priority">${priorityLabel(r.priority)}</td>
-          <td>${statusBadge(r.status)}</td>
-          <td>${new Date(r.created_at).toLocaleDateString('en-US')}</td>
-          <td style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-            <a href="/print-requests/${r.id}/" style="color:#e94560">Details</a>
-            ${(userType === 'admin') ? '' :
-              ((userType === 'student_staff' ? r.student_email === user.email : true) && (r.status === 'pending' || r.status === 'revision_requested' || r.status === 'rejected')) ? `<button onclick="deleteRequest(${r.id},'${r.project_name.replace(/'/g,"&#39;")}')" class="btn-delete">🗑 Delete</button>` : ''}
-          </td>
-        </tr>`;
-      return row + feedbackBanner;
-    }).join('');
+  const showPriority = (userType === 'admin' || userType === 'student_staff');
+
+  // Build a flat numbered index across all groups for the # column
+  let globalIdx = 0;
+
+  const container = document.getElementById('req-groups');
+  container.innerHTML = '';
+
+  groups.forEach(g => {
+    const rows = list.filter(r => g.statuses.includes(r.status));
+    if (!rows.length) return;
+
+    // Section header
+    const header = document.createElement('div');
+    header.style.cssText = `display:flex;align-items:center;gap:8px;margin:18px 0 6px;`;
+    header.innerHTML = `
+      <span style="font-weight:700;font-size:0.95rem;color:#333">${g.label}</span>
+      <span style="font-size:0.8rem;background:#eee;border-radius:10px;padding:1px 8px;color:#666">${rows.length}</span>`;
+    container.appendChild(header);
+
+    // Table for this group
+    const table = document.createElement('table');
+    table.style.cssText = `width:100%;border-collapse:collapse;border:1.5px solid ${g.border};border-radius:8px;overflow:hidden;margin-bottom:4px;background:${g.color}`;
+    table.innerHTML = `
+      <thead>
+        <tr style="background:${g.border}22">
+          <th>#</th><th>Project Name</th><th>Material</th>
+          ${showPriority ? '<th class="col-priority">Priority</th>' : ''}
+          <th>Status</th><th>Submitted</th><th>Action</th>
+        </tr>
+      </thead>`;
+    const tbody = document.createElement('tbody');
+
+    rows.forEach(r => {
+      globalIdx++;
+      const isOwn = (userType === 'student_staff') ? (r.student_email === user.email) : true;
+      const canDelete = isOwn && ['pending','revision_requested','rejected'].includes(r.status) && userType !== 'admin';
+
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${globalIdx}</td>
+        <td>${r.project_name}</td>
+        <td>${r.material_type || 'PLA'}</td>
+        ${showPriority ? `<td class="col-priority">${priorityLabel(r.priority)}</td>` : ''}
+        <td>${statusBadge(r.status)}</td>
+        <td>${new Date(r.created_at).toLocaleDateString('en-US')}</td>
+        <td style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <a href="/print-requests/${r.id}/" style="color:#e94560">Details</a>
+          ${canDelete ? `<button onclick="deleteRequest(${r.id},'${r.project_name.replace(/'/g,"&#39;")}')" class="btn-delete">🗑 Delete</button>` : ''}
+        </td>`;
+      tbody.appendChild(tr);
+
+      // Feedback banner for revision_requested
+      if (userType !== 'admin' && isOwn && r.status === 'revision_requested' && r.admin_notes) {
+        const feedbackTr = document.createElement('tr');
+        feedbackTr.className = 'feedback-row';
+        feedbackTr.innerHTML = `
+          <td colspan="${showPriority ? 7 : 6}" style="padding:0 12px 10px 32px">
+            <div class="feedback-banner">
+              <strong>⚠️ Admin Feedback:</strong> ${r.admin_notes}
+              &nbsp;—&nbsp; <em>Please review and delete or resubmit a new request.</em>
+            </div>
+          </td>`;
+        tbody.appendChild(feedbackTr);
+      }
+    });
+
+    table.appendChild(tbody);
+    container.appendChild(table);
+  });
 }
 
 function applySortAndRender() {
@@ -156,13 +197,8 @@ async function loadRequests(userType, user) {
     const sorted = sortList(list, mode);
     renderTable(sorted, userType, user);
 
-    // Hide Priority column for plain students
-    if (userType !== 'admin' && userType !== 'student_staff') {
-      document.querySelectorAll('.col-priority').forEach(el => el.style.display = 'none');
-    }
-
     document.getElementById('no-data').style.display = 'none';
-    document.getElementById('req-table').style.display = 'table';
+    document.getElementById('req-groups').style.display = 'block';
   } catch(e) {
     document.getElementById('loading').innerHTML =
       '<span style="color:#c0392b">Failed to load. Make sure the backend is running.</span>';
