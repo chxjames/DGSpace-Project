@@ -16,6 +16,7 @@ A full-stack web application for **Donald's Garage** at the University of San Di
 | Backend API | Python Flask 3.0 (REST API) |
 | Database | MySQL 8.0 (AWS RDS) |
 | Auth | JWT tokens + bcrypt + Email verification + TOTP 2FA |
+| Email | Gmail API (OAuth2) |
 | 3D Viewer | Three.js 0.165 (STL preview in browser) |
 | UFP Parsing | Custom parser for Cura `.ufp` slice data |
 | Reports | Dashboard from `print_requests` DB table |
@@ -34,7 +35,7 @@ DGSpace-Project-1/
 ├── backend/                   # Flask REST API
 │   ├── app.py                 # All API routes + background scheduler
 │   ├── auth_service.py        # Register / login / JWT logic
-│   ├── email_service.py       # Email verification (Gmail SMTP)
+│   ├── email_service.py       # Email verification (Gmail API OAuth2)
 │   ├── print_service.py       # Print request CRUD + statistics
 │   ├── totp_service.py        # 2FA (TOTP) — setup, verify, disable
 │   ├── ufp_analysis.py        # Parse Cura .ufp files (print time, material, etc.)
@@ -246,17 +247,21 @@ DB_NAME=DGSpace
 # JWT
 JWT_SECRET_KEY=your_random_secret_key
 
-# Email (Gmail SMTP)
-MAIL_SERVER=smtp.gmail.com
-MAIL_PORT=587
-MAIL_USE_TLS=True
-MAIL_USERNAME=your_email@gmail.com
-MAIL_PASSWORD=your_app_password
+# Gmail API (OAuth2)
+GMAIL_CLIENT_ID=your_client_id
+GMAIL_CLIENT_SECRET=your_client_secret
+GMAIL_REFRESH_TOKEN=your_refresh_token
 MAIL_DEFAULT_SENDER=your_email@gmail.com
 
 # Dev mode: print verification codes to terminal instead of sending email
 DEV_EMAIL_MODE=True
 ```
+
+> **Getting Gmail OAuth2 credentials:**
+> 1. Create a project in [Google Cloud Console](https://console.cloud.google.com) and enable the Gmail API
+> 2. Create an OAuth 2.0 Client ID (Desktop app), add `http://localhost:8080` as a redirect URI
+> 3. Add your sender Gmail account as a test user under OAuth consent screen
+> 4. Run `python get_refresh_token.py` once — it opens a browser to authorize and prints the refresh token
 
 ### 5. Start the servers
 
@@ -404,12 +409,10 @@ DB_USER=dgspace_user
 DB_PASSWORD=<password>
 DB_NAME=DGSpace
 JWT_SECRET_KEY=<secret>
-MAIL_SERVER=smtp.gmail.com
-MAIL_PORT=587
-MAIL_USE_TLS=True
-MAIL_USERNAME=<gmail>
-MAIL_PASSWORD=<app password>
-MAIL_DEFAULT_SENDER=<gmail>
+GMAIL_CLIENT_ID=<oauth2 client id>
+GMAIL_CLIENT_SECRET=<oauth2 client secret>
+GMAIL_REFRESH_TOKEN=<refresh token from get_refresh_token.py>
+MAIL_DEFAULT_SENDER=<sender gmail address>
 DEV_EMAIL_MODE=False
 UPLOAD_FOLDER=/app/uploads   # ⚠️ Must match the Railway volume mount path
 ```
@@ -435,9 +438,16 @@ DJANGO_SECRET_KEY=<secret>
 
 **Production mode** (`DEV_EMAIL_MODE=False`):
 
-1. Google Account → Security → **App Passwords** → generate 16-char password
-2. Fill in `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_DEFAULT_SENDER` in `.env`
-3. Set `DEV_EMAIL_MODE=False` and restart Flask
+Emails are sent via the **Gmail API (OAuth2)** — no App Password required.
+
+1. Create an OAuth 2.0 Client ID in [Google Cloud Console](https://console.cloud.google.com) (enable Gmail API)
+2. Add `http://localhost:8080` as an authorized redirect URI
+3. Add your sender Gmail as a test user under the OAuth consent screen
+4. Run `python get_refresh_token.py` once locally — it opens a browser to authorize and prints the three values to set in Railway:
+   - `GMAIL_CLIENT_ID`
+   - `GMAIL_CLIENT_SECRET`
+   - `GMAIL_REFRESH_TOKEN`
+5. Set `MAIL_DEFAULT_SENDER` to the authorized Gmail address and `DEV_EMAIL_MODE=False`
 
 ---
 
