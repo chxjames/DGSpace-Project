@@ -30,6 +30,14 @@ class TotpService:
     # ------------------------------------------------------------------
 
     @staticmethod
+    def _normalize_user_type(user_type: str) -> str:
+        """Map student_staff → student so they share the same TOTP record.
+        The totp_secrets table ENUM only has 'student' and 'admin'."""
+        if user_type == 'student_staff':
+            return 'student'
+        return user_type
+
+    @staticmethod
     def _get_secret(email: str, user_type: str) -> Optional[str]:
         """Read the user's TOTP secret from DB.
 
@@ -61,6 +69,7 @@ class TotpService:
                 "qr_code_base64": "data:image/png;base64,..."
             }
         """
+        user_type = TotpService._normalize_user_type(user_type)
         secret = pyotp.random_base32()
         totp = pyotp.TOTP(secret)
         uri = totp.provisioning_uri(name=email, issuer_name=APP_NAME)
@@ -102,6 +111,7 @@ class TotpService:
         Validate the user's first TOTP code.
         If valid, set is_active=TRUE to activate 2FA.
         """
+        user_type = TotpService._normalize_user_type(user_type)
         secret = TotpService._get_secret(email, user_type)
         if not secret:
             return {"success": False, "message": "No 2FA setup found. Please call setup first."}
@@ -129,6 +139,7 @@ class TotpService:
         Returns:
             {"success": True/False, "message": "..."}
         """
+        user_type = TotpService._normalize_user_type(user_type)
         row = db.fetch_one(
             "SELECT secret FROM totp_secrets WHERE email = %s AND user_type = %s AND is_active = TRUE",
             (email, user_type),
@@ -149,6 +160,7 @@ class TotpService:
     @staticmethod
     def disable_totp(email: str, user_type: str) -> dict:
         """Delete the user's TOTP secret and disable 2FA."""
+        user_type = TotpService._normalize_user_type(user_type)
         db.execute_query(
             "DELETE FROM totp_secrets WHERE email = %s AND user_type = %s",
             (email, user_type),
@@ -162,6 +174,7 @@ class TotpService:
     @staticmethod
     def get_totp_status(email: str, user_type: str) -> dict:
         """Return whether 2FA is enabled for the given user."""
+        user_type = TotpService._normalize_user_type(user_type)
         row = db.fetch_one(
             "SELECT is_active FROM totp_secrets WHERE email = %s AND user_type = %s",
             (email, user_type),

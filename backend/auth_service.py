@@ -9,6 +9,9 @@ from config import Config
 
 def _check_2fa_active(email: str, user_type: str) -> bool:
     """Check whether the given user has an active TOTP 2FA secret."""
+    # student_staff shares the same TOTP record as student
+    if user_type == 'student_staff':
+        user_type = 'student'
     row = db.fetch_one(
         "SELECT is_active FROM totp_secrets WHERE email = %s AND user_type = %s AND is_active = TRUE",
         (email, user_type),
