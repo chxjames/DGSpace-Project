@@ -169,7 +169,7 @@ _scheduler.add_job(_cleanup_old_files, 'interval', hours=24, id='file_cleanup',
 
 # ── Unverified-account cleanup (runs via scheduler, NOT on every request) ─────
 def _cleanup_unverified():
-    """Delete unverified accounts/codes older than 10 minutes. Runs every 10 min."""
+    """Delete unverified accounts/codes older than 5 minutes. Runs every 5 min."""
     try:
         db.execute_query(
             "DELETE FROM email_verification_codes "
@@ -179,12 +179,12 @@ def _cleanup_unverified():
         db.execute_query(
             "DELETE FROM students "
             "WHERE email_verified = FALSE "
-            "AND created_at < DATE_SUB(NOW(), INTERVAL 10 MINUTE)"
+            "AND created_at < DATE_SUB(NOW(), INTERVAL 5 MINUTE)"
         )
     except Exception as e:
         print(f"[cleanup_unverified] {e}")
 
-_scheduler.add_job(_cleanup_unverified, 'interval', minutes=10, id='unverified_cleanup')
+_scheduler.add_job(_cleanup_unverified, 'interval', minutes=5, id='unverified_cleanup')
 _scheduler.start()
 
 
