@@ -1903,6 +1903,32 @@ def setup_2fa():
     return jsonify(result), 200 if result['success'] else 500
 
 
+@app.route('/api/2fa/debug', methods=['GET'])
+def debug_2fa():
+    """Temporary debug: show server time and expected TOTP code for the current user."""
+    import datetime as _dt
+    import pyotp as _pyotp
+    payload = _get_auth_payload()
+    if not payload:
+        return jsonify({'error': 'Unauthorized'}), 401
+    row = db.fetch_one(
+        "SELECT secret, is_active FROM totp_secrets WHERE email = %s AND user_type = %s",
+        (payload['email'], payload['user_type'])
+    )
+    if not row:
+        return jsonify({'error': 'No totp_secrets row found', 'email': payload['email'], 'user_type': payload['user_type']})
+    totp = _pyotp.TOTP(row['secret'])
+    now = _dt.datetime.utcnow()
+    return jsonify({
+        'server_utc': now.isoformat(),
+        'server_timestamp': int(now.timestamp()),
+        'expected_code': totp.now(),
+        'is_active': row['is_active'],
+        'user_type_in_jwt': payload['user_type'],
+        'email': payload['email'],
+    })
+
+
 @app.route('/api/2fa/confirm', methods=['POST'])
 def confirm_2fa():
     """
