@@ -1,4 +1,4 @@
-from flask_mail import Mail, Message
+from flask_mailman import Mail, EmailMessage
 from config import Config
 
 mail = Mail()
@@ -9,13 +9,7 @@ class EmailService:
     def send_verification_email(to_email, verification_code, full_name):
         """Send verification email to user"""
         try:
-            msg = Message(
-                subject='Verify Your Email - DGSpace',
-                recipients=[to_email],
-                sender=Config.MAIL_DEFAULT_SENDER
-            )
-            
-            msg.html = f"""
+            html_body = f"""
             <!DOCTYPE html>
             <html>
             <head>
@@ -49,8 +43,14 @@ class EmailService:
             </body>
             </html>
             """
-            
-            mail.send(msg)
+            msg = EmailMessage(
+                subject='Verify Your Email - DGSpace',
+                body=html_body,
+                from_email=Config.MAIL_DEFAULT_SENDER,
+                to=[to_email],
+            )
+            msg.content_subtype = 'html'
+            msg.send()
             return {'success': True, 'message': 'Verification email sent'}
         except Exception as e:
             print(f"[ERROR] Error sending email: {e}")
@@ -62,13 +62,7 @@ class EmailService:
         try:
             reset_link = f"http://localhost:3000/reset-password?token={reset_token}"
             
-            msg = Message(
-                subject='Reset Your Password - DGSpace',
-                recipients=[to_email],
-                sender=Config.MAIL_DEFAULT_SENDER
-            )
-            
-            msg.html = f"""
+            html_body = f"""
             <!DOCTYPE html>
             <html>
             <head>
@@ -103,8 +97,14 @@ class EmailService:
             </body>
             </html>
             """
-            
-            mail.send(msg)
+            msg = EmailMessage(
+                subject='Reset Your Password - DGSpace',
+                body=html_body,
+                from_email=Config.MAIL_DEFAULT_SENDER,
+                to=[to_email],
+            )
+            msg.content_subtype = 'html'
+            msg.send()
             return {'success': True, 'message': 'Password reset email sent'}
         except Exception as e:
             print(f"[ERROR] Error sending email: {e}")

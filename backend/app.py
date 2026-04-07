@@ -30,13 +30,14 @@ app.json_provider_class = _AppEncoder
 app.json = _AppEncoder(app)
 CORS(app)  # Enable CORS for frontend requests
 
-# Configure Flask-Mail
+# Configure flask-mailman (Flask 3.x compatible replacement for Flask-Mail)
 app.config['MAIL_SERVER'] = Config.MAIL_SERVER
 app.config['MAIL_PORT'] = Config.MAIL_PORT
 app.config['MAIL_USE_TLS'] = Config.MAIL_USE_TLS
 app.config['MAIL_USERNAME'] = Config.MAIL_USERNAME
 app.config['MAIL_PASSWORD'] = Config.MAIL_PASSWORD
 app.config['MAIL_DEFAULT_SENDER'] = Config.MAIL_DEFAULT_SENDER
+app.config['MAIL_USE_LOCALTIME'] = False
 
 # Configure upload folder
 app.config['UPLOAD_FOLDER'] = Config.UPLOAD_FOLDER
