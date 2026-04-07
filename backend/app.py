@@ -161,11 +161,11 @@ def _cleanup_old_files():
         print(f"[cleanup] Error: {e}")
 
 
-from datetime import datetime as _dt_now
+from datetime import datetime as _dt_now, timedelta as _timedelta
 _scheduler = BackgroundScheduler(daemon=True)
-# next_run_time=_dt_now.now() → runs immediately on startup, then every 24 h
+# Delay first run by 60s so gunicorn workers finish booting before hitting DB
 _scheduler.add_job(_cleanup_old_files, 'interval', hours=24, id='file_cleanup',
-                   next_run_time=_dt_now.now())
+                   next_run_time=_dt_now.now() + _timedelta(seconds=60))
 
 # ── Unverified-account cleanup (runs via scheduler, NOT on every request) ─────
 def _cleanup_unverified():
