@@ -1903,6 +1903,22 @@ def setup_2fa():
     return jsonify(result), 200 if result['success'] else 500
 
 
+@app.route('/api/admin/migrate-totp-enum', methods=['POST'])
+def migrate_totp_enum():
+    """ONE-TIME FIX: Add student_staff to totp_secrets.user_type ENUM."""
+    payload = _get_auth_payload(require_type='admin')
+    if not payload:
+        return jsonify({'error': 'Admin only'}), 403
+    try:
+        db.execute_query("""
+            ALTER TABLE totp_secrets
+              MODIFY COLUMN user_type ENUM('student', 'admin', 'student_staff') NOT NULL
+        """)
+        return jsonify({'success': True, 'message': 'ENUM updated'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @app.route('/api/2fa/debug', methods=['GET'])
 def debug_2fa():
     """Temporary debug: show server time and expected TOTP code for the current user."""
