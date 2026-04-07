@@ -7,7 +7,6 @@ from config import Config
 from print_service import PrintService
 from totp_service import TotpService
 from ufp_analysis import analyze_ufp
-from apscheduler.schedulers.background import BackgroundScheduler
 import os
 import uuid
 import bcrypt
@@ -49,23 +48,15 @@ mail.init_app(app)
 # ── 2-week file cleanup job ───────────────────────────────────────────────────
 def _cleanup_old_files():
     """
-    Runs every 24 h.
-    - UFP + STL: purge for completed/failed/revision_requested (no time gate — safe to delete once terminal)
-    - STL only:  also purge for approved/queued/printing (STL not needed once UFP uploaded)
+    Runs every 24 h in a background daemon thread.
+    - UFP + STL: purge for completed/failed/revision_requested
+    - STL only:  also purge for approved/queued/printing
     Sets file_deleted = 1 so record stays in DB.
     """
     try:
         upload_dir = Config.UPLOAD_FOLDER
-        print(f"[cleanup] UPLOAD_FOLDER = {upload_dir}")
 
-        # Diagnostic: how many records have files at all?
-        total_with_files = db.fetch_one(
-            "SELECT COUNT(*) AS cnt FROM print_requests WHERE ufp_file_path IS NOT NULL OR stl_file_path IS NOT NULL",
-            ()
-        )
-        print(f"[cleanup] Records with files in DB: {(total_with_files or {}).get('cnt', '?')}")
-
-        # ── Batch 1: terminal statuses — delete both UFP and STL (no time gate) ──
+        # Batch 1: terminal statuses — delete both UFP and STL
         eligible = db.fetch_all(
             """
             SELECT request_id, ufp_file_path, stl_file_path
@@ -73,8 +64,7 @@ def _cleanup_old_files():
             WHERE  file_deleted = 0
               AND  (ufp_file_path IS NOT NULL OR stl_file_path IS NOT NULL)
               AND  status IN ('completed', 'failed', 'revision_requested')
-            """,
-            ()
+            """, ()
         )
         purged = 0
         for row in (eligible or []):
@@ -85,93 +75,41 @@ def _cleanup_old_files():
                     try:
                         if os.path.exists(full_path):
                             os.remove(full_path)
-                            print(f"[cleanup] Deleted: {full_path}")
-                        else:
-                            print(f"[cleanup] Already gone: {full_path}")
-                    except Exception as ex:
-                        print(f"[cleanup] Failed to delete {full_path}: {ex}")
+                    except Exception:
+                        pass
             db.execute_query(
-                "UPDATE print_requests SET file_deleted = 1, ufp_file_path = NULL, stl_file_path = NULL WHERE request_id = %s",
+                "UPDATE print_requests SET file_deleted=1, ufp_file_path=NULL, stl_file_path=NULL WHERE request_id=%s",
                 (row['request_id'],)
             )
             purged += 1
-        print(f"[cleanup] Terminal purge — processed {purged} record(s).")
+        print(f"[cleanup] Terminal purge — {purged} record(s).")
 
-        # ── Batch 2: active statuses — delete STL only (UFP still needed) ──
+        # Batch 2: active statuses — delete STL only
         stl_early = db.fetch_all(
-            """
-            SELECT request_id, stl_file_path
-            FROM   print_requests
-            WHERE  stl_file_path IS NOT NULL
-              AND  status IN ('approved', 'queued', 'printing')
-            """,
-            ()
+            "SELECT request_id, stl_file_path FROM print_requests "
+            "WHERE stl_file_path IS NOT NULL AND status IN ('approved','queued','printing')", ()
         )
-        stl_purged = 0
         for row in (stl_early or []):
             path = row.get('stl_file_path')
             if path:
-                full_path = os.path.join(upload_dir, os.path.basename(path))
                 try:
+                    full_path = os.path.join(upload_dir, os.path.basename(path))
                     if os.path.exists(full_path):
                         os.remove(full_path)
-                        print(f"[cleanup] Deleted STL: {full_path}")
-                    else:
-                        print(f"[cleanup] STL already gone: {full_path}")
-                except Exception as ex:
-                    print(f"[cleanup] Failed to delete STL {full_path}: {ex}")
+                except Exception:
+                    pass
             db.execute_query(
-                "UPDATE print_requests SET stl_file_path = NULL WHERE request_id = %s",
+                "UPDATE print_requests SET stl_file_path=NULL WHERE request_id=%s",
                 (row['request_id'],)
             )
-            stl_purged += 1
-        print(f"[cleanup] Active STL purge — processed {stl_purged} record(s).")
-
-        # ── Batch 3: orphan files — on disk but no matching DB record ──
-        # Covers files whose DB path was already NULLed but file was never deleted
-        # (e.g. when UPLOAD_FOLDER env var was wrong on a previous deploy)
-        try:
-            all_files = set(os.listdir(upload_dir))
-        except Exception as ex:
-            print(f"[cleanup] Cannot list upload dir: {ex}")
-            all_files = set()
-
-        # Collect all filenames still referenced in DB
-        referenced = set()
-        for col in ('ufp_file_path', 'stl_file_path'):
-            rows = db.fetch_all(f"SELECT {col} AS p FROM print_requests WHERE {col} IS NOT NULL", ()) or []
-            for r in rows:
-                p = r.get('p')
-                if p:
-                    referenced.add(os.path.basename(p))
-
-        orphans = [f for f in all_files if f not in referenced and (f.endswith('.stl') or f.endswith('.ufp'))]
-        orphan_purged = 0
-        for fname in orphans:
-            full_path = os.path.join(upload_dir, fname)
-            try:
-                os.remove(full_path)
-                print(f"[cleanup] Deleted orphan: {full_path}")
-                orphan_purged += 1
-            except Exception as ex:
-                print(f"[cleanup] Failed to delete orphan {full_path}: {ex}")
-        print(f"[cleanup] Orphan purge — deleted {orphan_purged} of {len(orphans)} orphan file(s) found.")
+        print(f"[cleanup] Active STL purge done.")
 
     except Exception as e:
         print(f"[cleanup] Error: {e}")
 
 
-from datetime import datetime as _dt_now, timedelta as _timedelta
-import threading as _threading
-
-_scheduler = BackgroundScheduler(daemon=True, job_defaults={'misfire_grace_time': 60})
-# Delay first run by 60s so gunicorn workers finish booting before hitting DB
-_scheduler.add_job(_cleanup_old_files, 'interval', hours=24, id='file_cleanup',
-                   next_run_time=_dt_now.now() + _timedelta(seconds=60))
-
-# ── Unverified-account cleanup (runs via scheduler, NOT on every request) ─────
 def _cleanup_unverified():
-    """Delete unverified accounts/codes older than 5 minutes. Runs every 5 min."""
+    """Delete unverified accounts/codes older than 5 minutes."""
     try:
         db.execute_query(
             "DELETE FROM email_verification_codes "
@@ -186,17 +124,37 @@ def _cleanup_unverified():
     except Exception as e:
         print(f"[cleanup_unverified] {e}")
 
-_scheduler.add_job(_cleanup_unverified, 'interval', minutes=5, id='unverified_cleanup',
-                   next_run_time=_dt_now.now() + _timedelta(seconds=90))
 
-# Only start the scheduler once (guard against gunicorn pre-fork spawning multiple workers)
-if not _scheduler.running:
-    _scheduler.start()
+def _run_periodically(fn, interval_seconds, initial_delay=0):
+    """Run fn in a daemon thread, then reschedule itself after interval_seconds."""
+    import threading
+    def _wrapper():
+        fn()
+        t = threading.Timer(interval_seconds, _wrapper)
+        t.daemon = True
+        t.start()
+    t = threading.Timer(initial_delay, _wrapper)
+    t.daemon = True
+    t.start()
+
+
+# Start background jobs — daemon threads, never block gunicorn workers
+_run_periodically(_cleanup_old_files,    interval_seconds=86400, initial_delay=120)   # every 24h, first run after 2min
+_run_periodically(_cleanup_unverified,   interval_seconds=300,   initial_delay=60)    # every 5min, first run after 1min
+
+
+from datetime import datetime as _dt_now, timedelta as _timedelta
+import threading as _threading
+
+_scheduler = BackgroundScheduler(daemon=True, job_defaults={'misfire_grace_time': 60})
+# Delay first run by 60s so gunicorn workers finish booting before hitting DB
+_scheduler.add_job(_cleanup_old_files, 'interval', hours=24, id='file_cleanup',
+                   next_run_time=_dt_now.now() + _timedelta(seconds=60))
 
 
 @app.route('/api/admin/cleanup', methods=['POST'])
 def manual_cleanup():
-    """Admin-only: trigger file cleanup immediately and return a summary."""
+    """Admin-only: trigger file cleanup immediately."""
     auth_header = request.headers.get('Authorization', '')
     if not auth_header.startswith('Bearer '):
         return jsonify({'success': False, 'message': 'Unauthorized'}), 401
@@ -204,35 +162,9 @@ def manual_cleanup():
     if not payload or payload.get('user_type') not in ('admin', 'student_staff'):
         return jsonify({'success': False, 'message': 'Forbidden'}), 403
 
-    # Scan candidate dirs to find where files actually live
-    scan_dirs = ['/app/uploads', '/data', '/app', '/tmp']
-    dir_info = {}
-    for d in scan_dirs:
-        if os.path.isdir(d):
-            try:
-                files = os.listdir(d)
-                stl_ufp = [f for f in files if f.endswith('.stl') or f.endswith('.ufp')]
-                total_bytes = sum(
-                    os.path.getsize(os.path.join(d, f))
-                    for f in stl_ufp
-                    if os.path.isfile(os.path.join(d, f))
-                )
-                dir_info[d] = {'count': len(stl_ufp), 'size_mb': round(total_bytes / 1024 / 1024, 2)}
-            except Exception as ex:
-                dir_info[d] = {'error': str(ex)}
-        else:
-            dir_info[d] = {'exists': False}
-
-    import sys, io
-    buf = io.StringIO()
-    old_stdout = sys.stdout
-    sys.stdout = buf
-    try:
-        _cleanup_old_files()
-    finally:
-        sys.stdout = old_stdout
-    log_output = buf.getvalue()
-    return jsonify({'success': True, 'log': log_output, 'dirs': dir_info}), 200
+    import threading
+    threading.Thread(target=_cleanup_old_files, daemon=True).start()
+    return jsonify({'success': True, 'message': 'Cleanup triggered in background'}), 200
 
 
 @app.before_request
