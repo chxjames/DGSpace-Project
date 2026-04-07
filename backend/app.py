@@ -143,15 +143,6 @@ _run_periodically(_cleanup_old_files,    interval_seconds=86400, initial_delay=1
 _run_periodically(_cleanup_unverified,   interval_seconds=300,   initial_delay=60)    # every 5min, first run after 1min
 
 
-from datetime import datetime as _dt_now, timedelta as _timedelta
-import threading as _threading
-
-_scheduler = BackgroundScheduler(daemon=True, job_defaults={'misfire_grace_time': 60})
-# Delay first run by 60s so gunicorn workers finish booting before hitting DB
-_scheduler.add_job(_cleanup_old_files, 'interval', hours=24, id='file_cleanup',
-                   next_run_time=_dt_now.now() + _timedelta(seconds=60))
-
-
 @app.route('/api/admin/cleanup', methods=['POST'])
 def manual_cleanup():
     """Admin-only: trigger file cleanup immediately."""
