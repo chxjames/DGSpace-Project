@@ -1,20 +1,14 @@
-from flask_mailman import Mail, EmailMessage
+import os
+import resend
 from config import Config
 
-mail = Mail()
+resend.api_key = os.environ.get("RESEND_API_KEY", "")
 
 class EmailService:
 
     @staticmethod
-    def _send_in_context(msg):
-        """Send an EmailMessage inside a Flask app context (safe to call from any thread)."""
-        from app import app
-        with app.app_context():
-            msg.send()
-
-    @staticmethod
     def send_verification_email(to_email, verification_code, full_name):
-        """Send verification email to user"""
+        """Send verification email via Resend API"""
         try:
             html_body = f"""
             <!DOCTYPE html>
@@ -50,25 +44,25 @@ class EmailService:
             </body>
             </html>
             """
-            msg = EmailMessage(
-                subject='Verify Your Email - DGSpace',
-                body=html_body,
-                from_email=Config.MAIL_DEFAULT_SENDER,
-                to=[to_email],
-            )
-            msg.content_subtype = 'html'
-            EmailService._send_in_context(msg)
+            params = {
+                "from": Config.MAIL_DEFAULT_SENDER,
+                "to": [to_email],
+                "subject": "Verify Your Email - DGSpace",
+                "html": html_body,
+            }
+            r = resend.Emails.send(params)
+            print(f"[EMAIL] Verification email sent to {to_email}, id={r.get('id')}")
             return {'success': True, 'message': 'Verification email sent'}
         except Exception as e:
             print(f"[ERROR] Error sending email: {e}")
             return {'success': False, 'message': str(e)}
-    
+
     @staticmethod
     def send_password_reset_email(to_email, reset_token, full_name):
-        """Send password reset email"""
+        """Send password reset email via Resend API"""
         try:
-            reset_link = f"http://localhost:3000/reset-password?token={reset_token}"
-            
+            reset_link = f"https://dgspace.up.railway.app/reset-password?token={reset_token}"
+
             html_body = f"""
             <!DOCTYPE html>
             <html>
@@ -104,14 +98,14 @@ class EmailService:
             </body>
             </html>
             """
-            msg = EmailMessage(
-                subject='Reset Your Password - DGSpace',
-                body=html_body,
-                from_email=Config.MAIL_DEFAULT_SENDER,
-                to=[to_email],
-            )
-            msg.content_subtype = 'html'
-            EmailService._send_in_context(msg)
+            params = {
+                "from": Config.MAIL_DEFAULT_SENDER,
+                "to": [to_email],
+                "subject": "Reset Your Password - DGSpace",
+                "html": html_body,
+            }
+            r = resend.Emails.send(params)
+            print(f"[EMAIL] Password reset email sent to {to_email}, id={r.get('id')}")
             return {'success': True, 'message': 'Password reset email sent'}
         except Exception as e:
             print(f"[ERROR] Error sending email: {e}")

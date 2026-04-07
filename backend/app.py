@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from database import db
 from auth_service import AuthService
-from email_service import EmailService, mail
+from email_service import EmailService
 from config import Config
 from print_service import PrintService
 from totp_service import TotpService
@@ -29,21 +29,10 @@ app.json_provider_class = _AppEncoder
 app.json = _AppEncoder(app)
 CORS(app)  # Enable CORS for frontend requests
 
-# Configure flask-mailman (Flask 3.x compatible replacement for Flask-Mail)
-app.config['MAIL_SERVER'] = Config.MAIL_SERVER
-app.config['MAIL_PORT'] = Config.MAIL_PORT
-app.config['MAIL_USE_TLS'] = Config.MAIL_USE_TLS
-app.config['MAIL_USERNAME'] = Config.MAIL_USERNAME
-app.config['MAIL_PASSWORD'] = Config.MAIL_PASSWORD
-app.config['MAIL_DEFAULT_SENDER'] = Config.MAIL_DEFAULT_SENDER
-app.config['MAIL_USE_LOCALTIME'] = False
-
 # Configure upload folder
 app.config['UPLOAD_FOLDER'] = Config.UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = Config.MAX_UPLOAD_SIZE_MB * 1024 * 1024
 os.makedirs(Config.UPLOAD_FOLDER, exist_ok=True)
-
-mail.init_app(app)
 
 # ── 2-week file cleanup job ───────────────────────────────────────────────────
 def _cleanup_old_files():
