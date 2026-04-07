@@ -314,6 +314,8 @@
   }
 
   window.startSetup2FA = async function() {
+    // If QR is already showing, don't regenerate — that would invalidate the scanned code
+    if (document.getElementById('twofa-setup').style.display !== 'none') return;
     document.getElementById('btn-enable-2fa').disabled = true;
     document.getElementById('btn-enable-2fa').textContent = 'Generating…';
     try {
