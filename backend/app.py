@@ -27,7 +27,6 @@ class _AppEncoder(app.json_provider_class):
 
 app.json_provider_class = _AppEncoder
 app.json = _AppEncoder(app)
-CORS(app)  # Enable CORS for frontend requests
 
 # Configure upload folder
 app.config['UPLOAD_FOLDER'] = Config.UPLOAD_FOLDER

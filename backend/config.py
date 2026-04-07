@@ -15,18 +15,11 @@ class Config:
     JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY')
     JWT_EXPIRATION_HOURS = 24
 
-    # Email (legacy SMTP - kept for reference)
-    MAIL_SERVER = os.getenv('MAIL_SERVER')
-    MAIL_PORT = int(os.getenv('MAIL_PORT', '587') or '587')
-    MAIL_USE_TLS = os.getenv('MAIL_USE_TLS', 'True') == 'True'
-    MAIL_USERNAME = os.getenv('MAIL_USERNAME')
-    MAIL_PASSWORD = os.getenv('MAIL_PASSWORD')
-    MAIL_DEFAULT_SENDER = os.getenv('MAIL_DEFAULT_SENDER')
-
     # Gmail API (OAuth2)
     GMAIL_CLIENT_ID = os.getenv('GMAIL_CLIENT_ID')
     GMAIL_CLIENT_SECRET = os.getenv('GMAIL_CLIENT_SECRET')
     GMAIL_REFRESH_TOKEN = os.getenv('GMAIL_REFRESH_TOKEN')
+    MAIL_DEFAULT_SENDER = os.getenv('MAIL_DEFAULT_SENDER')
 
     # Verification
     VERIFICATION_CODE_EXPIRATION_MINUTES = 15
