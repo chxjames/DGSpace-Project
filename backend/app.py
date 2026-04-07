@@ -1906,9 +1906,9 @@ def setup_2fa():
 @app.route('/api/admin/migrate-totp-enum', methods=['POST'])
 def migrate_totp_enum():
     """ONE-TIME FIX: Add student_staff to totp_secrets.user_type ENUM."""
-    payload = _get_auth_payload(require_type='admin')
+    payload = _get_auth_payload()
     if not payload:
-        return jsonify({'error': 'Admin only'}), 403
+        return jsonify({'error': 'Unauthorized'}), 401
     try:
         db.execute_query("""
             ALTER TABLE totp_secrets
