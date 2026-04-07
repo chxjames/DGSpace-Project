@@ -28,6 +28,9 @@ Thumbs.db
 # Logs
 *.log
 
+# Uploaded files
+uploads/
+
 # Database
 *.db
 *.sqlite
