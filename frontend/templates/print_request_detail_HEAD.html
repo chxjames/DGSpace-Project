@@ -236,7 +236,7 @@ function renderDetail(r) {
 
   // Show student email only to admins
   const currentUser = window.getUser ? window.getUser() : null;
-  if (currentUser && currentUser.user_type === 'admin' && r.student_email) {
+  if (currentUser && (currentUser.user_type === 'admin' || currentUser.user_type === 'student_staff') && r.student_email) {
     const emailEl = document.getElementById('d-student-email');
     emailEl.textContent = r.student_email;
     emailEl.href = `mailto:${r.student_email}`;
@@ -278,7 +278,7 @@ function renderDetail(r) {
   }
 
   // 鈹€鈹€ Admin actions panel 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
-  if (currentUser && currentUser.user_type === 'admin') {
+  if (currentUser && (currentUser.user_type === 'admin' || currentUser.user_type === 'student_staff')) {
     document.getElementById('admin-actions').style.display = 'block';
     window._currentRequestId = r.id || requestId;
     window._currentStatus = r.status;
@@ -294,7 +294,7 @@ function renderDetail(r) {
 
     if (r.status === 'pending' || r.status === 'revision_requested') {
       btnGroup.style.display = 'flex';
-    } else if (r.status === 'approved' || r.status === 'in_progress') {
+    } else if (r.status === 'approved' || r.status === 'queued' || r.status === 'printing' || r.status === 'in_progress') {
       progressGroup.style.display = 'flex';
       const btnBoard     = document.getElementById('btn-go-board');
       const btnCompleted = document.getElementById('btn-mark-completed');
@@ -305,15 +305,15 @@ function renderDetail(r) {
         if (btnCompleted) btnCompleted.style.display = 'none';
         if (btnCancel)    btnCancel.style.display    = 'none';
       } else {
-        // in_progress: show mark-completed/cancel, hide board link
+        // queued / printing / in_progress: show mark-completed/cancel, hide board link
         if (btnBoard)     btnBoard.style.display     = 'none';
         if (btnCompleted) btnCompleted.style.display = '';
         if (btnCancel)    btnCancel.style.display    = '';
       }
     } else {
       statusInfo.style.display = 'block';
-      const labels = { completed: '鉁?Completed', rejected: '鉂?Rejected', cancelled: '馃毇 Cancelled' };
-      statusInfo.innerHTML = `<span style="font-size:1rem">${labels[r.status] || r.status}</span> 鈥?No further actions available.`;
+      const labels = { completed: '✅ Completed', rejected: '❌ Rejected', cancelled: '🚫 Cancelled' };
+      statusInfo.innerHTML = `<span style="font-size:1rem">${labels[r.status] || r.status}</span> — No further actions available.`;
     }
   }
 }
