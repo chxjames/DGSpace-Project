@@ -298,23 +298,10 @@ def register_admin():
     )
     
     if result['success']:
-        # Create verification code
-        code_result = AuthService.create_verification_code(data['email'], 'admin')
-        
-        if code_result['success']:
-            # Send verification email in background — never block the worker
-            import threading
-            threading.Thread(
-                target=EmailService.send_verification_email,
-                args=(data['email'], code_result['code'], data['full_name']),
-                daemon=True
-            ).start()
-            return jsonify({
-                'success': True,
-                'message': 'Admin registration successful! Please check your email for verification code.'
-            }), 201
-        else:
-            return jsonify(result), 500
+        return jsonify({
+            'success': True,
+            'message': 'Admin registration successful! You can now log in.'
+        }), 201
     else:
         return jsonify(result), 400
 

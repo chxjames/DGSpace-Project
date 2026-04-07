@@ -109,10 +109,10 @@ class AuthService:
         # Hash password
         password_hash = AuthService.hash_password(password)
         
-        # Insert new admin
+        # Insert new admin — admins are invite-only, no email verification needed
         query = """
             INSERT INTO admins (email, password_hash, full_name, role, email_verified)
-            VALUES (%s, %s, %s, %s, FALSE)
+            VALUES (%s, %s, %s, %s, TRUE)
         """
         result = db.execute_query(query, (email, password_hash, full_name, role))
         
