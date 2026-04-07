@@ -65,14 +65,14 @@ class TotpService:
         totp = pyotp.TOTP(secret)
         uri = totp.provisioning_uri(name=email, issuer_name=APP_NAME)
 
-    # Generate PNG QR code and encode to base64
+        # Generate PNG QR code and encode to base64
         img = qrcode.make(uri)
         buffer = io.BytesIO()
         img.save(buffer, format="PNG")
         b64 = base64.b64encode(buffer.getvalue()).decode()
         qr_data_uri = f"data:image/png;base64,{b64}"
 
-    # Remove any existing secret, then insert the new secret (inactive)
+        # Remove any existing secret, then insert the new secret (inactive)
         db.execute_query(
             "DELETE FROM totp_secrets WHERE email = %s AND user_type = %s",
             (email, user_type),
