@@ -200,14 +200,15 @@ def register_student():
         
         if code_result['success']:
             if Config.DEV_EMAIL_MODE:
-                # Dev mode: print code to terminal instead of sending email
                 print(f"[DEV] Verification code for {data['email']}: {code_result['code']}")
             else:
-                EmailService.send_verification_email(
-                    to_email=data['email'],
-                    verification_code=code_result['code'],
-                    full_name=data['full_name']
-                )
+                # Send email in background thread — never block the worker
+                import threading
+                threading.Thread(
+                    target=EmailService.send_verification_email,
+                    args=(data['email'], code_result['code'], data['full_name']),
+                    daemon=True
+                ).start()
             return jsonify({
                 'success': True,
                 'message': 'Registration successful! Please check your email for verification code.'
@@ -265,12 +266,13 @@ def resend_student_verification():
     code_result = AuthService.create_verification_code(data['email'], 'student')
     
     if code_result['success']:
-        # Send verification email
-        EmailService.send_verification_email(
-            to_email=data['email'],
-            verification_code=code_result['code'],
-            full_name=student['full_name']
-        )
+        # Send verification email in background — never block the worker
+        import threading
+        threading.Thread(
+            target=EmailService.send_verification_email,
+            args=(data['email'], code_result['code'], student['full_name']),
+            daemon=True
+        ).start()
         return jsonify({'success': True, 'message': 'Verification code sent'}), 200
     else:
         return jsonify({'success': False, 'message': 'Failed to send verification code'}), 500
@@ -300,12 +302,13 @@ def register_admin():
         code_result = AuthService.create_verification_code(data['email'], 'admin')
         
         if code_result['success']:
-            # Send verification email
-            EmailService.send_verification_email(
-                to_email=data['email'],
-                verification_code=code_result['code'],
-                full_name=data['full_name']
-            )
+            # Send verification email in background — never block the worker
+            import threading
+            threading.Thread(
+                target=EmailService.send_verification_email,
+                args=(data['email'], code_result['code'], data['full_name']),
+                daemon=True
+            ).start()
             return jsonify({
                 'success': True,
                 'message': 'Admin registration successful! Please check your email for verification code.'
