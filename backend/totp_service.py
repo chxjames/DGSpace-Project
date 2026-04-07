@@ -107,8 +107,8 @@ class TotpService:
             return {"success": False, "message": "No 2FA setup found. Please call setup first."}
 
         totp = pyotp.TOTP(secret)
-        # valid_window=2 allows ±2 time-steps (±60s) to tolerate clock drift
-        if not totp.verify(code, valid_window=2):
+        # valid_window=4 allows ±4 time-steps (±120s) to tolerate large clock drift
+        if not totp.verify(code, valid_window=4):
             return {"success": False, "message": "Invalid code. Please try again."}
 
         db.execute_query(
@@ -138,7 +138,7 @@ class TotpService:
             return {"success": True, "required": False}
 
         totp = pyotp.TOTP(row["secret"])
-        if totp.verify(code, valid_window=2):
+        if totp.verify(code, valid_window=4):
             return {"success": True, "required": True}
         return {"success": False, "required": True, "message": "Invalid or expired 2FA code."}
 
