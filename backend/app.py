@@ -2018,8 +2018,8 @@ def get_dashboard_report():
                 SUM(status = 'approved') AS approved,
                 SUM(status = 'rejected') AS rejected,
                 SUM(status = 'cancelled') AS cancelled,
-                ROUND(SUM(slicer_time_minutes) / 60, 1) AS total_print_hours,
-                ROUND(SUM(slicer_material_g), 1) AS total_material_g,
+                ROUND(SUM(COALESCE(ufp_print_time_minutes, slicer_time_minutes)) / 60, 1) AS total_print_hours,
+                ROUND(SUM(COALESCE(ufp_material_g, slicer_material_g)), 1) AS total_material_g,
                 COUNT(DISTINCT student_email) AS unique_students
             FROM print_requests
             WHERE DATE(created_at) BETWEEN %s AND %s
@@ -2028,7 +2028,7 @@ def get_dashboard_report():
         # By material type
         by_material = db.fetch_all("""
             SELECT material_type, COUNT(*) AS count,
-                   ROUND(SUM(slicer_material_g), 1) AS material_g
+                   ROUND(SUM(COALESCE(ufp_material_g, slicer_material_g)), 1) AS material_g
             FROM print_requests
             WHERE DATE(created_at) BETWEEN %s AND %s
             GROUP BY material_type
