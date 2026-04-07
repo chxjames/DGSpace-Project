@@ -149,7 +149,7 @@ Files are automatically cleaned up by a background scheduler (runs on startup, t
 | Condition | Action |
 |---|---|
 | Request in terminal status (`completed`, `failed`, `cancelled`, `rejected`) | Delete both STL and UFP files |
-| Request in active status (`approved`, `queued`, `printing`) | Delete STL only (UFP kept for production board) |
+| Request in active status (`approved`, `queued`, `printing`) | Keep both STL and UFP files |
 | File on disk with no matching DB record (orphan) | Delete file |
 
 A manual cleanup can also be triggered via `POST /api/admin/cleanup` (returns a log of what was deleted).

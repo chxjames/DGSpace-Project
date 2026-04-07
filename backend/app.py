@@ -72,25 +72,8 @@ def _cleanup_old_files():
             purged += 1
         print(f"[cleanup] Terminal purge — {purged} record(s).")
 
-        # Batch 2: active statuses — delete STL only
-        stl_early = db.fetch_all(
-            "SELECT request_id, stl_file_path FROM print_requests "
-            "WHERE stl_file_path IS NOT NULL AND status IN ('approved','queued','printing')", ()
-        )
-        for row in (stl_early or []):
-            path = row.get('stl_file_path')
-            if path:
-                try:
-                    full_path = os.path.join(upload_dir, os.path.basename(path))
-                    if os.path.exists(full_path):
-                        os.remove(full_path)
-                except Exception:
-                    pass
-            db.execute_query(
-                "UPDATE print_requests SET stl_file_path=NULL WHERE request_id=%s",
-                (row['request_id'],)
-            )
-        print(f"[cleanup] Active STL purge done.")
+        # Batch 2: active statuses (approved/queued/printing) — keep both STL and UFP
+        print(f"[cleanup] Active requests skipped — STL and UFP retained.")
 
     except Exception as e:
         print(f"[cleanup] Error: {e}")
