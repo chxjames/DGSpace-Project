@@ -73,7 +73,7 @@ CREATE TABLE IF NOT EXISTS password_reset_tokens (
 -- ==========================================
 CREATE TABLE IF NOT EXISTS totp_secrets (
     email VARCHAR(100) NOT NULL,
-    user_type ENUM('student', 'admin') NOT NULL,
+    user_type ENUM('student', 'admin', 'student_staff') NOT NULL,
     secret VARCHAR(64) NOT NULL,
     is_active BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
