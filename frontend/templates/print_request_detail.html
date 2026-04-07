@@ -385,9 +385,9 @@ async function loadDetail() {
 }
 
 function statusBadge(s) {
-  const map = { pending:'Pending', approved:'Approved', rejected:'Rejected',
-                in_progress:'In Progress', completed:'Completed', cancelled:'Cancelled',
-                revision_requested:'Revision Requested' };
+  const map = { pending:'Pending', approved:'Approved', queued:'Queued', printing:'Printing',
+                rejected:'Rejected', in_progress:'In Progress', completed:'Completed',
+                cancelled:'Cancelled', revision_requested:'Revision Requested' };
   return `<span class="badge badge-${s}">${map[s] || s}</span>`;
 }
 function priorityLabel(p) {
