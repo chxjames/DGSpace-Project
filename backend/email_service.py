@@ -164,3 +164,56 @@ class EmailService:
         except Exception as e:
             print(f"[ERROR] Error sending email: {e}")
             return {'success': False, 'message': str(e)}
+
+    @staticmethod
+    def send_print_completed_email(to_email, full_name, project_name, request_id):
+        """Send print completion notification email via Gmail API"""
+        try:
+            pickup_link = f"https://dgspace-c5ff.up.railway.app/print-requests/{request_id}/"
+            html_body = f"""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <style>
+                    body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
+                    .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+                    .header {{ background-color: #28a745; color: white; padding: 20px; text-align: center; border-radius: 6px 6px 0 0; }}
+                    .content {{ background-color: #f9f9f9; padding: 30px; border: 1px solid #e0e0e0; }}
+                    .project {{ font-size: 1.1rem; font-weight: bold; color: #1a1a2e; background: #fff;
+                                border-left: 4px solid #28a745; padding: 12px 16px; margin: 16px 0; }}
+                    .button {{ display: inline-block; padding: 12px 30px; background-color: #28a745;
+                               color: white; text-decoration: none; border-radius: 5px; margin: 20px 0; font-weight: bold; }}
+                    .footer {{ text-align: center; padding: 20px; font-size: 12px; color: #666; }}
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="header">
+                        <h1>&#x1F5A8;&#xFE0F; Your Print is Ready!</h1>
+                    </div>
+                    <div class="content">
+                        <h2>Hi {full_name},</h2>
+                        <p>Great news! Your 3D print request has been completed and is ready for pickup.</p>
+                        <div class="project">&#x1F4E6; {project_name}</div>
+                        <p>Please come to the DGSpace lab to pick up your print. If you have any questions, feel free to reply to this email or contact the lab staff.</p>
+                        <p style="text-align:center">
+                            <a href="{pickup_link}" class="button">View Request Details</a>
+                        </p>
+                    </div>
+                    <div class="footer">
+                        <p>&copy; 2026 DGSpace. All rights reserved.</p>
+                    </div>
+                </div>
+            </body>
+            </html>
+            """
+            msg_id = _send_via_gmail_api(
+                to_email,
+                f"Your 3D Print is Ready - {project_name}",
+                html_body,
+            )
+            print(f"[EMAIL] Print completed email sent to {to_email}, id={msg_id}")
+            return {'success': True, 'message': 'Print completed email sent'}
+        except Exception as e:
+            print(f"[ERROR] Error sending print completed email: {e}")
+            return {'success': False, 'message': str(e)}

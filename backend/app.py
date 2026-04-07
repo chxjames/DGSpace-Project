@@ -1159,6 +1159,27 @@ def update_job_status(job_id):
         (req_status_map[new_status], job['request_id'])
     )
 
+    # ── Notify student on completion ───────────────────────────────────────
+    if new_status == 'completed':
+        db.execute_query(
+            "UPDATE print_requests SET completed_at = NOW() WHERE request_id = %s",
+            (job['request_id'],)
+        )
+        student_row = db.fetch_one(
+            """SELECT pr.student_email, pr.project_name, s.full_name
+               FROM print_requests pr
+               LEFT JOIN students s ON pr.student_email = s.email
+               WHERE pr.request_id = %s""",
+            (job['request_id'],)
+        )
+        if student_row and student_row.get('student_email'):
+            EmailService.send_print_completed_email(
+                to_email=student_row['student_email'],
+                full_name=student_row.get('full_name') or student_row['student_email'],
+                project_name=student_row.get('project_name') or 'Your project',
+                request_id=job['request_id'],
+            )
+
     return jsonify({'success': True, 'message': f'Job status updated to "{new_status}"'}), 200
 
 

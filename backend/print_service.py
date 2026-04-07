@@ -7,6 +7,7 @@ from datetime import datetime
 from typing import Dict, List, Optional
 import os
 from config import Config
+from email_service import EmailService
 
 class PrintService:
     """Service for managing 3D print requests"""
@@ -447,10 +448,25 @@ class PrintService:
             """
             db.execute_query(history_query, (request_id, old_status, new_status, admin_email, change_reason))
             
-            # If completed, set completed_at timestamp
+            # If completed, set completed_at timestamp and notify student
             if new_status == 'completed':
                 complete_query = "UPDATE print_requests SET completed_at = NOW() WHERE request_id = %s"
                 db.execute_query(complete_query, (request_id,))
+                # Fetch student info to send notification email
+                student_row = db.fetch_one(
+                    """SELECT pr.student_email, pr.project_name, s.full_name
+                       FROM print_requests pr
+                       LEFT JOIN students s ON pr.student_email = s.email
+                       WHERE pr.request_id = %s""",
+                    (request_id,)
+                )
+                if student_row and student_row.get('student_email'):
+                    EmailService.send_print_completed_email(
+                        to_email=student_row['student_email'],
+                        full_name=student_row.get('full_name') or student_row['student_email'],
+                        project_name=student_row.get('project_name') or 'Your project',
+                        request_id=request_id,
+                    )
             
             return {
                 'success': True,
