@@ -1,3 +1,7 @@
+# gevent monkey-patch must be first — required when using gunicorn gevent worker
+from gevent import monkey as _monkey
+_monkey.patch_all()
+
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from database import db
