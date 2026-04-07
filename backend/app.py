@@ -1,7 +1,3 @@
-# gevent monkey-patch must be first — required when using gunicorn gevent worker
-from gevent import monkey as _monkey
-_monkey.patch_all()
-
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from database import db
@@ -166,7 +162,9 @@ def _cleanup_old_files():
 
 
 from datetime import datetime as _dt_now, timedelta as _timedelta
-_scheduler = BackgroundScheduler(daemon=True)
+import threading as _threading
+
+_scheduler = BackgroundScheduler(daemon=True, job_defaults={'misfire_grace_time': 60})
 # Delay first run by 60s so gunicorn workers finish booting before hitting DB
 _scheduler.add_job(_cleanup_old_files, 'interval', hours=24, id='file_cleanup',
                    next_run_time=_dt_now.now() + _timedelta(seconds=60))
@@ -188,8 +186,12 @@ def _cleanup_unverified():
     except Exception as e:
         print(f"[cleanup_unverified] {e}")
 
-_scheduler.add_job(_cleanup_unverified, 'interval', minutes=5, id='unverified_cleanup')
-_scheduler.start()
+_scheduler.add_job(_cleanup_unverified, 'interval', minutes=5, id='unverified_cleanup',
+                   next_run_time=_dt_now.now() + _timedelta(seconds=90))
+
+# Only start the scheduler once (guard against gunicorn pre-fork spawning multiple workers)
+if not _scheduler.running:
+    _scheduler.start()
 
 
 @app.route('/api/admin/cleanup', methods=['POST'])
