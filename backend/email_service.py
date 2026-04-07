@@ -4,7 +4,14 @@ from config import Config
 mail = Mail()
 
 class EmailService:
-    
+
+    @staticmethod
+    def _send_in_context(msg):
+        """Send an EmailMessage inside a Flask app context (safe to call from any thread)."""
+        from app import app
+        with app.app_context():
+            msg.send()
+
     @staticmethod
     def send_verification_email(to_email, verification_code, full_name):
         """Send verification email to user"""
@@ -50,7 +57,7 @@ class EmailService:
                 to=[to_email],
             )
             msg.content_subtype = 'html'
-            msg.send()
+            EmailService._send_in_context(msg)
             return {'success': True, 'message': 'Verification email sent'}
         except Exception as e:
             print(f"[ERROR] Error sending email: {e}")
@@ -104,7 +111,7 @@ class EmailService:
                 to=[to_email],
             )
             msg.content_subtype = 'html'
-            msg.send()
+            EmailService._send_in_context(msg)
             return {'success': True, 'message': 'Password reset email sent'}
         except Exception as e:
             print(f"[ERROR] Error sending email: {e}")
