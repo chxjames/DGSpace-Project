@@ -70,6 +70,124 @@
   }
   .stat-card .num { font-size: 2rem; font-weight: bold; color: #e94560; }
   .stat-card .lbl { font-size: 0.78rem; color: #888; margin-top: 4px; }
+
+  /* ── Production Board (embedded) ── */
+  .pb-section-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin: 32px 0 16px; padding-bottom: 10px;
+    border-bottom: 2px solid #e9ecef;
+  }
+  .pb-section-header h3 { margin: 0; font-size: 1.1rem; color: #1a1a2e; }
+  #pb-layout {
+    display: grid;
+    grid-template-columns: 360px 1fr;
+    gap: 20px;
+    align-items: start;
+  }
+  @media (max-width: 860px) { #pb-layout { grid-template-columns: 1fr; } }
+  .pb-section-title {
+    font-size: 1rem; font-weight: 700; color: #1a1a2e;
+    margin: 0 0 14px; display: flex; align-items: center; gap: 8px;
+  }
+  .pb-count-badge {
+    background: #e94560; color: #fff;
+    border-radius: 99px; padding: 1px 8px; font-size: 0.75rem; font-weight: 700;
+  }
+  .rts-card {
+    background: #fff; border: 1px solid #e0e0e0; border-radius: 10px;
+    padding: 12px 14px; margin-bottom: 10px; cursor: grab;
+    transition: box-shadow 0.15s, border-color 0.15s; position: relative;
+  }
+  .rts-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.1); border-color: #007bff; }
+  .rts-card.selected { border-color: #007bff; box-shadow: 0 0 0 2px rgba(0,123,255,.25); }
+  .rts-card.dragging { opacity: 0.4; }
+  .rts-card .card-title { font-weight: 600; font-size: 0.9rem; color: #1a1a2e; margin-bottom: 4px; }
+  .rts-card .card-meta  { font-size: 0.78rem; color: #888; display: flex; flex-wrap: wrap; gap: 8px; }
+  .rts-card .card-meta span { white-space: nowrap; }
+  .priority-dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; margin-right: 4px; vertical-align: middle; }
+  .dot-urgent { background: #dc3545; }
+  .dot-high   { background: #fd7e14; }
+  .dot-normal { background: #28a745; }
+  .deadline-warn { color: #dc3545; font-weight: 600; }
+  .printer-col {
+    background: #fff; border: 1px solid #e0e0e0; border-radius: 12px;
+    padding: 14px 16px; margin-bottom: 16px;
+  }
+  .printer-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .printer-name { font-weight: 700; font-size: 0.95rem; color: #1a1a2e; }
+  .printer-meta { font-size: 0.78rem; color: #888; margin-top: 2px; }
+  .printer-status-badge { padding: 2px 10px; border-radius: 99px; font-size: 0.75rem; font-weight: 600; }
+  .psb-active      { background: #d4edda; color: #155724; }
+  .psb-maintenance { background: #fff3cd; color: #856404; }
+  .psb-idle        { background: #f0f0f0; color: #666; }
+  .queue-drop-zone {
+    min-height: 52px; border: 2px dashed #c8d6e5; border-radius: 8px;
+    padding: 10px; transition: background 0.15s, border-color 0.15s;
+  }
+  .queue-drop-zone.drag-over     { background: #e8f4ff; border-color: #007bff; }
+  .queue-drop-zone.has-jobs      { border-style: solid; border-color: #dee2e6; }
+  .queue-drop-zone.rts-droppable { border-color: #28a745; border-style: dashed; }
+  .job-card {
+    background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px;
+    padding: 10px 12px; margin-bottom: 8px;
+    display: flex; align-items: flex-start; gap: 10px;
+    cursor: grab; position: relative;
+  }
+  .job-card:last-child { margin-bottom: 0; }
+  .job-card .job-pos {
+    min-width: 22px; height: 22px; background: #007bff; color: #fff;
+    border-radius: 50%; font-size: 0.72rem; font-weight: 700;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .job-card.printing .job-pos        { background: #28a745; }
+  .job-card.file_transferred .job-pos { background: #6f42c1; }
+  .job-card .job-body  { flex: 1; min-width: 0; }
+  .job-card .job-title { font-weight: 600; font-size: 0.85rem; color: #1a1a2e; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .job-card .job-meta  { font-size: 0.76rem; color: #888; margin-top: 3px; display: flex; flex-wrap: wrap; gap: 6px; }
+  .job-status-badge { font-size: 0.7rem; font-weight: 600; padding: 1px 7px; border-radius: 99px; }
+  .jsb-queued           { background: #cfe2ff; color: #084298; }
+  .jsb-file_transferred { background: #e2d9f3; color: #432874; }
+  .jsb-printing         { background: #d1e7dd; color: #0a3622; }
+  .job-actions { display: flex; gap: 6px; flex-shrink: 0; }
+  .job-btn { border: none; border-radius: 6px; padding: 4px 9px; font-size: 0.72rem; font-weight: 600; cursor: pointer; transition: opacity 0.15s; }
+  .job-btn:hover { opacity: 0.8; }
+  .btn-transfer { background: #6f42c1; color: #fff; }
+  .btn-printing { background: #28a745; color: #fff; }
+  .btn-complete { background: #007bff; color: #fff; }
+  .btn-fail     { background: #dc3545; color: #fff; }
+  .btn-remove   { background: #f0f0f0; color: #666; }
+  #assign-modal-bg {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.45); z-index: 1000;
+    align-items: center; justify-content: center;
+  }
+  #assign-modal-bg.open { display: flex; }
+  #assign-modal {
+    background: #fff; border-radius: 14px; padding: 28px;
+    width: 380px; max-width: 95vw;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.18);
+  }
+  #assign-modal h3 { margin: 0 0 16px; font-size: 1rem; color: #1a1a2e; }
+  #assign-modal label { font-size: 0.85rem; font-weight: 600; color: #555; display: block; margin-bottom: 4px; }
+  #assign-modal select, #assign-modal input, #assign-modal textarea {
+    width: 100%; box-sizing: border-box; padding: 8px 10px;
+    border: 1px solid #ddd; border-radius: 6px; font-size: 0.88rem;
+    font-family: inherit; margin-bottom: 12px;
+  }
+  .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 4px; }
+  .modal-actions button { padding: 9px 20px; border: none; border-radius: 8px; font-size: 0.88rem; font-weight: 600; cursor: pointer; }
+  #modal-assign-btn { background: #007bff; color: #fff; }
+  #modal-cancel-btn { background: #f0f0f0; color: #555; }
+  .pb-empty { text-align: center; padding: 24px 12px; color: #aaa; font-size: 0.88rem; }
+  .job-countdown {
+    font-size: 0.8rem; font-weight: 700; font-family: monospace;
+    padding: 2px 8px; border-radius: 6px; margin-top: 4px; display: inline-block;
+  }
+  .countdown-ok      { background: #d1e7dd; color: #0a5c2f; }
+  .countdown-warn    { background: #fff3cd; color: #7d5a00; }
+  .countdown-urgent  { background: #f8d7da; color: #842029; }
+  .countdown-overdue { background: #842029; color: #fff; animation: pulse-red 1s infinite; }
+  @keyframes pulse-red { 0%,100%{opacity:1} 50%{opacity:.6} }
 </style>
 
 <!-- ══════════════════ GUEST ══════════════════ -->
@@ -175,6 +293,33 @@
         <div class="desc">Settings &amp; 2FA security</div>
       </a>
     </div>
+
+    <!-- ── Embedded Production Board ── -->
+    <div class="pb-section-header">
+      <h3>🏭 Production Board</h3>
+      <button class="btn" onclick="loadBoard()" style="width:auto;padding:6px 16px;font-size:0.82rem;background:#6c757d">🔄 Refresh</button>
+    </div>
+    <div id="pb-alert"></div>
+    <div id="pb-layout">
+      <div>
+        <div class="card" style="margin:0">
+          <div class="pb-section-title">
+            📋 Ready to Schedule
+            <span id="rts-count" class="pb-count-badge">0</span>
+          </div>
+          <p style="font-size:0.8rem;color:#888;margin:0 0 14px">
+            Click a request or drag it to a printer queue to assign.
+          </p>
+          <div id="rts-loading" style="text-align:center;padding:20px;color:#888">Loading…</div>
+          <div id="rts-list"></div>
+        </div>
+      </div>
+      <div>
+        <div class="pb-section-title" style="margin-bottom:14px">🖨 Printer Queues</div>
+        <div id="printers-loading" style="text-align:center;padding:20px;color:#888">Loading…</div>
+        <div id="printers-list"></div>
+      </div>
+    </div>
   </div>
 
   <!-- ── STUDENT STAFF ── -->
@@ -196,51 +341,523 @@
         <div class="desc">Settings &amp; 2FA security</div>
       </a>
     </div>
+
+    <!-- ── Embedded Production Board (student_staff) ── -->
+    <div class="pb-section-header">
+      <h3>🏭 Production Board</h3>
+      <button class="btn" onclick="loadBoard()" style="width:auto;padding:6px 16px;font-size:0.82rem;background:#6c757d">🔄 Refresh</button>
+    </div>
+    <div id="pb-alert-ss"></div>
+    <div id="pb-layout-ss">
+      <div>
+        <div class="card" style="margin:0">
+          <div class="pb-section-title">
+            📋 Ready to Schedule
+            <span id="rts-count-ss" class="pb-count-badge">0</span>
+          </div>
+          <p style="font-size:0.8rem;color:#888;margin:0 0 14px">
+            Click a request or drag it to a printer queue to assign.
+          </p>
+          <div id="rts-loading-ss" style="text-align:center;padding:20px;color:#888">Loading…</div>
+          <div id="rts-list-ss"></div>
+        </div>
+      </div>
+      <div>
+        <div class="pb-section-title" style="margin-bottom:14px">🖨 Printer Queues</div>
+        <div id="printers-loading-ss" style="text-align:center;padding:20px;color:#888">Loading…</div>
+        <div id="printers-list-ss"></div>
+      </div>
+    </div>
   </div>
 
-</div><!-- end section-user -->
+<!-- ══ Assign Modal (shared) ══ -->
+<div id="assign-modal-bg">
+  <div id="assign-modal">
+    <h3>📌 Assign to Printer</h3>
+    <div id="assign-req-info" style="background:#f8f9fa;border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:0.85rem;color:#333"></div>
+    <label>Select Printer *</label>
+    <select id="modal-printer-select"></select>
+    <label>Estimated Start <span style="font-weight:400;color:#aaa">(optional)</span></label>
+    <input id="modal-est-start" type="datetime-local">
+    <label>Estimated End <span style="font-weight:400;color:#aaa">(optional)</span></label>
+    <input id="modal-est-end" type="datetime-local">
+    <label>Notes <span style="font-weight:400;color:#aaa">(optional)</span></label>
+    <textarea id="modal-notes" rows="2" placeholder="Any notes for this print job…"></textarea>
+    <div class="modal-actions">
+      <button id="modal-cancel-btn" onclick="closeModal()">Cancel</button>
+      <button id="modal-assign-btn" onclick="confirmAssign()">✅ Assign</button>
+    </div>
+  </div>
+</div>
 
 <script>
+/* ════════════════════════════════════════════════════════
+   Home page — role routing + embedded Production Board
+   ════════════════════════════════════════════════════════ */
+
+// ── Production Board state ────────────────────────────────
+let _printers    = [];
+let _rts         = [];
+let _selectedRts = null;
+const _firedTimesUp = new Set();
+const _notifiedJobs = new Set();
+
+// ── Helpers ───────────────────────────────────────────────
+function pbId(base) {
+  // Returns the correct element ID depending on which panel is active
+  const ss = document.getElementById('panel-student-staff');
+  return (ss && ss.style.display !== 'none') ? base + '-ss' : base;
+}
+function pbAlert(msg, type) {
+  const el = document.getElementById(pbId('pb-alert'));
+  if (!el) return;
+  el.innerHTML = `<div class="alert alert-${type === 'success' ? 'success' : 'error'}" style="margin-bottom:14px">${msg}</div>`;
+  if (type === 'success') setTimeout(() => { el.innerHTML = ''; }, 4000);
+}
+function pbEl(base) { return document.getElementById(pbId(base)); }
+
+function formatMinutes(m) {
+  const h = Math.floor(m / 60), min = Math.round(m % 60);
+  return h > 0 ? `${h}h ${min}m` : `${min}m`;
+}
+function deadlineBadge(dateStr) {
+  if (!dateStr) return '';
+  const datePart = String(dateStr).slice(0, 10);
+  const dl    = new Date(datePart + 'T00:00:00');
+  if (isNaN(dl.getTime())) return `<span style="color:#888">📅 ${escHtml(datePart)}</span>`;
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const days  = Math.round((dl - today) / 86400000);
+  if (days < 0)   return `<span class="deadline-warn">⚠️ Overdue</span>`;
+  if (days === 0) return `<span class="deadline-warn">⚠️ Due today</span>`;
+  if (days <= 3)  return `<span class="deadline-warn">⚠️ ${days}d left</span>`;
+  return `<span style="color:#888">📅 ${days}d left</span>`;
+}
+function fmtDt(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  return d.toLocaleDateString('en-US', { month:'short', day:'numeric' }) + ' ' +
+         d.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit' });
+}
+function toDatetimeLocal(date) {
+  const pad = n => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+function escHtml(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function parseUtcString(s) {
+  if (!s) return NaN;
+  if (s.includes('Z') || s.includes('+')) return new Date(s).getTime();
+  return new Date(s.replace(' ', 'T') + 'Z').getTime();
+}
+function fmtCountdown(totalSec) {
+  const h = Math.floor(totalSec / 3600), m = Math.floor((totalSec % 3600) / 60), s = totalSec % 60;
+  const pad = n => String(n).padStart(2, '0');
+  return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
+}
+
+// ── Load Board ────────────────────────────────────────────
+async function loadBoard() {
+  const rtsLoading      = pbEl('rts-loading');
+  const printersLoading = pbEl('printers-loading');
+  const rtsList         = pbEl('rts-list');
+  const printersList    = pbEl('printers-list');
+  if (!rtsLoading) return;   // board not rendered for this user
+
+  rtsLoading.style.display      = 'block';
+  printersLoading.style.display = 'block';
+  rtsList.innerHTML              = '';
+  printersList.innerHTML         = '';
+
+  try {
+    const res  = await apiFetch('/api/admin/production-board');
+    const data = await res.json();
+    if (!data.success) { pbAlert(data.message || 'Failed to load board.'); return; }
+    _rts      = data.ready_to_schedule || [];
+    _printers = data.printers          || [];
+    _selectedRts = null;
+    rtsLoading.style.display      = 'none';
+    printersLoading.style.display = 'none';
+    renderRts();
+    renderPrinters();
+    tickCountdowns();
+  } catch(e) {
+    pbAlert('Network error — make sure the backend is running.');
+    rtsLoading.style.display      = 'none';
+    printersLoading.style.display = 'none';
+  }
+}
+
+// ── Render Ready-to-Schedule ──────────────────────────────
+function renderRts() {
+  const el  = pbEl('rts-list');
+  const cnt = pbEl('rts-count');
+  if (!el) return;
+  cnt.textContent = _rts.length;
+  if (!_rts.length) {
+    el.innerHTML = '<div class="pb-empty">✅ No requests waiting to be scheduled.</div>';
+    return;
+  }
+  const sfx = pbId('rts-list') === 'rts-list-ss' ? '-ss' : '';
+  el.innerHTML = _rts.map(r => {
+    const mins     = r.ufp_print_time_minutes;
+    const timeStr  = mins ? formatMinutes(mins) : '—';
+    const matStr   = [r.material_type, r.color_preference].filter(Boolean).join(' / ');
+    const dl       = r.deadline_date ? deadlineBadge(r.deadline_date) : '';
+    const sel      = _selectedRts && _selectedRts.id === r.id ? 'selected' : '';
+    const dotClass = r.priority === 'urgent' ? 'dot-urgent' : r.priority === 'high' ? 'dot-high' : 'dot-normal';
+    return `
+      <div class="rts-card ${sel}" data-id="${r.id}"
+           draggable="true"
+           ondragstart="rtsCardDragStart(event,${r.id})"
+           ondragend="rtsCardDragEnd(event)"
+           onclick="selectRts(${r.id})">
+        <div class="card-title">
+          <span class="priority-dot ${dotClass}"></span>${escHtml(r.project_name)}
+        </div>
+        <div class="card-meta">
+          <span>👤 ${escHtml(r.student_name || r.student_email)}</span>
+          <span>⏱ ${timeStr}</span>
+          ${matStr ? `<span>🎨 ${escHtml(matStr)}</span>` : ''}
+          ${dl}
+        </div>
+        <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <span style="font-size:0.72rem;color:#aaa">↖ drag to printer or click to assign</span>
+          <a href="/print-requests/${r.id}/" target="_blank"
+             style="font-size:0.75rem;color:#007bff" onclick="event.stopPropagation()">🔗 View</a>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function selectRts(id) {
+  _selectedRts = _rts.find(r => r.id === id) || null;
+  renderRts();
+  if (_selectedRts) openModal();
+}
+
+// ── Render Printer Queues ─────────────────────────────────
+function renderPrinters() {
+  const el = pbEl('printers-list');
+  if (!el) return;
+  if (!_printers.length) {
+    el.innerHTML = '<div class="pb-empty">No printers configured. <a href="/admin/printers/">Add printers →</a></div>';
+    return;
+  }
+  el.innerHTML = _printers.map(p => renderPrinterCol(p)).join('');
+}
+
+function renderPrinterCol(p) {
+  const sfx      = pbId('printers-list') === 'printers-list-ss' ? '-ss' : '';
+  const sbClass  = p.status === 'active' ? 'psb-active' : p.status === 'maintenance' ? 'psb-maintenance' : 'psb-idle';
+  const sbLabel  = p.status.charAt(0).toUpperCase() + p.status.slice(1);
+  const isActive = p.status === 'active';
+  const queue    = p.queue || [];
+  const hasJobs  = queue.length > 0;
+  const jobsHtml = hasJobs
+    ? queue.map((j, idx) => renderJobCard(j, idx + 1)).join('')
+    : '<div class="pb-empty" style="padding:14px 0">— Queue empty —</div>';
+  const dzId     = `dz${sfx}-${p.printer_id}`;
+  const queueSection = isActive ? `
+    <div class="queue-drop-zone ${hasJobs ? 'has-jobs' : ''}" id="${dzId}"
+         ondragover="event.preventDefault();document.getElementById('${dzId}').classList.add('drag-over')"
+         ondragleave="document.getElementById('${dzId}').classList.remove('drag-over')"
+         ondrop="handleDrop(event,${p.printer_id},'${sfx}')">
+      ${jobsHtml}
+    </div>` : `
+    <div style="font-size:0.8rem;color:#aaa;padding:6px 2px;font-style:italic">Not accepting jobs while under maintenance.</div>`;
+  return `
+    <div class="printer-col">
+      <div class="printer-header">
+        <div>
+          <div class="printer-name">🖨 ${escHtml(p.printer_name)}</div>
+          <div class="printer-meta">${escHtml(p.model || '')}${p.location ? ' · ' + escHtml(p.location) : ''}</div>
+        </div>
+        <span class="printer-status-badge ${sbClass}">${sbLabel}</span>
+      </div>
+      ${queueSection}
+    </div>`;
+}
+
+function renderJobCard(j, pos) {
+  const mins    = j.ufp_print_time_minutes;
+  const timeStr = mins ? formatMinutes(mins) : '—';
+  const jsCls   = j.job_status;
+  const jsLabel = { queued: 'Queued', file_transferred: 'File Copied', printing: 'Printing' }[j.job_status] || j.job_status;
+  const attempt = j.attempt_number || 1;
+  const isFirst = (pos === 1);
+  const attemptBadge = attempt > 1
+    ? `<span style="background:#dc3545;color:#fff;border-radius:99px;padding:1px 7px;font-size:0.68rem;font-weight:700">Retry #${attempt - 1}</span> `
+    : '';
+  let actionBtns = '';
+  if (j.job_status === 'queued') {
+    actionBtns = `
+      <button class="job-btn btn-transfer" onclick="advanceJob(${j.job_id},'file_transferred',${attempt})">📁 File Copied</button>
+      <button class="job-btn btn-remove"   onclick="removeJob(${j.job_id})">✕</button>`;
+  } else if (j.job_status === 'file_transferred') {
+    actionBtns = isFirst ? `
+      <button class="job-btn btn-printing" onclick="advanceJob(${j.job_id},'printing',${attempt})">▶ Start Print</button>
+      <button class="job-btn btn-remove"   onclick="removeJob(${j.job_id})">✕</button>` : `
+      <span style="font-size:0.72rem;color:#aaa;font-style:italic">Waiting in queue…</span>
+      <button class="job-btn btn-remove" onclick="removeJob(${j.job_id})">✕</button>`;
+  } else if (j.job_status === 'printing') {
+    actionBtns = `
+      <button class="job-btn btn-complete" onclick="advanceJob(${j.job_id},'completed',${attempt})">✅ Done</button>
+      <button class="job-btn btn-fail"     onclick="advanceJob(${j.job_id},'failed',${attempt})">❌ Failed</button>`;
+  }
+  const dl    = j.deadline_date ? deadlineBadge(j.deadline_date) : '';
+  const endRaw = j.print_end_expected;
+  const hasEnd = endRaw && endRaw !== 'null' && endRaw !== 'None';
+  const cdProject = escHtml(j.project_name || '');
+  const cdPrinter = escHtml(j.printer_name || '');
+  const countdownHtml = (j.job_status === 'printing' && hasEnd)
+    ? `<span class="job-countdown countdown-ok" id="cd-${j.job_id}" data-end="${endRaw}" data-project="${cdProject}" data-printer="${cdPrinter}">⏱ …</span>`
+    : (j.job_status === 'printing'
+        ? `<span class="job-countdown countdown-ok" id="cd-${j.job_id}" data-mins="${j.ufp_print_time_minutes || 0}" data-started="${j.started_at || ''}" data-project="${cdProject}" data-printer="${cdPrinter}">⏱ …</span>`
+        : '');
+  return `
+    <div class="job-card ${jsCls}" draggable="true"
+         ondragstart="event.dataTransfer.setData('job_id','${j.job_id}');event.dataTransfer.setData('from_printer','${j.printer_id || ''}')">
+      <div class="job-pos">${pos}</div>
+      <div class="job-body">
+        <div class="job-title">${attemptBadge}${escHtml(j.project_name)}</div>
+        <div class="job-meta">
+          <span><span class="job-status-badge jsb-${jsCls}">${jsLabel}</span></span>
+          <span>⏱ ${timeStr}</span>
+          <span>👤 ${escHtml(j.student_name || j.student_email)}</span>
+          ${dl}
+          ${j.estimated_start ? `<span>🕐 Est. start: ${fmtDt(j.estimated_start)}</span>` : ''}
+        </div>
+        ${countdownHtml}
+      </div>
+      <div class="job-actions">${actionBtns}</div>
+    </div>`;
+}
+
+// ── Drag & Drop ───────────────────────────────────────────
+function rtsCardDragStart(event, requestId) {
+  event.dataTransfer.setData('rts_id', String(requestId));
+  event.dataTransfer.effectAllowed = 'move';
+  event.currentTarget.classList.add('dragging');
+  _printers.filter(p => p.status === 'active').forEach(p => {
+    ['', '-ss'].forEach(sfx => {
+      const dz = document.getElementById(`dz${sfx}-${p.printer_id}`);
+      if (dz) dz.classList.add('rts-droppable');
+    });
+  });
+}
+function rtsCardDragEnd(event) {
+  event.currentTarget.classList.remove('dragging');
+  document.querySelectorAll('.queue-drop-zone').forEach(dz => dz.classList.remove('drag-over','rts-droppable'));
+}
+async function handleDrop(event, targetPrinterId, sfx) {
+  event.preventDefault();
+  const dzId = `dz${sfx || ''}-${targetPrinterId}`;
+  document.getElementById(dzId)?.classList.remove('drag-over','rts-droppable');
+  const rtsId = event.dataTransfer.getData('rts_id');
+  if (rtsId) {
+    const req     = _rts.find(r => r.id === parseInt(rtsId));
+    if (!req) return;
+    const printer = _printers.find(p => p.printer_id === targetPrinterId);
+    if (!printer || printer.status !== 'active') { pbAlert('Cannot assign to a non-active printer.'); return; }
+    const body = {
+      printer_id:      targetPrinterId,
+      estimated_start: null,
+      estimated_end:   req.ufp_print_time_minutes
+        ? new Date(Date.now() + req.ufp_print_time_minutes * 60000).toISOString()
+        : null,
+      notes: null,
+    };
+    try {
+      const res  = await apiFetch(`/api/admin/print-requests/${req.id}/assign`, { method: 'POST', body: JSON.stringify(body) });
+      const data = await res.json();
+      if (data.success) { pbAlert(`✅ "${escHtml(req.project_name)}" → ${escHtml(printer.printer_name)} #${data.queue_position}`, 'success'); loadBoard(); }
+      else pbAlert(data.message || 'Failed to assign.');
+    } catch(e) { pbAlert('Network error.'); }
+    return;
+  }
+  loadBoard();
+}
+
+// ── Assign Modal ──────────────────────────────────────────
+function openModal() {
+  if (!_selectedRts) return;
+  const r = _selectedRts;
+  document.getElementById('assign-req-info').innerHTML = `
+    <strong>${escHtml(r.project_name)}</strong><br>
+    <span style="color:#888">${escHtml(r.student_name || r.student_email)}</span>
+    &nbsp;·&nbsp; ⏱ ${r.ufp_print_time_minutes ? formatMinutes(r.ufp_print_time_minutes) : '—'}
+    &nbsp;·&nbsp; 🎨 ${escHtml(r.material_type || '—')}`;
+  const sel = document.getElementById('modal-printer-select');
+  sel.innerHTML = _printers.filter(p => p.status === 'active')
+    .map(p => `<option value="${p.printer_id}">${escHtml(p.printer_name)}${p.location ? ' (' + escHtml(p.location) + ')' : ''}</option>`)
+    .join('');
+  if (!sel.options.length) sel.innerHTML = '<option value="">— No active printers —</option>';
+  if (r.ufp_print_time_minutes) {
+    const now = new Date(); now.setMinutes(Math.ceil(now.getMinutes() / 15) * 15, 0, 0);
+    const end = new Date(now.getTime() + r.ufp_print_time_minutes * 60000);
+    document.getElementById('modal-est-start').value = toDatetimeLocal(now);
+    document.getElementById('modal-est-end').value   = toDatetimeLocal(end);
+  } else {
+    document.getElementById('modal-est-start').value = '';
+    document.getElementById('modal-est-end').value   = '';
+  }
+  document.getElementById('modal-notes').value = '';
+  document.getElementById('assign-modal-bg').classList.add('open');
+}
+function closeModal() {
+  document.getElementById('assign-modal-bg').classList.remove('open');
+  _selectedRts = null;
+  renderRts();
+}
+async function confirmAssign() {
+  if (!_selectedRts) return;
+  const printerId = parseInt(document.getElementById('modal-printer-select').value);
+  if (!printerId) { alert('Please select a printer.'); return; }
+  const btn = document.getElementById('modal-assign-btn');
+  btn.disabled = true; btn.textContent = 'Assigning…';
+  const body = {
+    printer_id:      printerId,
+    estimated_start: document.getElementById('modal-est-start').value || null,
+    estimated_end:   document.getElementById('modal-est-end').value   || null,
+    notes:           document.getElementById('modal-notes').value.trim() || null,
+  };
+  try {
+    const res  = await apiFetch(`/api/admin/print-requests/${_selectedRts.id}/assign`, { method: 'POST', body: JSON.stringify(body) });
+    const data = await res.json();
+    if (data.success) { closeModal(); pbAlert(`✅ Assigned to printer — queue position #${data.queue_position}`, 'success'); loadBoard(); }
+    else { pbAlert(data.message || 'Failed to assign.'); btn.disabled = false; btn.textContent = '✅ Assign'; }
+  } catch(e) { pbAlert('Network error.'); btn.disabled = false; btn.textContent = '✅ Assign'; }
+}
+
+// ── Job lifecycle ─────────────────────────────────────────
+async function advanceJob(jobId, newStatus, attempt) {
+  const MAX = 3; attempt = attempt || 1;
+  let msg;
+  if (newStatus === 'failed') {
+    msg = attempt < MAX
+      ? `Mark as FAILED?\n\nAttempt ${attempt} of ${MAX}. A Retry #${attempt} job will be automatically queued.`
+      : `Mark as FAILED?\n\nThis is attempt ${MAX} of ${MAX} — the final allowed attempt.\nThe request will be sent back to the student.`;
+  } else {
+    const labels = { file_transferred:'Mark file as copied to printer?', printing:'Mark print as started?', completed:'Mark print as completed? ✅' };
+    msg = labels[newStatus] || `Set status to "${newStatus}"?`;
+  }
+  if (!confirm(msg)) return;
+  try {
+    const res  = await apiFetch(`/api/admin/jobs/${jobId}/status`, { method: 'PATCH', body: JSON.stringify({ status: newStatus }) });
+    const data = await res.json();
+    if (data.success) {
+      if (data.retry)      pbAlert(`❌ Failed — Retry #${data.attempt - 1} automatically queued (${data.attempts_remaining} left).`, 'success');
+      else if (data.sent_back) pbAlert('❌ All 3 attempts failed — request sent back to student.', 'success');
+      else                 pbAlert(`Job updated: ${newStatus}`, 'success');
+      loadBoard();
+    } else { pbAlert(data.message || 'Failed to update job.'); }
+  } catch(e) { pbAlert('Network error.'); }
+}
+async function removeJob(jobId) {
+  if (!confirm('Remove this job from the queue? The request will return to "Ready to Schedule".')) return;
+  try {
+    const res  = await apiFetch(`/api/admin/jobs/${jobId}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (data.success) { pbAlert('Job removed.', 'success'); loadBoard(); }
+    else pbAlert(data.message || 'Failed to remove job.');
+  } catch(e) { pbAlert('Network error.'); }
+}
+
+// ── Countdown ticker ──────────────────────────────────────
+function tickCountdowns() {
+  const now = Date.now();
+  document.querySelectorAll('[id^="cd-"]').forEach(el => {
+    let endMs;
+    const endStr = el.dataset.end;
+    if (endStr && endStr !== 'null' && endStr !== 'None' && endStr !== 'undefined') endMs = parseUtcString(endStr);
+    if (!endMs || isNaN(endMs)) {
+      const startStr = el.dataset.started, mins = parseFloat(el.dataset.mins || '0');
+      if (startStr && startStr !== 'null' && startStr !== '' && mins > 0) {
+        const startMs = parseUtcString(startStr);
+        if (!isNaN(startMs)) endMs = startMs + mins * 60000;
+      }
+    }
+    if (!endMs || isNaN(endMs)) { el.textContent = '⏱ —'; return; }
+    const diffSec = Math.round((endMs - now) / 1000);
+    el.className = 'job-countdown';
+    let label;
+    if (diffSec <= 0) {
+      label = '🔴 Time Up!'; el.classList.add('countdown-overdue');
+      const jobId = el.id.replace('cd-', '');
+      if (!_firedTimesUp.has(jobId)) {
+        _firedTimesUp.add(jobId);
+        sendBrowserNotification(`⏰ Print complete: "${el.dataset.project}"${el.dataset.printer ? ' on ' + el.dataset.printer : ''}`, 'print_done');
+      }
+    } else if (diffSec <= 600)  { label = `🔴 ${fmtCountdown(diffSec)}`; el.classList.add('countdown-urgent'); }
+    else if (diffSec <= 1800)   { label = `🟡 ${fmtCountdown(diffSec)}`; el.classList.add('countdown-warn'); }
+    else                        { label = `🟢 ${fmtCountdown(diffSec)}`; el.classList.add('countdown-ok'); }
+    el.textContent = label;
+  });
+}
+async function pollNotifications() {
+  try {
+    const res  = await apiFetch('/api/admin/notifications');
+    const data = await res.json();
+    if (!data.success) return;
+    (data.notifications || []).forEach(n => {
+      if (_notifiedJobs.has(n.job_id)) return;
+      _notifiedJobs.add(n.job_id);
+      sendBrowserNotification(n.message, n.type);
+    });
+  } catch(e) { /* silent */ }
+}
+function sendBrowserNotification(message, type) {
+  const alertType = type === 'print_done' ? 'success' : 'error';
+  function _fire() {
+    if ('Notification' in window && Notification.permission === 'granted')
+      new Notification('DGSpace — Production Board', { body: message, icon: '/static/favicon.ico', tag: `dgspace-${type}-${Date.now()}` });
+    pbAlert(message, alertType);
+  }
+  if (!('Notification' in window)) { pbAlert(message, alertType); return; }
+  if (Notification.permission === 'granted') _fire();
+  else if (Notification.permission === 'default') Notification.requestPermission().then(p => { if (p === 'granted') _fire(); else pbAlert(message, alertType); });
+  else pbAlert(message, alertType);
+}
+
+// ── Role routing ──────────────────────────────────────────
 (function() {
   const user = getUser();
   if (!user) {
     document.getElementById('section-guest').style.display = 'block';
     return;
   }
-
   document.getElementById('section-user').style.display = 'block';
   document.getElementById('welcome-msg').textContent = 'Welcome back, ' + (user.full_name || user.email) + '!';
   document.getElementById('user-email').textContent = user.email || '';
 
   const roleMap = {
-    student: '🎓 Student',
-    student_staff: '⭐ Student Staff',
-    admin: '👤 Admin',
-    professor: '🏫 Professor',
-    manager: '🛠 Manager'
+    student: '🎓 Student', student_staff: '⭐ Student Staff',
+    admin: '👤 Admin', professor: '🏫 Professor', manager: '🛠 Manager'
   };
   document.getElementById('role-badge').textContent = roleMap[user.user_type] || user.user_type;
 
-  // Check 2FA status first — if not active, show locked panel only
   apiFetch('/api/2fa/status').then(r => r.json()).then(d => {
     const has2fa = d.is_active || d.enabled;
-    if (!has2fa) {
-      document.getElementById('panel-no2fa').style.display = 'block';
-      return;
-    }
+    if (!has2fa) { document.getElementById('panel-no2fa').style.display = 'block'; return; }
 
-    // 2FA active — show full role panel
     if (user.user_type === 'student') {
       document.getElementById('panel-student').style.display = 'block';
     } else if (user.user_type === 'student_staff') {
       document.getElementById('panel-student-staff').style.display = 'block';
+      loadBoard();
+      setInterval(tickCountdowns, 1000);
+      setInterval(pollNotifications, 30000);
+      if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission();
     } else {
       document.getElementById('panel-admin').style.display = 'block';
-      // Load stats
+      loadBoard();
+      setInterval(tickCountdowns, 1000);
+      setInterval(pollNotifications, 30000);
+      if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission();
       apiFetch('/api/admin/print-requests/statistics').then(r => r.json()).then(d => {
         if (!d.success) return;
-        const s = d.statistics || {};
-        const by = s.by_status || {};
+        const s = d.statistics || {}, by = s.by_status || {};
         document.getElementById('s-pending').textContent    = by.pending     ?? 0;
         document.getElementById('s-approved').textContent   = by.approved    ?? 0;
         document.getElementById('s-inprogress').textContent = by.in_progress ?? 0;
@@ -249,19 +866,10 @@
       }).catch(() => {});
     }
   }).catch(() => {
-    // If 2FA status can't be fetched, fall through to show panels normally
-    showPanelsByRole(user);
+    if (user.user_type === 'student') document.getElementById('panel-student').style.display = 'block';
+    else if (user.user_type === 'student_staff') { document.getElementById('panel-student-staff').style.display = 'block'; loadBoard(); }
+    else { document.getElementById('panel-admin').style.display = 'block'; loadBoard(); }
   });
-
-  function showPanelsByRole(user) {
-    if (user.user_type === 'student') {
-      document.getElementById('panel-student').style.display = 'block';
-    } else if (user.user_type === 'student_staff') {
-      document.getElementById('panel-student-staff').style.display = 'block';
-    } else {
-      document.getElementById('panel-admin').style.display = 'block';
-    }
-  }
 })();
 </script>
 {% endblock %}

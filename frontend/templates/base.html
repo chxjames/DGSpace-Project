@@ -139,7 +139,6 @@
     <div class="nav-links">
       <span id="nav-username" style="display:none"></span>
       <a href="/print-requests/" id="nav-print" style="display:none">Print Requests</a>
-      <a href="/production/" id="nav-production" style="display:none">🏭 Production Board</a>
       <a href="/profile/" id="nav-profile" style="display:none">👤 Profile</a>
       <a href="/accounts/login" id="nav-login">Log In</a>
       <a href="/accounts/signup" id="nav-signup">Sign Up</a>
@@ -169,10 +168,6 @@
         }).then(r => r.json()).then(d => {
           if (d.is_active || d.enabled) {
             document.getElementById('nav-print').style.display = 'inline';
-            // Production Board: admin + student_staff only
-            if (user.user_type === 'admin' || user.user_type === 'student_staff') {
-              document.getElementById('nav-production').style.display = 'inline';
-            }
           }
         }).catch(() => {});
       }
