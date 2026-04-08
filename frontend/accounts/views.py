@@ -25,6 +25,10 @@ class PrintRequestDetailView(TemplateView):
     template_name = "print_request_detail.html"
 
 
+class PrintRequestDetailHeadView(TemplateView):
+    template_name = "print_request_detail_HEAD.html"
+
+
 class PrintRequestReturnView(TemplateView):
     template_name = "print_request_return.html"
 

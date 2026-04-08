@@ -96,13 +96,13 @@
 
   <!-- ── Deadline ──────────────────────────────────────────────── -->
   <div class="form-group">
-    <label>Project Deadline <span style="color:#888;font-weight:400">(optional)</span></label>
+    <label>Project Deadline <span style="color:#e94560">*</span></label>
     <p style="font-size:0.82rem;color:#888;margin:2px 0 8px">
-      If you have a hard deadline (e.g. presentation day), let us know so staff can prioritise accordingly.
+      Please enter your project deadline so staff can schedule accordingly.
     </p>
     <input type="date" id="deadline_date"
            style="max-width:220px"
-           min="">
+           min="" required>
     </div>
   </div>
 
@@ -272,6 +272,9 @@ async function doSubmit() {
   const project_name = document.getElementById('project_name').value.trim();
   if (!project_name) { showAlert('Project name is required.'); return; }
 
+  const deadline_date = document.getElementById('deadline_date').value;
+  if (!deadline_date) { showAlert('Project deadline is required.'); return; }
+
   const body = {
     project_name,
     description:      document.getElementById('description').value.trim(),
@@ -279,7 +282,7 @@ async function doSubmit() {
     color_preference: document.getElementById('color_preference').value,
     is_senior_design: document.getElementById('sd-yes').checked,
     project_context:  document.getElementById('project_context').value,
-    deadline_date:    document.getElementById('deadline_date').value || null,
+    deadline_date,
     stl_file_path:    uploadedStlFilename     || null,
     stl_original_name: uploadedStlOriginalName || null,
   };

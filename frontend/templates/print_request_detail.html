@@ -366,6 +366,12 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
 const requestId = parseInt(location.pathname.split('/').filter(Boolean).pop());
 
+// student_staff should use the admin-capable detail page
+const _u = window.getUser ? window.getUser() : null;
+if (_u && _u.user_type === 'student_staff') {
+  location.replace(`/print-requests/${requestId}/head/`);
+}
+
 // ── fetch request data ──────────────────────────────────────
 async function loadDetail() {
   try {
