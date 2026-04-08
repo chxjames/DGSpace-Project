@@ -366,14 +366,37 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
 const requestId = parseInt(location.pathname.split('/').filter(Boolean).pop());
 
-// student_staff should use the admin-capable detail page
-const _u = window.getUser ? window.getUser() : null;
-if (_u && _u.user_type === 'student_staff') {
-  location.replace(`/print-requests/${requestId}/head/`);
-}
-
 // ── fetch request data ──────────────────────────────────────
 async function loadDetail() {
+  const _u = window.getUser ? window.getUser() : null;
+
+  // student_staff always use the admin-capable detail page …
+  // … EXCEPT when it is their own request sent back for revision.
+  // We check after fetching so we know the owner + status.
+  if (_u && _u.user_type === 'student_staff') {
+    try {
+      const res  = await window.apiFetch(`/api/print-requests/${requestId}`);
+      if (res.status === 401) { location.href = '/accounts/login'; return; }
+      const data = await res.json();
+      if (!data.success) {
+        document.getElementById('loading-detail').textContent = 'Request not found.';
+        return;
+      }
+      const r = data.request;
+      // Own request that needs revision → stay here so the resubmit panel shows
+      if (r.status === 'revision_requested' && r.student_email === _u.email) {
+        renderDetail(r);
+        return;
+      }
+      // All other cases → go to the admin review page
+      location.replace(`/print-requests/${requestId}/head/`);
+    } catch(e) {
+      document.getElementById('loading-detail').textContent = 'Failed to load. Is the backend running?';
+    }
+    return;
+  }
+
+  // Normal (non-student_staff) path
   try {
     const res  = await window.apiFetch(`/api/print-requests/${requestId}`);
     if (res.status === 401) { location.href = '/accounts/login'; return; }
@@ -478,7 +501,10 @@ function renderDetail(r) {
   }
 
   // ── Admin actions panel ──────────────────────────────────
-  if (currentUser && (currentUser.user_type === 'admin' || currentUser.user_type === 'student_staff')) {
+  // student_staff viewing their OWN revision_requested request should act as a student here
+  const isOwnRevision = currentUser && currentUser.user_type === 'student_staff' &&
+                        r.status === 'revision_requested' && r.student_email === currentUser.email;
+  if (currentUser && (currentUser.user_type === 'admin' || currentUser.user_type === 'student_staff') && !isOwnRevision) {
     document.getElementById('admin-actions').style.display = 'block';
     window._currentRequestId = r.id || requestId;
     window._currentStatus = r.status;

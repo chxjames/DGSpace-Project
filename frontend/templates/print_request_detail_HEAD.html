@@ -356,6 +356,17 @@ async function loadDetail() {
 
     }
 
+    // student_staff viewing their OWN request that has been sent back for revision
+    // → redirect to the student detail page so the resubmit panel is shown
+    const _u = window.getUser ? window.getUser() : null;
+
+    if (_u && _u.user_type === 'student_staff' &&
+        data.request.status === 'revision_requested' &&
+        data.request.student_email === _u.email) {
+      location.replace(`/print-requests/${requestId}/`);
+      return;
+    }
+
     renderDetail(data.request);
 
   } catch(e) {
