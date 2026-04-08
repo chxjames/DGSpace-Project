@@ -1232,8 +1232,8 @@ async function adminCannotCompleteByDeadline() {
     });
     const data = await res.json();
     if (data.success) {
-      adminShowAlert('Request sent back — deadline not met. Reloading…', 'success');
-      setTimeout(() => location.reload(), 1200);
+      adminShowAlert('Request sent back — deadline not met. Redirecting to student view…', 'success');
+      setTimeout(() => location.replace(`/print-requests/${window._currentRequestId}/`), 1000);
     } else {
       adminShowAlert(data.message || 'Failed to send back.');
       btn.disabled = false;
@@ -1281,8 +1281,8 @@ async function adminSendBack() {
     });
     const data = await res.json();
     if (data.success) {
-      adminShowAlert('Feedback sent successfully. Reloading…', 'success');
-      setTimeout(() => location.reload(), 1000);
+      adminShowAlert('Feedback sent. Redirecting to student view…', 'success');
+      setTimeout(() => location.replace(`/print-requests/${window._currentRequestId}/`), 1000);
     } else {
       adminShowAlert(data.message || 'Failed to send feedback.');
       btn.disabled = false; btn.textContent = '↩ Send Back';
