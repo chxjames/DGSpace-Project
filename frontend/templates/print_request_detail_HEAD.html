@@ -334,7 +334,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
 // -- helpers (from base.html, already in window scope) ------
 
-const requestId = parseInt(location.pathname.split('/').filter(Boolean).pop());
+const requestId = parseInt(location.pathname.split('/').filter(s => /^\d+$/.test(s)).pop());
 
 // -- fetch request data --------------------------------------
 
