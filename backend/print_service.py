@@ -190,7 +190,8 @@ class PrintService:
                        pr.priority, pr.status, pr.admin_notes, pr.reviewed_by,
                        pr.reviewed_at, pr.created_at, pr.updated_at, pr.completed_at,
                        pr.stl_file_path, pr.stl_original_name, pr.deadline_date,
-                       pr.revision_fields
+                       pr.revision_fields,
+                       pr.ufp_material_g, pr.ufp_print_time_minutes
                 FROM print_requests pr
                 JOIN students s ON pr.student_email = s.email
                 WHERE pr.request_id = %s
@@ -234,6 +235,8 @@ class PrintService:
                 'stl_original_name': result['stl_original_name'],
                 'deadline_date': result['deadline_date'].isoformat() if result['deadline_date'] else None,
                 'revision_fields': revision_fields,  # list like ['stl','description'] or None=all
+                'ufp_material_g': float(result['ufp_material_g']) if result['ufp_material_g'] else None,
+                'ufp_print_time_minutes': float(result['ufp_print_time_minutes']) if result['ufp_print_time_minutes'] else None,
             }
             
             return {

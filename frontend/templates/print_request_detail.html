@@ -33,6 +33,8 @@
         <table style="width:100%;border-collapse:collapse;font-size:0.9rem">
           <tr><td style="padding:6px 0;color:#888;width:44%">Material</td>      <td id="d-material"></td></tr>
           <tr><td style="padding:6px 0;color:#888">Color</td>                   <td id="d-color"></td></tr>
+          <tr id="d-weight-row" style="display:none"><td style="padding:6px 0;color:#888">Est. Weight</td>      <td id="d-weight"></td></tr>
+          <tr id="d-print-time-row" style="display:none"><td style="padding:6px 0;color:#888">Est. Print Time</td>  <td id="d-print-time"></td></tr>
           <tr id="d-deadline-row" style="display:none"><td style="padding:6px 0;color:#888">📅 Deadline</td>      <td id="d-deadline" style="font-weight:600"></td></tr>
           <tr><td style="padding:6px 0;color:#888">Submitted by</td>            <td id="d-student"></td></tr>
           <tr id="d-email-row" style="display:none"><td style="padding:6px 0;color:#888">Student Email</td>  <td><a id="d-student-email" href="#" style="color:#e94560;font-size:0.9rem"></a></td></tr>
@@ -436,6 +438,23 @@ function renderDetail(r) {
   document.getElementById('d-material').textContent      = r.material_type || '—';
   document.getElementById('d-color').textContent         = r.color_preference || '—';
   document.getElementById('d-student').textContent         = r.student_name || r.student_email || '—';
+
+  // Est. Weight (from UFP analysis)
+  if (r.ufp_material_g != null) {
+    document.getElementById('d-weight').textContent = r.ufp_material_g.toFixed(1) + ' g';
+    document.getElementById('d-weight-row').style.display = '';
+  }
+  // Est. Print Time (from UFP analysis)
+  if (r.ufp_print_time_minutes != null) {
+    const totalMins = Math.round(r.ufp_print_time_minutes);
+    const hrs  = Math.floor(totalMins / 60);
+    const mins = totalMins % 60;
+    const label = hrs > 0
+      ? (mins > 0 ? `${hrs}h ${mins}m` : `${hrs}h`)
+      : `${mins}m`;
+    document.getElementById('d-print-time').textContent = label;
+    document.getElementById('d-print-time-row').style.display = '';
+  }
 
   // Deadline
   if (r.deadline_date) {

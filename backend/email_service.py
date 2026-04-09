@@ -195,7 +195,7 @@ class EmailService:
                         <h2>Hi {full_name},</h2>
                         <p>Great news! Your 3D print request has been completed and is ready for pickup.</p>
                         <div class="project">&#x1F4E6; {project_name}</div>
-                        <p>Please come to the DGSpace lab to pick up your print. If you have any questions, feel free to reply to this email or contact the lab staff.</p>
+                        <p>Please come to the DGSpace lab to pick up your print. If you have any questions, feel free to contact the lab staff.(Do not reply to this email)</p>
                         <p style="text-align:center">
                             <a href="{pickup_link}" class="button">View Request Details</a>
                         </p>
