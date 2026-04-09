@@ -222,7 +222,7 @@ class EmailService:
     def send_admin_invite_email(to_email, full_name, password, inviter_name):
         """Send an invitation email to a newly created admin with their login credentials."""
         try:
-            login_link = "https://dgspace-c5ff.up.railway.app/admin/"
+            login_link = "https://dgspace-c5ff.up.railway.app/"
             html_body = f"""
             <!DOCTYPE html>
             <html>
