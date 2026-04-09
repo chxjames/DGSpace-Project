@@ -34,6 +34,7 @@
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:16px;margin-bottom:28px">
       <div class="card" style="padding:20px;text-align:center"><div style="font-size:2rem;font-weight:bold;color:#e94560" id="kpi-total">0</div><div style="color:#666;font-size:0.9rem;margin-top:4px">Total Requests</div></div>
       <div class="card" style="padding:20px;text-align:center"><div style="font-size:2rem;font-weight:bold;color:#28a745" id="kpi-completed">0</div><div style="color:#666;font-size:0.9rem;margin-top:4px">Completed</div></div>
+      <div class="card" style="padding:20px;text-align:center"><div style="font-size:2rem;font-weight:bold;color:#6c757d" id="kpi-approved">0</div><div style="color:#666;font-size:0.9rem;margin-top:4px">Approved</div></div>
       <div class="card" style="padding:20px;text-align:center"><div style="font-size:2rem;font-weight:bold;color:#007bff" id="kpi-inprogress">0</div><div style="color:#666;font-size:0.9rem;margin-top:4px">In Progress</div></div>
       <div class="card" style="padding:20px;text-align:center"><div style="font-size:2rem;font-weight:bold;color:#ffc107" id="kpi-pending">0</div><div style="color:#666;font-size:0.9rem;margin-top:4px">Pending</div></div>
       <div class="card" style="padding:20px;text-align:center"><div style="font-size:2rem;font-weight:bold;color:#fd7e14" id="kpi-hours">0</div><div style="color:#666;font-size:0.9rem;margin-top:4px">Print Hours</div></div>
@@ -132,6 +133,7 @@ async function loadReport(){
     document.getElementById('period-label').textContent=from+' ~ '+to;
     document.getElementById('kpi-total').textContent=s.total_requests;
     document.getElementById('kpi-completed').textContent=s.completed||0;
+    document.getElementById('kpi-approved').textContent=s.approved||0;
     document.getElementById('kpi-inprogress').textContent=s.in_progress||0;
     document.getElementById('kpi-pending').textContent=s.pending||0;
     document.getElementById('kpi-hours').textContent=(parseFloat(s.total_print_hours)||0).toFixed(1);

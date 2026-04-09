@@ -645,9 +645,9 @@ class PrintService:
             by_status = {r['status']: r['cnt'] for r in rows}
             stats['by_status'] = by_status
 
-            # "In Progress" = approved + queued + printing (no 'in_progress' status in DB)
+            # "In Progress" = queued + printing (actively being worked on)
+            # "Approved" is shown separately on the dashboard (waiting to be scheduled)
             in_progress = (
-                by_status.get('approved', 0) +
                 by_status.get('queued',   0) +
                 by_status.get('printing', 0)
             )

@@ -2045,7 +2045,7 @@ def get_dashboard_report():
             SELECT
                 COUNT(*) AS total_requests,
                 SUM(status = 'completed') AS completed,
-                SUM(status = 'in_progress') AS in_progress,
+                SUM(status IN ('queued', 'printing')) AS in_progress,
                 SUM(status = 'pending') AS pending,
                 SUM(status = 'approved') AS approved,
                 SUM(status = 'rejected') AS rejected,
