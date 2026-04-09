@@ -1515,9 +1515,12 @@ def admin_delete_admin(email):
     if payload.get('email') == email:
         return jsonify({'success': False, 'message': 'You cannot delete your own account'}), 400
 
-    existing = db.fetch_one("SELECT email FROM admins WHERE email = %s", (email,))
+    existing = db.fetch_one("SELECT email, role FROM admins WHERE email = %s", (email,))
     if not existing:
         return jsonify({'success': False, 'message': 'Admin not found'}), 404
+
+    if existing.get('role') == 'super_admin':
+        return jsonify({'success': False, 'message': 'The super_admin account cannot be deleted'}), 403
 
     # Clean up related rows
     db.execute_query("DELETE FROM totp_secrets WHERE email = %s AND user_type = 'admin'", (email,))

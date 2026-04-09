@@ -135,7 +135,9 @@ async function loadAdmins() {
       const isSelf = (a.email === currentUserEmail);
       const deleteBtn = isSelf
         ? '<span style="color:#aaa;font-size:0.78rem">You</span>'
-        : `<button class="btn-delete" onclick="deleteAdmin('${safeEmail.replace(/'/g,"&#39;")}')">🗑 Delete</button>`;
+        : a.role === 'super_admin'
+          ? '<span style="color:#aaa;font-size:0.78rem" title="Super admin cannot be deleted">🔒</span>'
+          : `<button class="btn-delete" onclick="deleteAdmin('${safeEmail.replace(/'/g,"&#39;")}')">🗑 Delete</button>`;
       const resetBtn = `<button style="background:#6f42c1;color:#fff;border:none;padding:3px 8px;border-radius:6px;cursor:pointer;font-size:0.75rem;margin-right:4px;white-space:nowrap" onclick="openResetModal('${safeEmail.replace(/'/g,"&#39;")}')">🔑 Reset PW</button>`;
       return `
         <tr>
