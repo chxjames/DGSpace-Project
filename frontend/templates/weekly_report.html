@@ -14,6 +14,7 @@
     <button onclick="setThisWeek()" style="padding:6px 12px;background:#f0f0f5;border:1px solid #ddd;border-radius:4px;font-size:0.82rem;cursor:pointer">This Week</button>
     <button onclick="setLastWeek()" style="padding:6px 12px;background:#f0f0f5;border:1px solid #ddd;border-radius:4px;font-size:0.82rem;cursor:pointer">Last Week</button>
     <button onclick="setThisMonth()" style="padding:6px 12px;background:#f0f0f5;border:1px solid #ddd;border-radius:4px;font-size:0.82rem;cursor:pointer">This Month</button>
+    <button onclick="setAllTime()" style="padding:6px 12px;background:#f0f0f5;border:1px solid #ddd;border-radius:4px;font-size:0.82rem;cursor:pointer">All Time</button>
     <button onclick="loadReport()" class="btn" style="width:auto;padding:7px 20px">Load</button>
   </div>
 
@@ -69,6 +70,9 @@ function saveCostRate(){localStorage.setItem('dgspace_cost_per_g',document.getEl
 function loadCostRate(){var v=localStorage.getItem('dgspace_cost_per_g');if(v!=null)document.getElementById('cost-per-g').value=v;}
 function fmtCost(g){return'$'+(g*getCostRate()).toFixed(2);}
 
+var _allTime=false;
+function setAllTime(){_allTime=true;document.getElementById('date-from').value='';document.getElementById('date-to').value='';}
+
 // Re-render only the cost-dependent cells without a full reload
 function refreshCost(){
   if(!lastData)return;
@@ -111,26 +115,32 @@ function refreshCost(){
 
 function esc(s){if(s==null)return '-';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function isoDate(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
-function setThisWeek(){var t=new Date(),dow=t.getDay()||7;var m=new Date(t);m.setDate(t.getDate()-dow+1);var s=new Date(m);s.setDate(m.getDate()+6);document.getElementById('date-from').value=isoDate(m);document.getElementById('date-to').value=isoDate(s);}
-function setLastWeek(){var t=new Date(),dow=t.getDay()||7;var m=new Date(t);m.setDate(t.getDate()-dow-6);var s=new Date(m);s.setDate(m.getDate()+6);document.getElementById('date-from').value=isoDate(m);document.getElementById('date-to').value=isoDate(s);}
-function setThisMonth(){var n=new Date();var f=new Date(n.getFullYear(),n.getMonth(),1);var l=new Date(n.getFullYear(),n.getMonth()+1,0);document.getElementById('date-from').value=isoDate(f);document.getElementById('date-to').value=isoDate(l);}
+function setThisWeek(){_allTime=false;var t=new Date(),dow=t.getDay()||7;var m=new Date(t);m.setDate(t.getDate()-dow+1);var s=new Date(m);s.setDate(m.getDate()+6);document.getElementById('date-from').value=isoDate(m);document.getElementById('date-to').value=isoDate(s);}
+function setLastWeek(){_allTime=false;var t=new Date(),dow=t.getDay()||7;var m=new Date(t);m.setDate(t.getDate()-dow-6);var s=new Date(m);s.setDate(m.getDate()+6);document.getElementById('date-from').value=isoDate(m);document.getElementById('date-to').value=isoDate(s);}
+function setThisMonth(){_allTime=false;var n=new Date();var f=new Date(n.getFullYear(),n.getMonth(),1);var l=new Date(n.getFullYear(),n.getMonth()+1,0);document.getElementById('date-from').value=isoDate(f);document.getElementById('date-to').value=isoDate(l);}
 document.addEventListener('DOMContentLoaded',function(){loadCostRate();setLastWeek();loadReport();});
 async function loadReport(){
   var from=document.getElementById('date-from').value;var to=document.getElementById('date-to').value;
-  if(!from||!to)return;
+  if(!_allTime&&(!from||!to))return;
   document.getElementById('loading').style.display='block';
   document.getElementById('kpi-section').style.display='none';
   document.getElementById('empty-state').style.display='none';
   document.getElementById('alert-box').innerHTML='';
+  var dashUrl = _allTime
+    ? '/api/reports/dashboard?all_time=1'
+    : '/api/reports/dashboard?from='+from+'&to='+to;
+  var reqsUrl = _allTime
+    ? '/api/admin/print-requests'
+    : '/api/admin/print-requests?from='+from+'&to='+to;
   try{
-    var r=await Promise.all([apiFetch('/api/reports/dashboard?from='+from+'&to='+to),apiFetch('/api/admin/print-requests?from='+from+'&to='+to)]);
+    var r=await Promise.all([apiFetch(dashUrl),apiFetch(reqsUrl)]);
     var dash=await r[0].json();var reqs=await r[1].json();
     document.getElementById('loading').style.display='none';
     if(!dash.success){showAlert(dash.message);return;}
     var s=dash.summary;
     if(!s.total_requests){document.getElementById('empty-state').style.display='block';return;}
     lastData={dash:dash,reqs:reqs.requests||[]};
-    document.getElementById('period-label').textContent=from+' ~ '+to;
+    document.getElementById('period-label').textContent=_allTime?'All time':from+' ~ '+to;
     document.getElementById('kpi-total').textContent=s.total_requests;
     document.getElementById('kpi-completed').textContent=s.completed||0;
     document.getElementById('kpi-approved').textContent=s.approved||0;

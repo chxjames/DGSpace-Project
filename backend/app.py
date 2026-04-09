@@ -2021,6 +2021,7 @@ def admin_reset_student_2fa(email):
 def get_dashboard_report():
     """
     GET /api/reports/dashboard?from=YYYY-MM-DD&to=YYYY-MM-DD
+    GET /api/reports/dashboard?all_time=1          (no date filter)
     Return aggregated stats directly from print_requests table.
     Requires admin / professor / manager JWT.
     """
@@ -2028,20 +2029,26 @@ def get_dashboard_report():
     if not payload or payload.get('user_type') not in ('admin', 'professor', 'manager'):
         return jsonify({'success': False, 'message': 'Admin access required'}), 403
 
+    all_time  = request.args.get('all_time', '').strip() == '1'
     from_date = request.args.get('from', '').strip() or None
     to_date   = request.args.get('to',   '').strip() or None
 
-    # Default: last 7 days
-    if not from_date or not to_date:
+    # Default: last 7 days (only when not all_time and no dates given)
+    if not all_time and (not from_date or not to_date):
         from datetime import datetime, timedelta
         to_dt   = datetime.utcnow()
         from_dt = to_dt - timedelta(days=7)
         from_date = from_dt.strftime('%Y-%m-%d')
         to_date   = to_dt.strftime('%Y-%m-%d')
 
+    # Build WHERE clause once — reused in every query
+    where   = "" if all_time else "WHERE DATE(created_at) BETWEEN %s AND %s"
+    params  = () if all_time else (from_date, to_date)
+    where_pr = "" if all_time else "WHERE DATE(pr.created_at) BETWEEN %s AND %s"
+
     try:
         # Overall summary
-        summary = db.fetch_one("""
+        summary = db.fetch_one(f"""
             SELECT
                 COUNT(*) AS total_requests,
                 SUM(status = 'completed') AS completed,
@@ -2054,54 +2061,54 @@ def get_dashboard_report():
                 ROUND(SUM(COALESCE(ufp_material_g, slicer_material_g)), 1) AS total_material_g,
                 COUNT(DISTINCT student_email) AS unique_students
             FROM print_requests
-            WHERE DATE(created_at) BETWEEN %s AND %s
-        """, (from_date, to_date))
+            {where}
+        """, params)
 
         # By material type
-        by_material = db.fetch_all("""
+        by_material = db.fetch_all(f"""
             SELECT material_type, COUNT(*) AS count,
                    ROUND(SUM(COALESCE(ufp_material_g, slicer_material_g)), 1) AS material_g
             FROM print_requests
-            WHERE DATE(created_at) BETWEEN %s AND %s
+            {where}
             GROUP BY material_type
             ORDER BY count DESC
-        """, (from_date, to_date))
+        """, params)
 
         # By status over time (daily)
-        by_day = db.fetch_all("""
+        by_day = db.fetch_all(f"""
             SELECT DATE(created_at) AS day, COUNT(*) AS count,
                    SUM(status = 'completed') AS completed
             FROM print_requests
-            WHERE DATE(created_at) BETWEEN %s AND %s
+            {where}
             GROUP BY DATE(created_at)
             ORDER BY day
-        """, (from_date, to_date))
+        """, params)
 
         # Top students
-        top_students = db.fetch_all("""
+        top_students = db.fetch_all(f"""
             SELECT pr.student_email, s.full_name,
                    COUNT(*) AS request_count,
                    SUM(pr.status = 'completed') AS completed
             FROM print_requests pr
             LEFT JOIN students s ON pr.student_email = s.email
-            WHERE DATE(pr.created_at) BETWEEN %s AND %s
+            {where_pr}
             GROUP BY pr.student_email, s.full_name
             ORDER BY request_count DESC
             LIMIT 10
-        """, (from_date, to_date))
+        """, params)
 
-        # Recent completed requests
-        recent = db.fetch_all("""
+        # Recent requests
+        recent = db.fetch_all(f"""
             SELECT pr.request_id, pr.student_email, s.full_name,
                    pr.project_name, pr.material_type,
                    pr.slicer_time_minutes, pr.slicer_material_g,
                    pr.status, pr.created_at, pr.completed_at
             FROM print_requests pr
             LEFT JOIN students s ON pr.student_email = s.email
-            WHERE DATE(pr.created_at) BETWEEN %s AND %s
+            {where_pr}
             ORDER BY pr.created_at DESC
             LIMIT 50
-        """, (from_date, to_date))
+        """, params)
 
         # Convert datetime objects to strings for JSON
         def serialize(obj):
@@ -2119,6 +2126,7 @@ def get_dashboard_report():
 
         return jsonify({
             'success': True,
+            'all_time': all_time,
             'period': {'from': from_date, 'to': to_date},
             'summary': summary,
             'by_material': by_material,
