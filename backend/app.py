@@ -1593,7 +1593,8 @@ def admin_update_request_status(request_id):
         new_status=data['status'],
         admin_email=payload['email'],
         admin_notes=data.get('admin_notes'),
-        change_reason=data.get('change_reason')
+        change_reason=data.get('change_reason'),
+        user_type=payload.get('user_type', 'admin')
     )
     
     if result['success']:
@@ -1648,6 +1649,7 @@ def admin_return_request(request_id):
         admin_email=payload['email'],
         reason=reason,
         unlocked_fields=unlocked_fields,
+        user_type=payload.get('user_type', 'admin')
     )
 
     if result['success']:
@@ -1704,6 +1706,9 @@ def admin_approve_with_ufp(request_id):
                 'message': f'Request cannot be approved from status: {current_status}'
             }), 400
 
+        # reviewed_by FK references admins.email — student_staff are in students table so must be NULL
+        reviewer_email = payload['email'] if payload.get('user_type') == 'admin' else None
+
         # Update the record: status + UFP fields
         db.execute_query(
             """UPDATE print_requests
@@ -1722,7 +1727,7 @@ def admin_approve_with_ufp(request_id):
                 ufp_print_time_minutes,
                 ufp_material_g,
                 admin_notes or None,
-                payload['email'],
+                reviewer_email,
                 request_id
             )
         )

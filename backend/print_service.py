@@ -404,7 +404,8 @@ class PrintService:
         new_status: str,
         admin_email: str,
         admin_notes: Optional[str] = None,
-        change_reason: Optional[str] = None
+        change_reason: Optional[str] = None,
+        user_type: str = 'admin'
     ) -> Dict:
         """
         Update the status of a print request (admin action)
@@ -431,14 +432,17 @@ class PrintService:
                 }
             
             old_status = result['status']
-            
+
+            # reviewed_by FK references admins.email; student_staff live in students table
+            reviewer = admin_email if user_type == 'admin' else None
+
             # Update the request
             update_query = """
                 UPDATE print_requests 
                 SET status = %s, reviewed_by = %s, reviewed_at = NOW(), admin_notes = %s
                 WHERE request_id = %s
             """
-            db.execute_query(update_query, (new_status, admin_email, admin_notes, request_id))
+            db.execute_query(update_query, (new_status, reviewer, admin_notes, request_id))
             
             # Add to history
             history_query = """
@@ -507,6 +511,7 @@ class PrintService:
         admin_email: str,
         reason: str,
         unlocked_fields: Optional[List] = None,
+        user_type: str = 'admin',
     ) -> Dict:
         """
         Return (send back) a print request to the student for revision.
@@ -540,12 +545,15 @@ class PrintService:
 
             fields_json = _json.dumps(unlocked_fields) if unlocked_fields else None
 
+            # reviewed_by FK references admins.email; student_staff live in students table
+            reviewer = admin_email if user_type == 'admin' else None
+
             db.execute_query(
                 """UPDATE print_requests
                    SET status = 'revision_requested', reviewed_by = %s, reviewed_at = NOW(),
                        admin_notes = %s, revision_fields = %s
                    WHERE request_id = %s""",
-                (admin_email, reason.strip(), fields_json, request_id)
+                (reviewer, reason.strip(), fields_json, request_id)
             )
 
             db.execute_query(
