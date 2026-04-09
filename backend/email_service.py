@@ -217,3 +217,73 @@ class EmailService:
         except Exception as e:
             print(f"[ERROR] Error sending print completed email: {e}")
             return {'success': False, 'message': str(e)}
+
+    @staticmethod
+    def send_admin_invite_email(to_email, full_name, password, inviter_name):
+        """Send an invitation email to a newly created admin with their login credentials."""
+        try:
+            login_link = "https://dgspace-c5ff.up.railway.app/admin/"
+            html_body = f"""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <style>
+                    body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
+                    .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+                    .header {{ background-color: #1a1a2e; color: white; padding: 20px; text-align: center; border-radius: 6px 6px 0 0; }}
+                    .header h1 {{ margin: 0; font-size: 1.5rem; }}
+                    .header span {{ color: #e94560; font-weight: bold; }}
+                    .content {{ background-color: #f9f9f9; padding: 30px; border: 1px solid #e0e0e0; }}
+                    .credentials {{ background: #fff; border: 1px solid #e0e0e0; border-radius: 6px; padding: 20px; margin: 20px 0; }}
+                    .cred-row {{ display: flex; margin-bottom: 10px; }}
+                    .cred-label {{ color: #888; width: 110px; flex-shrink: 0; font-size: 0.9rem; }}
+                    .cred-value {{ font-weight: bold; color: #1a1a2e; font-size: 0.95rem; word-break: break-all; }}
+                    .button {{ display: inline-block; padding: 12px 30px; background-color: #e94560;
+                               color: white; text-decoration: none; border-radius: 5px; margin: 20px 0; font-weight: bold; }}
+                    .warning {{ background: #fff8e1; border-left: 4px solid #ffc107; padding: 12px 16px;
+                                font-size: 0.85rem; color: #7a5800; margin-top: 16px; border-radius: 0 4px 4px 0; }}
+                    .footer {{ text-align: center; padding: 20px; font-size: 12px; color: #666; }}
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="header">
+                        <h1>&#x1F511; You've been invited to <span>DGSpace</span></h1>
+                    </div>
+                    <div class="content">
+                        <h2>Hi {full_name},</h2>
+                        <p>{inviter_name} has added you as an <strong>Admin</strong> on the DGSpace 3D Print Management platform. You can log in immediately using the credentials below.</p>
+                        <div class="credentials">
+                            <div class="cred-row">
+                                <span class="cred-label">Email</span>
+                                <span class="cred-value">{to_email}</span>
+                            </div>
+                            <div class="cred-row">
+                                <span class="cred-label">Password</span>
+                                <span class="cred-value">{password}</span>
+                            </div>
+                        </div>
+                        <p style="text-align:center">
+                            <a href="{login_link}" class="button">Log In to DGSpace</a>
+                        </p>
+                        <div class="warning">
+                            &#x26A0;&#xFE0F; For security, please change your password after your first login. Do not share these credentials with anyone.
+                        </div>
+                    </div>
+                    <div class="footer">
+                        <p>&copy; 2026 DGSpace. All rights reserved. Do not reply to this email.</p>
+                    </div>
+                </div>
+            </body>
+            </html>
+            """
+            msg_id = _send_via_gmail_api(
+                to_email,
+                "You've been invited to DGSpace — Your Admin Credentials",
+                html_body,
+            )
+            print(f"[EMAIL] Admin invite email sent to {to_email}, id={msg_id}")
+            return {'success': True, 'message': 'Invite email sent'}
+        except Exception as e:
+            print(f"[ERROR] Error sending admin invite email: {e}")
+            return {'success': False, 'message': str(e)}

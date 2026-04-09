@@ -1486,6 +1486,17 @@ def admin_create_admin():
         (email, password_hash, full_name, role)
     )
     if result is not None:
+        # Send invitation email with credentials (best-effort, don't fail on email error)
+        try:
+            inviter_name = payload.get('full_name') or payload.get('email', 'A DGSpace admin')
+            EmailService.send_admin_invite_email(
+                to_email=email,
+                full_name=full_name,
+                password=password,
+                inviter_name=inviter_name,
+            )
+        except Exception as email_err:
+            print(f"[WARN] Admin invite email failed for {email}: {email_err}")
         return jsonify({'success': True, 'message': 'Admin created successfully'}), 201
     return jsonify({'success': False, 'message': 'Failed to create admin'}), 500
 
