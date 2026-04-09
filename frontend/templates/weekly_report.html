@@ -7,7 +7,7 @@
     <h2 style="color:#1a1a2e;margin:0">Print Request Report</h2>
     <button onclick="exportCSV()" style="padding:7px 14px;background:#fff;border:1px solid #ddd;border-radius:4px;cursor:pointer;font-size:0.85rem">Export CSV</button>
   </div>
-  <div style="display:flex;align-items:center;gap:10px;margin-bottom:24px;flex-wrap:wrap">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap">
     <input type="date" id="date-from" style="padding:7px 10px;border:1px solid #ddd;border-radius:4px;font-size:0.9rem">
     <span style="color:#888">to</span>
     <input type="date" id="date-to" style="padding:7px 10px;border:1px solid #ddd;border-radius:4px;font-size:0.9rem">
@@ -16,6 +16,18 @@
     <button onclick="setThisMonth()" style="padding:6px 12px;background:#f0f0f5;border:1px solid #ddd;border-radius:4px;font-size:0.82rem;cursor:pointer">This Month</button>
     <button onclick="loadReport()" class="btn" style="width:auto;padding:7px 20px">Load</button>
   </div>
+
+  <!-- Filament cost rate setting -->
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:24px;background:#f8f9ff;border:1px solid #e0e4ff;border-radius:6px;padding:10px 14px;flex-wrap:wrap">
+    <span style="font-size:0.85rem;color:#555">💰 Filament cost:</span>
+    <span style="font-size:0.85rem;color:#888">$</span>
+    <input type="number" id="cost-per-g" min="0" step="0.001" value="0.025"
+           style="width:80px;padding:4px 8px;border:1px solid #ddd;border-radius:4px;font-size:0.9rem"
+           oninput="saveCostRate();refreshCost()">
+    <span style="font-size:0.85rem;color:#888">/ g</span>
+    <span style="font-size:0.78rem;color:#aaa;margin-left:4px">(saved locally)</span>
+  </div>
+
   <div id="alert-box"></div>
   <div id="period-label" style="color:#888;font-size:0.9rem;margin-bottom:20px"></div>
   <div id="kpi-section" style="display:none">
@@ -27,10 +39,11 @@
       <div class="card" style="padding:20px;text-align:center"><div style="font-size:2rem;font-weight:bold;color:#fd7e14" id="kpi-hours">0</div><div style="color:#666;font-size:0.9rem;margin-top:4px">Print Hours</div></div>
       <div class="card" style="padding:20px;text-align:center"><div style="font-size:2rem;font-weight:bold;color:#6f42c1" id="kpi-material">0</div><div style="color:#666;font-size:0.9rem;margin-top:4px">Material (g)</div></div>
       <div class="card" style="padding:20px;text-align:center"><div style="font-size:2rem;font-weight:bold;color:#17a2b8" id="kpi-students">0</div><div style="color:#666;font-size:0.9rem;margin-top:4px">Students</div></div>
+      <div class="card" style="padding:20px;text-align:center"><div style="font-size:2rem;font-weight:bold;color:#20c997" id="kpi-cost">$0.00</div><div style="color:#666;font-size:0.9rem;margin-top:4px">Est. Cost</div></div>
     </div>
     <div class="card" style="margin-bottom:24px">
       <h3 style="margin-bottom:16px;color:#1a1a2e">By Material Type</h3>
-      <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:0.9rem"><thead><tr style="background:#f8f9fa"><th style="padding:10px;text-align:left;border-bottom:2px solid #dee2e6">Material</th><th style="padding:10px;text-align:right;border-bottom:2px solid #dee2e6">Requests</th><th style="padding:10px;text-align:right;border-bottom:2px solid #dee2e6">Material Used (g)</th><th style="padding:10px;text-align:left;border-bottom:2px solid #dee2e6">Share</th></tr></thead><tbody id="material-tbody"></tbody></table></div>
+      <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:0.9rem"><thead><tr style="background:#f8f9fa"><th style="padding:10px;text-align:left;border-bottom:2px solid #dee2e6">Material</th><th style="padding:10px;text-align:right;border-bottom:2px solid #dee2e6">Requests</th><th style="padding:10px;text-align:right;border-bottom:2px solid #dee2e6">Material Used (g)</th><th style="padding:10px;text-align:right;border-bottom:2px solid #dee2e6">Est. Cost</th><th style="padding:10px;text-align:left;border-bottom:2px solid #dee2e6">Share</th></tr></thead><tbody id="material-tbody"></tbody></table></div>
     </div>
     <div class="card" style="margin-bottom:24px">
       <h3 style="margin-bottom:16px;color:#1a1a2e">Top Students</h3>
@@ -38,7 +51,7 @@
     </div>
     <div class="card">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px"><h3 style="margin:0;color:#1a1a2e">All Requests</h3><span id="req-count" style="font-size:0.85rem;color:#888"></span></div>
-      <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:0.88rem"><thead><tr style="background:#f8f9fa"><th style="padding:9px 10px;text-align:left;border-bottom:2px solid #dee2e6">#</th><th style="padding:9px 10px;text-align:left;border-bottom:2px solid #dee2e6">Student</th><th style="padding:9px 10px;text-align:left;border-bottom:2px solid #dee2e6">Project</th><th style="padding:9px 10px;text-align:left;border-bottom:2px solid #dee2e6">Material</th><th style="padding:9px 10px;text-align:right;border-bottom:2px solid #dee2e6">Print Min</th><th style="padding:9px 10px;text-align:right;border-bottom:2px solid #dee2e6">Material (g)</th><th style="padding:9px 10px;text-align:left;border-bottom:2px solid #dee2e6">Status</th><th style="padding:9px 10px;text-align:left;border-bottom:2px solid #dee2e6">Submitted</th><th style="padding:9px 10px;text-align:center;border-bottom:2px solid #dee2e6">View</th></tr></thead><tbody id="requests-tbody"><tr><td colspan="9" style="padding:20px;text-align:center;color:#aaa">Loading...</td></tr></tbody></table></div>
+      <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:0.88rem"><thead><tr style="background:#f8f9fa"><th style="padding:9px 10px;text-align:left;border-bottom:2px solid #dee2e6">#</th><th style="padding:9px 10px;text-align:left;border-bottom:2px solid #dee2e6">Student</th><th style="padding:9px 10px;text-align:left;border-bottom:2px solid #dee2e6">Project</th><th style="padding:9px 10px;text-align:left;border-bottom:2px solid #dee2e6">Material</th><th style="padding:9px 10px;text-align:right;border-bottom:2px solid #dee2e6">Print Min</th><th style="padding:9px 10px;text-align:right;border-bottom:2px solid #dee2e6">Material (g)</th><th style="padding:9px 10px;text-align:right;border-bottom:2px solid #dee2e6">Est. Cost</th><th style="padding:9px 10px;text-align:left;border-bottom:2px solid #dee2e6">Status</th><th style="padding:9px 10px;text-align:left;border-bottom:2px solid #dee2e6">Submitted</th><th style="padding:9px 10px;text-align:center;border-bottom:2px solid #dee2e6">View</th></tr></thead><tbody id="requests-tbody"><tr><td colspan="10" style="padding:20px;text-align:center;color:#aaa">Loading...</td></tr></tbody></table></div>
     </div>
   </div>
   <div id="empty-state" style="text-align:center;padding:60px;color:#aaa;display:none">No requests found for this period.</div>
@@ -48,14 +61,110 @@
 (function(){var u=getUser();if(!u||['admin','professor','manager'].indexOf(u.user_type)===-1){location.href='/accounts/login';}})();
 var STATUS_BADGE={pending:'background:#fff3cd;color:#856404;border:1px solid #ffc107',approved:'background:#d1e7dd;color:#0a3622;border:1px solid #a3cfbb',in_progress:'background:#cfe2ff;color:#084298;border:1px solid #9ec5fe',completed:'background:#d1e7dd;color:#0a3622;border:1px solid #a3cfbb',rejected:'background:#f8d7da;color:#842029;border:1px solid #f1aeb5',cancelled:'background:#e2e3e5;color:#41464b;border:1px solid #c4c8cb'};
 var lastData=null;
+
+// ── Cost rate helpers ──────────────────────────────────────────────────────
+function getCostRate(){return parseFloat(document.getElementById('cost-per-g').value)||0;}
+function saveCostRate(){localStorage.setItem('dgspace_cost_per_g',document.getElementById('cost-per-g').value);}
+function loadCostRate(){var v=localStorage.getItem('dgspace_cost_per_g');if(v!=null)document.getElementById('cost-per-g').value=v;}
+function fmtCost(g){return'$'+(g*getCostRate()).toFixed(2);}
+
+// Re-render only the cost-dependent cells without a full reload
+function refreshCost(){
+  if(!lastData)return;
+  var s=lastData.dash.summary;
+  var totalG=parseFloat(s.total_material_g)||0;
+  document.getElementById('kpi-cost').textContent='$'+(totalG*getCostRate()).toFixed(2);
+  // material table
+  var total=s.total_requests||1;
+  var mb=document.getElementById('material-tbody');
+  mb.innerHTML=(lastData.dash.by_material||[]).map(function(m){
+    var p=Math.round((m.count/total)*100);
+    var g=parseFloat(m.material_g)||0;
+    return '<tr><td style="padding:9px 10px;border-bottom:1px solid #f0f0f0;font-weight:500">'+esc(m.material_type)+'</td>'
+      +'<td style="padding:9px 10px;border-bottom:1px solid #f0f0f0;text-align:right">'+m.count+'</td>'
+      +'<td style="padding:9px 10px;border-bottom:1px solid #f0f0f0;text-align:right">'+g.toFixed(1)+'</td>'
+      +'<td style="padding:9px 10px;border-bottom:1px solid #f0f0f0;text-align:right;color:#20c997;font-weight:600">'+fmtCost(g)+'</td>'
+      +'<td style="padding:9px 10px;border-bottom:1px solid #f0f0f0;min-width:120px"><div style="background:#e9ecef;border-radius:4px;height:8px"><div style="background:#fd7e14;border-radius:4px;height:8px;width:'+p+'%"></div></div><span style="font-size:0.75rem;color:#888">'+p+'%</span></td></tr>';
+  }).join('');
+  // all-requests table
+  var allReqs=lastData.reqs;
+  var tb=document.getElementById('requests-tbody');
+  if(!allReqs.length){tb.innerHTML='<tr><td colspan="10" style="padding:20px;text-align:center;color:#aaa">No requests in this period.</td></tr>';}
+  else{tb.innerHTML=allReqs.map(function(r){
+    var b=STATUS_BADGE[r.status]||'background:#e2e3e5;color:#41464b';
+    var g=r.slicer_material_g!=null?parseFloat(r.slicer_material_g):null;
+    return '<tr>'
+      +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;color:#888;font-size:0.8rem">'+r.request_id+'</td>'
+      +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0"><div style="font-weight:500">'+esc(r.student_name)+'</div><div style="font-size:0.78rem;color:#888">'+esc(r.student_email)+'</div></td>'
+      +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="'+esc(r.project_name)+'">'+esc(r.project_name)+'</td>'
+      +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0">'+esc(r.material_type)+'</td>'
+      +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;text-align:right">'+(r.slicer_time_minutes!=null?Math.round(r.slicer_time_minutes):'-')+'</td>'
+      +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;text-align:right">'+(g!=null?g.toFixed(1):'-')+'</td>'
+      +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;text-align:right;color:#20c997;font-weight:600">'+(g!=null?fmtCost(g):'-')+'</td>'
+      +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0"><span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:0.78rem;font-weight:600;white-space:nowrap;'+b+'">'+r.status.replace(/_/g,' ')+'</span></td>'
+      +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;white-space:nowrap;color:#555">'+(r.created_at||'').slice(0,10)+'</td>'
+      +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;text-align:center"><a href="/print-requests/'+r.request_id+'/" style="color:#007bff;font-size:0.85rem;text-decoration:none">View</a></td>'
+      +'</tr>';
+  }).join('');}
+}
+
 function esc(s){if(s==null)return '-';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function isoDate(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 function setThisWeek(){var t=new Date(),dow=t.getDay()||7;var m=new Date(t);m.setDate(t.getDate()-dow+1);var s=new Date(m);s.setDate(m.getDate()+6);document.getElementById('date-from').value=isoDate(m);document.getElementById('date-to').value=isoDate(s);}
 function setLastWeek(){var t=new Date(),dow=t.getDay()||7;var m=new Date(t);m.setDate(t.getDate()-dow-6);var s=new Date(m);s.setDate(m.getDate()+6);document.getElementById('date-from').value=isoDate(m);document.getElementById('date-to').value=isoDate(s);}
 function setThisMonth(){var n=new Date();var f=new Date(n.getFullYear(),n.getMonth(),1);var l=new Date(n.getFullYear(),n.getMonth()+1,0);document.getElementById('date-from').value=isoDate(f);document.getElementById('date-to').value=isoDate(l);}
-document.addEventListener('DOMContentLoaded',function(){setLastWeek();loadReport();});
-async function loadReport(){var from=document.getElementById('date-from').value;var to=document.getElementById('date-to').value;if(!from||!to)return;document.getElementById('loading').style.display='block';document.getElementById('kpi-section').style.display='none';document.getElementById('empty-state').style.display='none';document.getElementById('alert-box').innerHTML='';try{var r=await Promise.all([apiFetch('/api/reports/dashboard?from='+from+'&to='+to),apiFetch('/api/admin/print-requests?from='+from+'&to='+to)]);var dash=await r[0].json();var reqs=await r[1].json();document.getElementById('loading').style.display='none';if(!dash.success){showAlert(dash.message);return;}var s=dash.summary;if(!s.total_requests){document.getElementById('empty-state').style.display='block';return;}lastData={dash:dash,reqs:reqs.requests||[]};document.getElementById('period-label').textContent=from+' ~ '+to;document.getElementById('kpi-total').textContent=s.total_requests;document.getElementById('kpi-completed').textContent=s.completed||0;document.getElementById('kpi-inprogress').textContent=s.in_progress||0;document.getElementById('kpi-pending').textContent=s.pending||0;document.getElementById('kpi-hours').textContent=(parseFloat(s.total_print_hours)||0).toFixed(1);document.getElementById('kpi-material').textContent=(parseFloat(s.total_material_g)||0).toFixed(1);document.getElementById('kpi-students').textContent=s.unique_students||0;var total=s.total_requests||1;var mb=document.getElementById('material-tbody');mb.innerHTML=(dash.by_material||[]).map(function(m){var p=Math.round((m.count/total)*100);return '<tr><td style="padding:9px 10px;border-bottom:1px solid #f0f0f0;font-weight:500">'+esc(m.material_type)+'</td><td style="padding:9px 10px;border-bottom:1px solid #f0f0f0;text-align:right">'+m.count+'</td><td style="padding:9px 10px;border-bottom:1px solid #f0f0f0;text-align:right">'+(parseFloat(m.material_g)||0).toFixed(1)+'</td><td style="padding:9px 10px;border-bottom:1px solid #f0f0f0;min-width:120px"><div style="background:#e9ecef;border-radius:4px;height:8px"><div style="background:#fd7e14;border-radius:4px;height:8px;width:'+p+'%"></div></div><span style="font-size:0.75rem;color:#888">'+p+'%</span></td></tr>';}).join('');var sb=document.getElementById('students-tbody');sb.innerHTML=(dash.top_students||[]).map(function(st){return '<tr><td style="padding:9px 10px;border-bottom:1px solid #f0f0f0"><div style="font-weight:500">'+esc(st.full_name||st.student_email)+'</div><div style="font-size:0.78rem;color:#888">'+esc(st.student_email)+'</div></td><td style="padding:9px 10px;border-bottom:1px solid #f0f0f0;text-align:right">'+st.request_count+'</td><td style="padding:9px 10px;border-bottom:1px solid #f0f0f0;text-align:right">'+(st.completed||0)+'</td></tr>';}).join('');var allReqs=lastData.reqs;document.getElementById('req-count').textContent=allReqs.length+' request'+(allReqs.length!==1?'s':'');var tb=document.getElementById('requests-tbody');if(!allReqs.length){tb.innerHTML='<tr><td colspan="9" style="padding:20px;text-align:center;color:#aaa">No requests in this period.</td></tr>';}else{tb.innerHTML=allReqs.map(function(r){var b=STATUS_BADGE[r.status]||'background:#e2e3e5;color:#41464b';return '<tr><td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;color:#888;font-size:0.8rem">'+r.request_id+'</td><td style="padding:8px 10px;border-bottom:1px solid #f0f0f0"><div style="font-weight:500">'+esc(r.student_name)+'</div><div style="font-size:0.78rem;color:#888">'+esc(r.student_email)+'</div></td><td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="'+esc(r.project_name)+'">'+esc(r.project_name)+'</td><td style="padding:8px 10px;border-bottom:1px solid #f0f0f0">'+esc(r.material_type)+'</td><td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;text-align:right">'+(r.slicer_time_minutes!=null?Math.round(r.slicer_time_minutes):'-')+'</td><td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;text-align:right">'+(r.slicer_material_g!=null?parseFloat(r.slicer_material_g).toFixed(1):'-')+'</td><td style="padding:8px 10px;border-bottom:1px solid #f0f0f0"><span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:0.78rem;font-weight:600;white-space:nowrap;'+b+'">'+r.status.replace(/_/g,' ')+'</span></td><td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;white-space:nowrap;color:#555">'+(r.created_at||'').slice(0,10)+'</td><td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;text-align:center"><a href="/print-requests/'+r.request_id+'/" style="color:#007bff;font-size:0.85rem;text-decoration:none">View</a></td></tr>';}).join('');}document.getElementById('kpi-section').style.display='block';}catch(e){document.getElementById('loading').style.display='none';showAlert('Cannot reach server: '+e.message);}}
+document.addEventListener('DOMContentLoaded',function(){loadCostRate();setLastWeek();loadReport();});
+async function loadReport(){
+  var from=document.getElementById('date-from').value;var to=document.getElementById('date-to').value;
+  if(!from||!to)return;
+  document.getElementById('loading').style.display='block';
+  document.getElementById('kpi-section').style.display='none';
+  document.getElementById('empty-state').style.display='none';
+  document.getElementById('alert-box').innerHTML='';
+  try{
+    var r=await Promise.all([apiFetch('/api/reports/dashboard?from='+from+'&to='+to),apiFetch('/api/admin/print-requests?from='+from+'&to='+to)]);
+    var dash=await r[0].json();var reqs=await r[1].json();
+    document.getElementById('loading').style.display='none';
+    if(!dash.success){showAlert(dash.message);return;}
+    var s=dash.summary;
+    if(!s.total_requests){document.getElementById('empty-state').style.display='block';return;}
+    lastData={dash:dash,reqs:reqs.requests||[]};
+    document.getElementById('period-label').textContent=from+' ~ '+to;
+    document.getElementById('kpi-total').textContent=s.total_requests;
+    document.getElementById('kpi-completed').textContent=s.completed||0;
+    document.getElementById('kpi-inprogress').textContent=s.in_progress||0;
+    document.getElementById('kpi-pending').textContent=s.pending||0;
+    document.getElementById('kpi-hours').textContent=(parseFloat(s.total_print_hours)||0).toFixed(1);
+    document.getElementById('kpi-material').textContent=(parseFloat(s.total_material_g)||0).toFixed(1);
+    document.getElementById('kpi-students').textContent=s.unique_students||0;
+    // top students (no cost column here)
+    var sb=document.getElementById('students-tbody');
+    sb.innerHTML=(dash.top_students||[]).map(function(st){return '<tr><td style="padding:9px 10px;border-bottom:1px solid #f0f0f0"><div style="font-weight:500">'+esc(st.full_name||st.student_email)+'</div><div style="font-size:0.78rem;color:#888">'+esc(st.student_email)+'</div></td><td style="padding:9px 10px;border-bottom:1px solid #f0f0f0;text-align:right">'+st.request_count+'</td><td style="padding:9px 10px;border-bottom:1px solid #f0f0f0;text-align:right">'+(st.completed||0)+'</td></tr>';}).join('');
+    document.getElementById('req-count').textContent=lastData.reqs.length+' request'+(lastData.reqs.length!==1?'s':'');
+    refreshCost(); // render material table + all-requests + cost KPI
+    document.getElementById('kpi-section').style.display='block';
+  }catch(e){document.getElementById('loading').style.display='none';showAlert('Cannot reach server: '+e.message);}
+}
 function showAlert(msg){document.getElementById('alert-box').innerHTML='<div style="padding:12px;background:#fee2e2;border:1px solid #fca5a5;border-radius:6px;color:#991b1b;margin-bottom:16px">'+msg+'</div>';}
-function exportCSV(){if(!lastData)return;var reqs=lastData.reqs;var h=['#','Student Email','Student Name','Project','Material','Print Min','Material (g)','Status','Submitted'];var rows=[h];reqs.forEach(function(r){rows.push([r.request_id,r.student_email,r.student_name,r.project_name,r.material_type,r.slicer_time_minutes!=null?r.slicer_time_minutes:'',r.slicer_material_g!=null?r.slicer_material_g:'',r.status,(r.created_at||'').slice(0,10)]);});var csv=rows.map(function(r){return r.map(function(v){return '"'+String(v!=null?v:'').replace(/"/g,'""')+'"';}).join(',');}).join('\n');var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));a.download='report_'+document.getElementById('date-from').value+'_'+document.getElementById('date-to').value+'.csv';a.click();}
+function exportCSV(){
+  if(!lastData)return;
+  var rate=getCostRate();
+  var reqs=lastData.reqs;
+  var h=['#','Student Email','Student Name','Project','Material','Print Min','Material (g)','Est. Cost ($)','Status','Submitted'];
+  var rows=[h];
+  reqs.forEach(function(r){
+    var g=r.slicer_material_g!=null?parseFloat(r.slicer_material_g):null;
+    rows.push([r.request_id,r.student_email,r.student_name,r.project_name,r.material_type,
+      r.slicer_time_minutes!=null?r.slicer_time_minutes:'',
+      g!=null?g.toFixed(1):'',
+      g!=null?(g*rate).toFixed(2):'',
+      r.status,(r.created_at||'').slice(0,10)]);
+  });
+  var csv=rows.map(function(r){return r.map(function(v){return '"'+String(v!=null?v:'').replace(/"/g,'""')+'"';}).join(',');}).join('\n');
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));
+  a.download='report_'+document.getElementById('date-from').value+'_'+document.getElementById('date-to').value+'.csv';
+  a.click();
+}
 </script>
 {% endblock %}
