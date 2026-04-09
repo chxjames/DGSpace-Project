@@ -1232,8 +1232,16 @@ async function adminCannotCompleteByDeadline() {
     });
     const data = await res.json();
     if (data.success) {
-      adminShowAlert('Request sent back — deadline not met. Redirecting to student view…', 'success');
-      setTimeout(() => location.replace(`/print-requests/${window._currentRequestId}/`), 1000);
+      adminShowAlert('Request sent back — deadline not met. Redirecting…', 'success');
+      const _u = window.getUser ? window.getUser() : null;
+      const isOwn = _u && window._currentRequest && _u.email === window._currentRequest.student_email;
+      setTimeout(() => {
+        if (isOwn) {
+          location.replace(`/print-requests/${window._currentRequestId}/`);
+        } else {
+          location.reload();
+        }
+      }, 1000);
     } else {
       adminShowAlert(data.message || 'Failed to send back.');
       btn.disabled = false;
@@ -1281,8 +1289,16 @@ async function adminSendBack() {
     });
     const data = await res.json();
     if (data.success) {
-      adminShowAlert('Feedback sent. Redirecting to student view…', 'success');
-      setTimeout(() => location.replace(`/print-requests/${window._currentRequestId}/`), 1000);
+      adminShowAlert('Feedback sent. Redirecting…', 'success');
+      const _u = window.getUser ? window.getUser() : null;
+      const isOwn = _u && window._currentRequest && _u.email === window._currentRequest.student_email;
+      setTimeout(() => {
+        if (isOwn) {
+          location.replace(`/print-requests/${window._currentRequestId}/`);
+        } else {
+          location.reload();
+        }
+      }, 1000);
     } else {
       adminShowAlert(data.message || 'Failed to send feedback.');
       btn.disabled = false; btn.textContent = '↩ Send Back';
