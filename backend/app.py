@@ -1688,11 +1688,6 @@ def admin_approve_with_ufp(request_id):
     if not ufp_filename:
         return jsonify({'success': False, 'message': 'ufp_filename is required'}), 400
 
-    # Verify the UFP file actually exists in the uploads folder
-    ufp_path = os.path.join(app.config['UPLOAD_FOLDER'], os.path.basename(ufp_filename))
-    if not os.path.exists(ufp_path):
-        return jsonify({'success': False, 'message': 'UFP file not found on server'}), 400
-
     try:
         # Verify the request exists and is in an approvable state
         rows = db.fetch_all(
