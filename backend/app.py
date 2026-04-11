@@ -129,6 +129,25 @@ def manual_cleanup():
     return jsonify({'success': True, 'message': 'Cleanup triggered in background'}), 200
 
 
+@app.route('/api/internal/cron/cleanup', methods=['POST'])
+def cron_cleanup():
+    """Railway Cron Job endpoint — authenticated via CRON_SECRET header.
+    Runs _cleanup_old_files() and _cleanup_unverified() synchronously so
+    Railway can see a success/fail status code in the job logs.
+    """
+    expected = Config.CRON_SECRET
+    if not expected:
+        return jsonify({'success': False, 'message': 'CRON_SECRET not configured'}), 500
+
+    auth_header = request.headers.get('Authorization', '')
+    if auth_header != f'Bearer {expected}':
+        return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+
+    _cleanup_old_files()
+    _cleanup_unverified()
+    return jsonify({'success': True, 'message': 'Cron cleanup completed'}), 200
+
+
 @app.before_request
 def before_request():
     # Connection check is a no-op now (pool handles reconnects),
