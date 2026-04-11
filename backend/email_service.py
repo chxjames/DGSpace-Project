@@ -117,7 +117,7 @@ class EmailService:
     def send_password_reset_email(to_email, reset_token, full_name):
         """Send password reset email via Gmail API"""
         try:
-            reset_link = f"https://dgspace.up.railway.app/reset-password?token={reset_token}"
+            reset_link = f"https://dgspace-c5ff.up.railway.app/reset-password?token={reset_token}"
 
             html_body = f"""
             <!DOCTYPE html>
