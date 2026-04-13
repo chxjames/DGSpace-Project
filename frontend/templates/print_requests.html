@@ -2,10 +2,8 @@
 {% block title %}Print Requests — DGSpace{% endblock %}
 
 {% block content %}
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+<div style="margin-bottom:20px">
   <h2 style="color:#1a1a2e">📋 Print Requests</h2>
-  <a href="/print-requests/new/" id="btn-new"
-     class="btn" style="width:auto;padding:8px 20px">➕ New Request</a>
 </div>
 
 <div id="alert-box"></div>
@@ -39,10 +37,6 @@ var _cachedUser = null;
 (function() {
   const user = getUser();
   if (!user) { location.href = '/accounts/login'; return; }
-
-  if (user.user_type === 'admin') {
-    // admin can still submit new requests — keep btn-new visible
-  }
 
   loadRequests(user.user_type, user);
 })();
@@ -123,10 +117,9 @@ function renderTable(list, userType, user) {
           <th>Project Name</th>
           ${showStudent  ? '<th>Student</th>' : ''}
           <th>Status</th>
-          <th>Deadline</th>
-          ${showPriority ? '<th class="col-priority">Priority</th>' : ''}
+          <th style="cursor:pointer;user-select:none" onclick="sortByColumn('deadline')">Deadline <span id="sort-arrow-deadline">⬇</span></th>
           <th style="color:#999">Submitted</th>
-          <th>Action</th>
+          ${showPriority ? '<th style="cursor:pointer;user-select:none" onclick="sortByColumn(\'priority\')">Priority <span id="sort-arrow-priority">⬇</span></th>' : ''}
         </tr>
       </thead>`;
     const tbody = document.createElement('tbody');
@@ -153,26 +146,25 @@ function renderTable(list, userType, user) {
       }
 
       const tr = document.createElement('tr');
+      tr.style.cursor = 'pointer';
+      tr.onclick = () => { location.href = `/print-requests/${r.id}/`; };
       tr.innerHTML = `
         <td>${globalIdx}</td>
-        <td>${r.project_name}</td>
+        <td><a href="/print-requests/${r.id}/" style="color:#e94560;font-weight:500" onclick="event.stopPropagation()">${r.project_name}</a></td>
         ${showStudent  ? `<td style="font-size:0.82rem;color:#555">${r.student_name || r.student_email || '—'}</td>` : ''}
         <td>${statusBadge(r.status)}</td>
         <td>${deadlineHtml}</td>
-        ${showPriority ? `<td class="col-priority">${priorityLabel(r.priority)}</td>` : ''}
         <td style="color:#999;font-size:0.85rem">${new Date(r.created_at).toLocaleDateString('en-US')}</td>
-        <td style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-          <a href="/print-requests/${r.id}/" style="color:#e94560">Details</a>
-          ${canDelete ? `<button onclick="deleteRequest(${r.id},'${r.project_name.replace(/'/g,"&#39;")}')" class="btn-delete">🗑 Delete</button>` : ''}
-        </td>`;
+        ${showPriority ? `<td class="col-priority">${priorityLabel(r.priority)}${canDelete ? ` <button onclick="event.stopPropagation();deleteRequest(${r.id},'${r.project_name.replace(/'/g,"&#39;")}')" class="btn-delete" style="margin-left:6px">🗑</button>` : ''}</td>` : (canDelete ? `<td><button onclick="event.stopPropagation();deleteRequest(${r.id},'${r.project_name.replace(/'/g,"&#39;")}')" class="btn-delete">🗑 Delete</button></td>` : '<td></td>')}
+        `;
       tbody.appendChild(tr);
 
       // Feedback banner for revision_requested
       if (userType !== 'admin' && isOwn && r.status === 'revision_requested' && r.admin_notes) {
         const feedbackTr = document.createElement('tr');
         feedbackTr.className = 'feedback-row';
-        // cols: # + name + status + deadline + submitted + action = 6, +priority if shown
-        const cols = 6 + (showPriority ? 1 : 0);
+        // cols: # + name + status + deadline + submitted = 5, +student if shown, +priority if shown
+        const cols = 5 + (showStudent ? 1 : 0) + (showPriority ? 1 : 0);
         feedbackTr.innerHTML = `
           <td colspan="${cols}" style="padding:0 12px 10px 32px">
             <div class="feedback-banner">
@@ -193,6 +185,38 @@ function applySortAndRender() {
   if (!_cachedList.length) return;
   const mode = document.getElementById('sort-select').value;
   const sorted = sortList(_cachedList, mode);
+  renderTable(sorted, _cachedUserType, _cachedUser);
+}
+
+// Column sort state
+var _colSortField = null;   // 'deadline' | 'priority'
+var _colSortAsc   = true;
+
+const priorityOrder = { urgent: 0, high: 1, normal: 2, low: 3 };
+
+function sortByColumn(field) {
+  if (_colSortField === field) {
+    _colSortAsc = !_colSortAsc;
+  } else {
+    _colSortField = field;
+    _colSortAsc = true;
+  }
+  // Update arrow indicators
+  ['deadline','priority'].forEach(f => {
+    const el = document.getElementById(`sort-arrow-${f}`);
+    if (el) el.textContent = (f === _colSortField) ? (_colSortAsc ? '⬆' : '⬇') : '⬇';
+  });
+  const sorted = [..._cachedList].sort((a, b) => {
+    let va, vb;
+    if (field === 'deadline') {
+      va = a.deadline_date ? new Date(a.deadline_date).getTime() : Infinity;
+      vb = b.deadline_date ? new Date(b.deadline_date).getTime() : Infinity;
+    } else {
+      va = priorityOrder[a.priority] ?? 99;
+      vb = priorityOrder[b.priority] ?? 99;
+    }
+    return _colSortAsc ? va - vb : vb - va;
+  });
   renderTable(sorted, _cachedUserType, _cachedUser);
 }
 
