@@ -2,6 +2,26 @@
 {% block title %}Print Requests — DGSpace{% endblock %}
 
 {% block content %}
+<style>
+  .req-card {
+    background: #fff;
+    border-radius: 10px;
+    border: 1.5px solid #e0e0e0;
+    padding: 14px 16px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: box-shadow .15s, border-color .15s;
+    text-decoration: none;
+    display: block;
+    color: inherit;
+  }
+  .req-card:hover { box-shadow: 0 3px 12px rgba(0,0,0,.1); border-color: #e94560; }
+  .req-card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 8px; }
+  .req-card-name { font-weight: 600; color: #e94560; font-size: 0.95rem; flex: 1; }
+  .req-card-meta { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 0.8rem; color: #666; }
+  .req-card-meta span { display: flex; align-items: center; gap: 4px; }
+</style>
+
 <div style="margin-bottom:20px">
   <h2 style="color:#1a1a2e">📋 Print Requests</h2>
 </div>
@@ -88,10 +108,9 @@ function renderTable(list, userType, user) {
 
   const showPriority = (userType === 'admin' || userType === 'student_staff');
   const showStudent  = (userType === 'admin' || userType === 'student_staff');
+  const isMobile     = window.innerWidth < 600;
 
-  // Build a flat numbered index across all groups for the # column
   let globalIdx = 0;
-
   const container = document.getElementById('req-groups');
   container.innerHTML = '';
 
@@ -107,77 +126,114 @@ function renderTable(list, userType, user) {
       <span style="font-size:0.8rem;background:#eee;border-radius:10px;padding:1px 8px;color:#666">${rows.length}</span>`;
     container.appendChild(header);
 
-    // Table for this group
-    const table = document.createElement('table');
-    table.style.cssText = `width:100%;border-collapse:collapse;border:1.5px solid ${g.border};border-radius:8px;overflow:hidden;margin-bottom:4px;background:${g.color}`;
-    table.innerHTML = `
-      <thead>
-        <tr style="background:${g.border}22">
-          <th>#</th>
-          <th>Project Name</th>
-          ${showStudent  ? '<th>Student</th>' : ''}
-          <th>Status</th>
-          <th style="cursor:pointer;user-select:none" onclick="sortByColumn('deadline')">Deadline <span id="sort-arrow-deadline">⬇</span></th>
-          <th style="color:#999">Submitted</th>
-          ${showPriority ? '<th style="cursor:pointer;user-select:none" onclick="sortByColumn(\'priority\')">Priority <span id="sort-arrow-priority">⬇</span></th>' : ''}
-        </tr>
-      </thead>`;
-    const tbody = document.createElement('tbody');
+    if (isMobile) {
+      // ── Mobile: card list ──────────────────────────────
+      const wrap = document.createElement('div');
+      rows.forEach(r => {
+        globalIdx++;
+        const isOwn = (userType === 'student_staff') ? (r.student_email === user.email) : true;
+        const canDelete = isOwn && ['pending','revision_requested','rejected'].includes(r.status) && userType !== 'admin';
 
-    rows.forEach(r => {
-      globalIdx++;
-      const isOwn = (userType === 'student_staff') ? (r.student_email === user.email) : true;
-      const canDelete = isOwn && ['pending','revision_requested','rejected'].includes(r.status) && userType !== 'admin';
-
-      // Deadline display
-      let deadlineHtml = '<span style="color:#aaa">—</span>';
-      if (r.deadline_date) {
-        const dl   = new Date(r.deadline_date);
-        const now  = new Date();
-        const days = Math.ceil((dl - now) / 86400000);
-        const fmt  = dl.toLocaleDateString('en-US', {month:'short', day:'numeric'});
-        if (days < 0) {
-          deadlineHtml = `<span style="color:#e74c3c;font-weight:600">⚠️ ${fmt}</span>`;
-        } else if (days <= 3) {
-          deadlineHtml = `<span style="color:#e67e22;font-weight:600">🔶 ${fmt} (${days}d)</span>`;
-        } else {
-          deadlineHtml = `<span style="color:#27ae60">📅 ${fmt} (${days}d)</span>`;
+        let deadlineHtml = '<span style="color:#aaa">—</span>';
+        if (r.deadline_date) {
+          const dl   = new Date(r.deadline_date);
+          const now  = new Date();
+          const days = Math.ceil((dl - now) / 86400000);
+          const fmt  = dl.toLocaleDateString('en-US', {month:'short', day:'numeric'});
+          if (days < 0)       deadlineHtml = `<span style="color:#e74c3c;font-weight:600">⚠️ ${fmt}</span>`;
+          else if (days <= 3) deadlineHtml = `<span style="color:#e67e22;font-weight:600">🔶 ${fmt} (${days}d)</span>`;
+          else                deadlineHtml = `<span style="color:#27ae60">📅 ${fmt} (${days}d)</span>`;
         }
-      }
 
-      const tr = document.createElement('tr');
-      tr.style.cursor = 'pointer';
-      tr.onclick = () => { location.href = `/print-requests/${r.id}/`; };
-      tr.innerHTML = `
-        <td>${globalIdx}</td>
-        <td><a href="/print-requests/${r.id}/" style="color:#e94560;font-weight:500" onclick="event.stopPropagation()">${r.project_name}</a></td>
-        ${showStudent  ? `<td style="font-size:0.82rem;color:#555">${r.student_name || r.student_email || '—'}</td>` : ''}
-        <td>${statusBadge(r.status)}</td>
-        <td>${deadlineHtml}</td>
-        <td style="color:#999;font-size:0.85rem">${new Date(r.created_at).toLocaleDateString('en-US')}</td>
-        ${showPriority ? `<td class="col-priority">${priorityLabel(r.priority)}${canDelete ? ` <button onclick="event.stopPropagation();deleteRequest(${r.id},'${r.project_name.replace(/'/g,"&#39;")}')" class="btn-delete" style="margin-left:6px">🗑</button>` : ''}</td>` : (canDelete ? `<td><button onclick="event.stopPropagation();deleteRequest(${r.id},'${r.project_name.replace(/'/g,"&#39;")}')" class="btn-delete">🗑 Delete</button></td>` : '<td></td>')}
+        const card = document.createElement('a');
+        card.href = `/print-requests/${r.id}/`;
+        card.className = 'req-card';
+        card.style.borderColor = g.border;
+        card.style.background  = g.color;
+        card.innerHTML = `
+          <div class="req-card-top">
+            <div class="req-card-name">${globalIdx}. ${r.project_name}</div>
+            ${statusBadge(r.status)}
+          </div>
+          <div class="req-card-meta">
+            ${showStudent ? `<span>👤 ${r.student_name || r.student_email || '—'}</span>` : ''}
+            <span>📅 ${deadlineHtml}</span>
+            ${showPriority ? `<span>${priorityLabel(r.priority)}</span>` : ''}
+            <span style="color:#bbb">${new Date(r.created_at).toLocaleDateString('en-US')}</span>
+            ${canDelete ? `<button onclick="event.preventDefault();event.stopPropagation();deleteRequest(${r.id},'${r.project_name.replace(/'/g,"&#39;")}')" class="btn-delete" style="margin-left:auto">🗑 Delete</button>` : ''}
+          </div>
+          ${(userType !== 'admin' && isOwn && r.status === 'revision_requested' && r.admin_notes) ? `<div class="feedback-banner" style="margin-top:8px"><strong>⚠️ Admin Feedback:</strong> ${r.admin_notes}</div>` : ''}
         `;
-      tbody.appendChild(tr);
+        wrap.appendChild(card);
+      });
+      container.appendChild(wrap);
 
-      // Feedback banner for revision_requested
-      if (userType !== 'admin' && isOwn && r.status === 'revision_requested' && r.admin_notes) {
-        const feedbackTr = document.createElement('tr');
-        feedbackTr.className = 'feedback-row';
-        // cols: # + name + status + deadline + submitted = 5, +student if shown, +priority if shown
-        const cols = 5 + (showStudent ? 1 : 0) + (showPriority ? 1 : 0);
-        feedbackTr.innerHTML = `
-          <td colspan="${cols}" style="padding:0 12px 10px 32px">
-            <div class="feedback-banner">
-              <strong>⚠️ Admin Feedback:</strong> ${r.admin_notes}
-              &nbsp;—&nbsp; <em>Please review and delete or resubmit a new request.</em>
-            </div>
-          </td>`;
-        tbody.appendChild(feedbackTr);
-      }
-    });
+    } else {
+      // ── Desktop: table ─────────────────────────────────
+      const table = document.createElement('table');
+      table.style.cssText = `width:100%;border-collapse:collapse;border:1.5px solid ${g.border};border-radius:8px;overflow:hidden;margin-bottom:4px;background:${g.color}`;
+      table.innerHTML = `
+        <thead>
+          <tr style="background:${g.border}22">
+            <th>#</th>
+            <th>Project Name</th>
+            ${showStudent  ? '<th>Student</th>' : ''}
+            <th>Status</th>
+            <th style="cursor:pointer;user-select:none" onclick="sortByColumn('deadline')">Deadline <span id="sort-arrow-deadline">⬇</span></th>
+            <th style="color:#999">Submitted</th>
+            ${showPriority ? '<th style="cursor:pointer;user-select:none" onclick="sortByColumn(\'priority\')">Priority <span id="sort-arrow-priority">⬇</span></th>' : ''}
+          </tr>
+        </thead>`;
+      const tbody = document.createElement('tbody');
 
-    table.appendChild(tbody);
-    container.appendChild(table);
+      rows.forEach(r => {
+        globalIdx++;
+        const isOwn = (userType === 'student_staff') ? (r.student_email === user.email) : true;
+        const canDelete = isOwn && ['pending','revision_requested','rejected'].includes(r.status) && userType !== 'admin';
+
+        let deadlineHtml = '<span style="color:#aaa">—</span>';
+        if (r.deadline_date) {
+          const dl   = new Date(r.deadline_date);
+          const now  = new Date();
+          const days = Math.ceil((dl - now) / 86400000);
+          const fmt  = dl.toLocaleDateString('en-US', {month:'short', day:'numeric'});
+          if (days < 0)       deadlineHtml = `<span style="color:#e74c3c;font-weight:600">⚠️ ${fmt}</span>`;
+          else if (days <= 3) deadlineHtml = `<span style="color:#e67e22;font-weight:600">🔶 ${fmt} (${days}d)</span>`;
+          else                deadlineHtml = `<span style="color:#27ae60">📅 ${fmt} (${days}d)</span>`;
+        }
+
+        const tr = document.createElement('tr');
+        tr.style.cursor = 'pointer';
+        tr.onclick = () => { location.href = `/print-requests/${r.id}/`; };
+        tr.innerHTML = `
+          <td>${globalIdx}</td>
+          <td><a href="/print-requests/${r.id}/" style="color:#e94560;font-weight:500" onclick="event.stopPropagation()">${r.project_name}</a></td>
+          ${showStudent  ? `<td style="font-size:0.82rem;color:#555">${r.student_name || r.student_email || '—'}</td>` : ''}
+          <td>${statusBadge(r.status)}</td>
+          <td>${deadlineHtml}</td>
+          <td style="color:#999;font-size:0.85rem">${new Date(r.created_at).toLocaleDateString('en-US')}</td>
+          ${showPriority ? `<td class="col-priority">${priorityLabel(r.priority)}${canDelete ? ` <button onclick="event.stopPropagation();deleteRequest(${r.id},'${r.project_name.replace(/'/g,"&#39;")}')" class="btn-delete" style="margin-left:6px">🗑</button>` : ''}</td>` : (canDelete ? `<td><button onclick="event.stopPropagation();deleteRequest(${r.id},'${r.project_name.replace(/'/g,"&#39;")}')" class="btn-delete">🗑 Delete</button></td>` : '<td></td>')}
+          `;
+        tbody.appendChild(tr);
+
+        if (userType !== 'admin' && isOwn && r.status === 'revision_requested' && r.admin_notes) {
+          const feedbackTr = document.createElement('tr');
+          feedbackTr.className = 'feedback-row';
+          const cols = 5 + (showStudent ? 1 : 0) + (showPriority ? 1 : 0);
+          feedbackTr.innerHTML = `
+            <td colspan="${cols}" style="padding:0 12px 10px 32px">
+              <div class="feedback-banner">
+                <strong>⚠️ Admin Feedback:</strong> ${r.admin_notes}
+                &nbsp;—&nbsp; <em>Please review and delete or resubmit a new request.</em>
+              </div>
+            </td>`;
+          tbody.appendChild(feedbackTr);
+        }
+      });
+
+      table.appendChild(tbody);
+      container.appendChild(table);
+    }
   });
 }
 
