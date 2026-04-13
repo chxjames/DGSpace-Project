@@ -398,14 +398,14 @@ def change_password():
 
 @app.route('/api/print-requests/upload-stl', methods=['POST'])
 def upload_stl():
-    """Upload a .stl file before submitting a print request (Student / Student Staff)"""
+    """Upload a .stl file before submitting a print request (Student / Student Staff / Admin)"""
     auth_header = request.headers.get('Authorization')
     if not auth_header or not auth_header.startswith('Bearer '):
         return jsonify({'success': False, 'message': 'No token provided'}), 401
 
     token = auth_header.split(' ')[1]
     payload = AuthService.verify_jwt_token(token)
-    if not payload or payload.get('user_type') not in ('student', 'student_staff'):
+    if not payload or payload.get('user_type') not in ('student', 'student_staff', 'admin'):
         return jsonify({'success': False, 'message': 'Invalid token or not a student'}), 401
 
     if 'file' not in request.files:
@@ -432,7 +432,7 @@ def upload_stl():
 
 @app.route('/api/print-requests/upload-stl/<filename>', methods=['DELETE'])
 def delete_uploaded_stl(filename: str):
-    """Delete a previously uploaded STL file before submitting a print request (Student / Student Staff)
+    """Delete a previously uploaded STL file before submitting a print request (Student / Student Staff / Admin)
 
     This supports the frontend "Remove" button so mistaken uploads don't linger on disk.
     """
@@ -442,7 +442,7 @@ def delete_uploaded_stl(filename: str):
 
     token = auth_header.split(' ')[1]
     payload = AuthService.verify_jwt_token(token)
-    if not payload or payload.get('user_type') not in ('student', 'student_staff'):
+    if not payload or payload.get('user_type') not in ('student', 'student_staff', 'admin'):
         return jsonify({'success': False, 'message': 'Invalid token or not a student'}), 401
 
     # Basic path-traversal protection: only allow the basename.
@@ -605,6 +605,7 @@ def create_print_request():
         slicer_time_minutes=float(data['slicer_time_minutes']) if data.get('slicer_time_minutes') else None,
         slicer_material_g=float(data['slicer_material_g']) if data.get('slicer_material_g') else None,
         deadline_date=data.get('deadline_date') or None,
+        submitter_is_admin=payload.get('user_type') == 'admin',
     )
     
     if result['success']:

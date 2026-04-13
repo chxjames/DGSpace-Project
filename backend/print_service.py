@@ -29,6 +29,7 @@ class PrintService:
         slicer_time_minutes: Optional[float] = None,
         slicer_material_g: Optional[float] = None,
         deadline_date: Optional[str] = None,
+        submitter_is_admin: bool = False,
     ) -> Dict:
         """
         Create a new 3D print request
@@ -49,15 +50,16 @@ class PrintService:
             Dict with success status, message, and request_id if successful
         """
         try:
-            # Validate student exists
-            check_student_query = "SELECT email FROM students WHERE email = %s AND email_verified = TRUE"
-            result = db.fetch_one(check_student_query, (student_email,))
-            
-            if not result:
-                return {
-                    'success': False,
-                    'message': 'Student not found or email not verified'
-                }
+            # Validate student exists (skip check when submitted by an admin)
+            if not submitter_is_admin:
+                check_student_query = "SELECT email FROM students WHERE email = %s AND email_verified = TRUE"
+                result = db.fetch_one(check_student_query, (student_email,))
+                
+                if not result:
+                    return {
+                        'success': False,
+                        'message': 'Student not found or email not verified'
+                    }
             
             # Insert print request
             query = """
@@ -184,7 +186,9 @@ class PrintService:
         """
         try:
             query = """
-                SELECT pr.request_id, pr.student_email, s.full_name, pr.project_name, 
+                SELECT pr.request_id, pr.student_email,
+                       COALESCE(s.full_name, a.full_name, pr.student_email) AS full_name,
+                       pr.project_name, 
                        pr.description, pr.material_type, pr.color_preference,
                        pr.estimated_weight_grams, pr.estimated_print_time_hours,
                        pr.priority, pr.status, pr.admin_notes, pr.reviewed_by,
@@ -193,7 +197,8 @@ class PrintService:
                        pr.revision_fields,
                        pr.ufp_material_g, pr.ufp_print_time_minutes
                 FROM print_requests pr
-                JOIN students s ON pr.student_email = s.email
+                LEFT JOIN students s ON pr.student_email = s.email
+                LEFT JOIN admins a ON pr.student_email = a.email
                 WHERE pr.request_id = %s
             """
             result = db.fetch_one(query, (request_id,))
@@ -335,11 +340,14 @@ class PrintService:
         """
         try:
             query = """
-                SELECT pr.request_id, pr.student_email, s.full_name, pr.project_name,
+                SELECT pr.request_id, pr.student_email,
+                       COALESCE(s.full_name, a.full_name, pr.student_email) AS full_name,
+                       pr.project_name,
                        pr.description, pr.material_type, pr.priority, pr.status,
                        pr.created_at, pr.reviewed_by, pr.reviewed_at, pr.deadline_date
                 FROM print_requests pr
-                JOIN students s ON pr.student_email = s.email
+                LEFT JOIN students s ON pr.student_email = s.email
+                LEFT JOIN admins a ON pr.student_email = a.email
                 WHERE 1=1
             """
             params = []
