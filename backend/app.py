@@ -343,7 +343,7 @@ def get_profile():
         return jsonify({'success': False, 'message': 'Invalid or expired token'}), 401
     
     # Get user data from database
-    table = 'students' if payload['user_type'] == 'student' else 'admins'
+    table = 'students' if payload['user_type'] in ('student', 'student_staff') else 'admins'
     query = f"SELECT email, full_name FROM {table} WHERE email = %s"
     user = db.fetch_one(query, (payload['email'],))
     
