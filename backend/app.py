@@ -37,8 +37,7 @@ os.makedirs(Config.UPLOAD_FOLDER, exist_ok=True)
 def _cleanup_old_files():
     """
     Runs every 24 h in a background daemon thread.
-    - UFP + STL: purge for completed/failed/revision_requested
-    - STL only:  also purge for approved/queued/printing
+    - UFP + STL: purge for completed/failed/revision_requested/cancelled/rejected
     Sets file_deleted = 1 so record stays in DB.
     """
     try:
@@ -51,7 +50,7 @@ def _cleanup_old_files():
             FROM   print_requests
             WHERE  file_deleted = 0
               AND  (ufp_file_path IS NOT NULL OR stl_file_path IS NOT NULL)
-              AND  status IN ('completed', 'failed', 'revision_requested')
+              AND  status IN ('completed', 'failed', 'revision_requested', 'cancelled', 'rejected')
             """, ()
         )
         purged = 0
