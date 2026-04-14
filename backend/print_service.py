@@ -119,7 +119,8 @@ class PrintService:
                     SELECT request_id, project_name, description, material_type, 
                            color_preference, estimated_weight_grams, estimated_print_time_hours,
                            priority, status, admin_notes, reviewed_by, reviewed_at,
-                           created_at, updated_at, completed_at, deadline_date
+                           created_at, updated_at, completed_at, deadline_date,
+                           slicer_time_minutes, slicer_material_g
                     FROM print_requests 
                     WHERE student_email = %s AND status = %s
                     ORDER BY created_at DESC
@@ -130,7 +131,8 @@ class PrintService:
                     SELECT request_id, project_name, description, material_type, 
                            color_preference, estimated_weight_grams, estimated_print_time_hours,
                            priority, status, admin_notes, reviewed_by, reviewed_at,
-                           created_at, updated_at, completed_at, deadline_date
+                           created_at, updated_at, completed_at, deadline_date,
+                           slicer_time_minutes, slicer_material_g
                     FROM print_requests 
                     WHERE student_email = %s
                     ORDER BY created_at DESC
@@ -158,6 +160,8 @@ class PrintService:
                         'updated_at': row['updated_at'].isoformat() if row['updated_at'] else None,
                         'completed_at': row['completed_at'].isoformat() if row['completed_at'] else None,
                         'deadline_date': row['deadline_date'].isoformat() if row['deadline_date'] else None,
+                        'slicer_time_minutes': float(row['slicer_time_minutes']) if row['slicer_time_minutes'] else None,
+                        'slicer_material_g': float(row['slicer_material_g']) if row['slicer_material_g'] else None,
                     })
             
             return {
@@ -349,7 +353,8 @@ class PrintService:
                        COALESCE(s.full_name, a.full_name, pr.student_email) AS full_name,
                        pr.project_name,
                        pr.description, pr.material_type, pr.priority, pr.status,
-                       pr.created_at, pr.reviewed_by, pr.reviewed_at, pr.deadline_date
+                       pr.created_at, pr.reviewed_by, pr.reviewed_at, pr.deadline_date,
+                       pr.slicer_time_minutes, pr.slicer_material_g
                 FROM print_requests pr
                 LEFT JOIN students s ON pr.student_email = s.email
                 LEFT JOIN admins a ON pr.student_email = a.email
@@ -399,6 +404,8 @@ class PrintService:
                         'reviewed_by': row['reviewed_by'],
                         'reviewed_at': row['reviewed_at'].isoformat() if row['reviewed_at'] else None,
                         'deadline_date': row['deadline_date'].isoformat() if row['deadline_date'] else None,
+                        'slicer_time_minutes': float(row['slicer_time_minutes']) if row['slicer_time_minutes'] else None,
+                        'slicer_material_g': float(row['slicer_material_g']) if row['slicer_material_g'] else None,
                     })
             
             return {
