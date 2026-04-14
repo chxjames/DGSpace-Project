@@ -195,7 +195,11 @@ class PrintService:
                        pr.reviewed_at, pr.created_at, pr.updated_at, pr.completed_at,
                        pr.stl_file_path, pr.stl_original_name, pr.deadline_date,
                        pr.revision_fields,
-                       pr.ufp_material_g, pr.ufp_print_time_minutes
+                       pr.ufp_material_g, pr.ufp_print_time_minutes,
+                       (SELECT pj.assigned_by FROM print_jobs pj
+                        WHERE pj.request_id = pr.request_id
+                          AND pj.status NOT IN ('cancelled','failed')
+                        ORDER BY pj.assigned_at DESC LIMIT 1) AS assigned_by
                 FROM print_requests pr
                 LEFT JOIN students s ON pr.student_email = s.email
                 LEFT JOIN admins a ON pr.student_email = a.email
@@ -242,6 +246,7 @@ class PrintService:
                 'revision_fields': revision_fields,  # list like ['stl','description'] or None=all
                 'ufp_material_g': float(result['ufp_material_g']) if result['ufp_material_g'] else None,
                 'ufp_print_time_minutes': float(result['ufp_print_time_minutes']) if result['ufp_print_time_minutes'] else None,
+                'assigned_by': result['assigned_by'],
             }
             
             return {

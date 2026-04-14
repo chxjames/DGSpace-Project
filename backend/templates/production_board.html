@@ -424,10 +424,15 @@ function renderJobCard(j, pos) {
   const cdPrinter  = escHtml(j.printer_name || '');
   const assignedBy     = j.assigned_by || '';
   const cdAssignedBy   = escHtml(assignedBy);
+  const reviewedBy     = j.reviewed_by || '';
   const currentUser    = getUser();
   const isMyJob        = currentUser && assignedBy && assignedBy === currentUser.email;
+  const isMyApproval   = currentUser && reviewedBy && reviewedBy === currentUser.email;
   const assignerLabel  = assignedBy
     ? `<span title="Assigned by ${escHtml(assignedBy)}" style="color:${isMyJob ? '#007bff' : '#888'}">🔖 ${escHtml(assignedBy)}</span>`
+    : '';
+  const approverLabel  = reviewedBy
+    ? `<span title="Approved by ${escHtml(reviewedBy)}" style="color:${isMyApproval ? '#28a745' : '#888'}">✅ ${escHtml(reviewedBy)}</span>`
     : '';
 
   const countdownHtml = (j.job_status === 'printing' && hasEnd)
@@ -457,6 +462,7 @@ function renderJobCard(j, pos) {
           <span>👤 ${escHtml(j.student_name || j.student_email)}</span>
           ${dl}
           ${j.estimated_start ? `<span>🕐 Est. start: ${fmtDt(j.estimated_start)}</span>` : ''}
+          ${approverLabel}
           ${assignerLabel}
         </div>
         ${countdownHtml}
@@ -805,6 +811,9 @@ async function pollNotifications() {
     (data.notifications || []).forEach(n => {
       if (_notifiedJobs.has(n.job_id)) return;
       _notifiedJobs.add(n.job_id);
+      // Also mark in _firedTimesUp so tickCountdowns won't fire a second popup
+      // for the same job when the countdown element reaches zero
+      _firedTimesUp.add(String(n.job_id));
       sendBrowserNotification(n.message, n.type);
     });
   } catch(e) { /* silent — non-critical */ }

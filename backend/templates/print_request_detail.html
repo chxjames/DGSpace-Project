@@ -38,6 +38,8 @@
           <tr id="d-deadline-row" style="display:none"><td style="padding:6px 0;color:#888">📅 Deadline</td>      <td id="d-deadline" style="font-weight:600"></td></tr>
           <tr><td style="padding:6px 0;color:#888">Submitted by</td>            <td id="d-student"></td></tr>
           <tr id="d-email-row" style="display:none"><td style="padding:6px 0;color:#888">Student Email</td>  <td><a id="d-student-email" href="#" style="color:#e94560;font-size:0.9rem"></a></td></tr>
+          <tr id="d-approved-by-row" style="display:none"><td style="padding:6px 0;color:#888">✅ Approved by</td>  <td id="d-approved-by" style="font-size:0.9rem"></td></tr>
+          <tr id="d-assigned-by-row" style="display:none"><td style="padding:6px 0;color:#888">🔖 Assigned by</td> <td id="d-assigned-by" style="font-size:0.9rem"></td></tr>
         </table>
 
         <div id="d-description-block" style="margin-top:16px;display:none">
@@ -494,6 +496,18 @@ function renderDetail(r) {
     emailEl.textContent = r.student_email;
     emailEl.href = `mailto:${r.student_email}`;
     document.getElementById('d-email-row').style.display = '';
+  }
+
+  // Show Approved by / Assigned by — admin & student_staff only
+  if (currentUser && (currentUser.user_type === 'admin' || currentUser.user_type === 'student_staff')) {
+    if (r.reviewed_by) {
+      document.getElementById('d-approved-by').textContent = r.reviewed_by;
+      document.getElementById('d-approved-by-row').style.display = '';
+    }
+    if (r.assigned_by) {
+      document.getElementById('d-assigned-by').textContent = r.assigned_by;
+      document.getElementById('d-assigned-by-row').style.display = '';
+    }
   }
 
   if (r.description) {

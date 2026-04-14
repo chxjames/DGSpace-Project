@@ -182,6 +182,7 @@ def get_production_board():
                 pj.notes           AS job_notes,
                 pr.project_name,
                 pr.student_email,
+                pr.reviewed_by,
                 s.full_name        AS student_name,
                 pr.material_type,
                 pr.priority,
