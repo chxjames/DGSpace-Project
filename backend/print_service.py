@@ -120,7 +120,8 @@ class PrintService:
                            color_preference, estimated_weight_grams, estimated_print_time_hours,
                            priority, status, admin_notes, reviewed_by, reviewed_at,
                            created_at, updated_at, completed_at, deadline_date,
-                           slicer_time_minutes, slicer_material_g
+                           slicer_time_minutes, slicer_material_g,
+                           ufp_print_time_minutes, ufp_material_g
                     FROM print_requests 
                     WHERE student_email = %s AND status = %s
                     ORDER BY created_at DESC
@@ -132,7 +133,8 @@ class PrintService:
                            color_preference, estimated_weight_grams, estimated_print_time_hours,
                            priority, status, admin_notes, reviewed_by, reviewed_at,
                            created_at, updated_at, completed_at, deadline_date,
-                           slicer_time_minutes, slicer_material_g
+                           slicer_time_minutes, slicer_material_g,
+                           ufp_print_time_minutes, ufp_material_g
                     FROM print_requests 
                     WHERE student_email = %s
                     ORDER BY created_at DESC
@@ -162,6 +164,8 @@ class PrintService:
                         'deadline_date': row['deadline_date'].isoformat() if row['deadline_date'] else None,
                         'slicer_time_minutes': float(row['slicer_time_minutes']) if row['slicer_time_minutes'] else None,
                         'slicer_material_g': float(row['slicer_material_g']) if row['slicer_material_g'] else None,
+                        'ufp_print_time_minutes': float(row['ufp_print_time_minutes']) if row['ufp_print_time_minutes'] else None,
+                        'ufp_material_g': float(row['ufp_material_g']) if row['ufp_material_g'] else None,
                     })
             
             return {
@@ -354,7 +358,8 @@ class PrintService:
                        pr.project_name,
                        pr.description, pr.material_type, pr.priority, pr.status,
                        pr.created_at, pr.reviewed_by, pr.reviewed_at, pr.deadline_date,
-                       pr.slicer_time_minutes, pr.slicer_material_g
+                       pr.slicer_time_minutes, pr.slicer_material_g,
+                       pr.ufp_print_time_minutes, pr.ufp_material_g
                 FROM print_requests pr
                 LEFT JOIN students s ON pr.student_email = s.email
                 LEFT JOIN admins a ON pr.student_email = a.email
@@ -406,6 +411,8 @@ class PrintService:
                         'deadline_date': row['deadline_date'].isoformat() if row['deadline_date'] else None,
                         'slicer_time_minutes': float(row['slicer_time_minutes']) if row['slicer_time_minutes'] else None,
                         'slicer_material_g': float(row['slicer_material_g']) if row['slicer_material_g'] else None,
+                        'ufp_print_time_minutes': float(row['ufp_print_time_minutes']) if row['ufp_print_time_minutes'] else None,
+                        'ufp_material_g': float(row['ufp_material_g']) if row['ufp_material_g'] else None,
                     })
             
             return {

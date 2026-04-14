@@ -305,12 +305,14 @@
 
     filtered.forEach(req => {
       const date = req.created_at ? new Date(req.created_at).toLocaleDateString() : '—';
-      const printTime = req.slicer_time_minutes
-        ? (req.slicer_time_minutes >= 60
-            ? Math.floor(req.slicer_time_minutes/60) + 'h ' + (req.slicer_time_minutes%60) + 'm'
-            : req.slicer_time_minutes + 'm')
+      const _printMins = req.ufp_print_time_minutes || req.slicer_time_minutes;
+      const printTime = _printMins
+        ? (_printMins >= 60
+            ? Math.floor(_printMins/60) + 'h ' + Math.round(_printMins%60) + 'm'
+            : Math.round(_printMins) + 'm')
         : '—';
-      const material = req.slicer_material_g ? req.slicer_material_g.toFixed(1) + ' g' : '—';
+      const _materialG = req.ufp_material_g || req.slicer_material_g;
+      const material = _materialG ? _materialG.toFixed(1) + ' g' : '—';
       const statusLabel = req.status.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
       tbody.insertAdjacentHTML('beforeend', `
         <tr>
