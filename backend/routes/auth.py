@@ -202,8 +202,11 @@ def get_profile():
 @auth_bp.route('/api/profile/change-password', methods=['POST'])
 def change_password():
     """Change the logged-in user's password.
-    Body: { "current_password": "...", "new_password": "..." }
+    Body: { "current_password": "...", "new_password": "...", "totp_code": "..." }
+    Requires 2FA to be active and the correct TOTP code.
     """
+    from totp_service import TotpService
+
     auth_header = request.headers.get('Authorization', '')
     if not auth_header.startswith('Bearer '):
         return jsonify({'success': False, 'message': 'Unauthorized'}), 401
@@ -214,12 +217,20 @@ def change_password():
 
     data = request.json or {}
     current_pw = data.get('current_password', '').strip()
-    new_pw = data.get('new_password', '').strip()
+    new_pw     = data.get('new_password', '').strip()
+    totp_code  = (data.get('totp_code') or '').strip()
 
     if not current_pw or not new_pw:
-        return jsonify({'success': False, 'message': 'Both fields are required'}), 400
+        return jsonify({'success': False, 'message': 'Both password fields are required'}), 400
     if len(new_pw) < 8:
         return jsonify({'success': False, 'message': 'New password must be at least 8 characters'}), 400
+    if not totp_code:
+        return jsonify({'success': False, 'message': '2FA code is required'}), 400
+
+    # Verify TOTP first
+    totp_result = TotpService.verify_totp(payload['email'], payload['user_type'], totp_code)
+    if not totp_result.get('success'):
+        return jsonify({'success': False, 'message': 'Invalid 2FA code'}), 400
 
     table = 'students' if payload['user_type'] in ('student', 'student_staff') else 'admins'
     row = db.fetch_one(f"SELECT password_hash FROM {table} WHERE email = %s", (payload['email'],))
@@ -232,3 +243,40 @@ def change_password():
     new_hash = bcrypt.hashpw(new_pw.encode(), bcrypt.gensalt()).decode()
     db.execute_query(f"UPDATE {table} SET password_hash = %s WHERE email = %s", (new_hash, payload['email']))
     return jsonify({'success': True, 'message': 'Password updated successfully'}), 200
+
+
+@auth_bp.route('/api/profile/change-name', methods=['POST'])
+def change_name():
+    """Change the logged-in user's display name.
+    Body: { "new_name": "...", "totp_code": "123456" }
+    Requires 2FA to be active and the correct TOTP code.
+    """
+    from totp_service import TotpService
+
+    auth_header = request.headers.get('Authorization', '')
+    if not auth_header.startswith('Bearer '):
+        return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+    token = auth_header.split(' ')[1]
+    payload = AuthService.verify_jwt_token(token)
+    if not payload:
+        return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+
+    data = request.json or {}
+    new_name  = (data.get('new_name') or '').strip()
+    totp_code = (data.get('totp_code') or '').strip()
+
+    if not new_name:
+        return jsonify({'success': False, 'message': 'New name is required'}), 400
+    if len(new_name) > 100:
+        return jsonify({'success': False, 'message': 'Name is too long (max 100 characters)'}), 400
+    if not totp_code:
+        return jsonify({'success': False, 'message': '2FA code is required'}), 400
+
+    # Verify TOTP
+    totp_result = TotpService.verify_totp(payload['email'], payload['user_type'], totp_code)
+    if not totp_result.get('success'):
+        return jsonify({'success': False, 'message': 'Invalid 2FA code'}), 400
+
+    table = 'students' if payload['user_type'] in ('student', 'student_staff') else 'admins'
+    db.execute_query(f"UPDATE {table} SET full_name = %s WHERE email = %s", (new_name, payload['email']))
+    return jsonify({'success': True, 'message': 'Name updated successfully', 'full_name': new_name}), 200
