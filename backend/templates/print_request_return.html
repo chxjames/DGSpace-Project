@@ -1,12 +1,12 @@
 {% extends "base.html" %}
-{% block title %}Return Request ‚Ä?DGSpace{% endblock %}
+{% block title %}Return Request ‚Äî DGSpace{% endblock %}
 
 {% block content %}
 <div style="max-width:600px;margin:0 auto">
 
-  <a href="/print-requests/" style="color:#888;font-size:0.9rem;text-decoration:none">‚Ü?Back to list</a>
+  <a href="/print-requests/" style="color:#888;font-size:0.9rem;text-decoration:none">‚Üê Back to list</a>
 
-  <div id="loading-info" style="text-align:center;padding:40px;color:#888">Loading request info‚Ä?/div>
+  <div id="loading-info" style="text-align:center;padding:40px;color:#888">Loading request info‚Ä¶</div>
 
   <div id="return-card" style="display:none;margin-top:16px">
 
@@ -39,7 +39,7 @@
       <textarea
         id="reason-input"
         rows="6"
-        placeholder="e.g. The STL file has non-manifold geometry. Please repair the mesh and re-upload‚Ä?
+        placeholder="e.g. The STL file has non-manifold geometry. Please repair the mesh and re-upload‚Ä¶"
         style="width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid #ddd;border-radius:8px;font-size:0.95rem;resize:vertical;font-family:inherit"
       ></textarea>
 
@@ -122,7 +122,7 @@ async function submitReturn() {
 
   const btn = document.getElementById('btn-submit');
   btn.disabled = true;
-      btn.textContent = 'Sending‚Ä?;  try {
+      btn.textContent = 'Sending‚Ä¶';  try {
     const res  = await apiFetch(`/api/admin/print-requests/${requestId}/return`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -131,7 +131,7 @@ async function submitReturn() {
     const data = await res.json();
 
     if (data.success) {
-      showAlert('Feedback sent to student successfully. Redirecting‚Ä?, 'success');
+      showAlert('Feedback sent to student successfully. Redirecting‚Ä¶', 'success');
       setTimeout(() => { location.href = '/print-requests/'; }, 1500);
     } else {
       showAlert(data.message || 'Failed to send feedback.', 'error');

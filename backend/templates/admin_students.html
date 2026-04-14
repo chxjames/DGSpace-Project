@@ -1,10 +1,10 @@
 {% extends "base.html" %}
-{% block title %}Students ‚Ä?DGSpace{% endblock %}
+{% block title %}Students ‚Äî DGSpace{% endblock %}
 
 {% block content %}
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
   <h2 style="color:#1a1a2e">üë• Students</h2>
-  <a href="/" style="color:#888;text-decoration:none;font-size:0.9rem">‚Ü?Home</a>
+  <a href="/" style="color:#888;text-decoration:none;font-size:0.9rem">‚Üê Home</a>
 </div>
 
 <div id="alert-box"></div>
@@ -12,7 +12,7 @@
 <div class="card">
   <!-- Search bar -->
   <div style="margin-bottom:16px;display:flex;gap:10px;flex-wrap:wrap;align-items:center">
-    <input id="search-input" type="text" placeholder="üîç  Search by email, name or department‚Ä?
+    <input id="search-input" type="text" placeholder="üîç  Search by email, name or department‚Ä¶"
       oninput="filterStudents()"
       style="flex:1;min-width:200px;padding:8px 12px;border:1px solid #ddd;border-radius:6px;font-size:0.9rem">
     <select id="filter-role" onchange="filterStudents()"
@@ -24,7 +24,7 @@
     <span id="search-count" style="font-size:0.82rem;color:#999;white-space:nowrap"></span>
   </div>
 
-  <div id="loading" style="text-align:center;padding:32px;color:#888">Loading‚Ä?/div>
+  <div id="loading" style="text-align:center;padding:32px;color:#888">Loading‚Ä¶</div>
 
   <div style="overflow-x:auto">
   <table id="students-table" style="display:none;width:100%">
@@ -69,13 +69,13 @@ function showAlert(msg, type='error') {
 }
 
 function fmtDate(s) {
-  if (!s) return '‚Ä?;
-  try { return new Date(s).toLocaleDateString('en-US'); } catch { return '‚Ä?; }
+  if (!s) return '‚Äî';
+  try { return new Date(s).toLocaleDateString('en-US'); } catch { return '‚Äî'; }
 }
 
 function roleBadge(role) {
   if (role === 'student_staff') {
-    return '<span style="background:#1976d2;color:#fff;padding:2px 10px;border-radius:12px;font-size:0.78rem;font-weight:600;white-space:nowrap;display:inline-block">‚≠?Staff</span>';
+    return '<span style="background:#1976d2;color:#fff;padding:2px 10px;border-radius:12px;font-size:0.78rem;font-weight:600;white-space:nowrap;display:inline-block">‚≠ê Staff</span>';
   }
   return '<span style="background:#e0e0e0;color:#555;padding:2px 10px;border-radius:12px;font-size:0.78rem;font-weight:600;white-space:nowrap;display:inline-block">Student</span>';
 }
@@ -140,9 +140,9 @@ function renderStudents(list) {
     const safeName  = String(s.full_name || '');
     const safeDept  = String(s.department || '');
     const role      = s.role || 'student';
-    const verified  = s.email_verified ? '‚ú? : '‚Ä?;
+    const verified  = s.email_verified ? '‚úÖ' : '‚Äî';
     const isStaff   = role === 'student_staff';
-    const promoteLabel = isStaff ? '‚Ü?Demote to Student' : '‚≠?Make Staff';
+    const promoteLabel = isStaff ? '‚Ü© Demote to Student' : '‚≠ê Make Staff';
     const promoteStyle = isStaff
       ? 'background:#f0f0f0;color:#555;border:1px solid #ccc;padding:3px 8px;border-radius:6px;cursor:pointer;font-size:0.75rem;margin-right:4px;white-space:nowrap'
       : 'background:#1976d2;color:#fff;border:none;padding:3px 8px;border-radius:6px;cursor:pointer;font-size:0.75rem;margin-right:4px;white-space:nowrap';
@@ -152,7 +152,7 @@ function renderStudents(list) {
         <td>${idx + 1}</td>
         <td>${safeEmail}</td>
         <td>${safeName}</td>
-        <td>${safeDept || '‚Ä?}</td>
+        <td>${safeDept || '‚Äî'}</td>
         <td style="text-align:center;min-width:90px">${roleBadge(role)}</td>
         <td style="text-align:center">${verified}</td>
         <td>${fmtDate(s.created_at)}</td>

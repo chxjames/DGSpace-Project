@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Log In �?DGSpace{% endblock %}
+{% block title %}Log In — DGSpace{% endblock %}
 
 {% block content %}
 <div class="card" style="max-width:420px;margin:0 auto">
@@ -20,7 +20,7 @@
   </div>
   <div class="form-group">
     <label>Password</label>
-    <input type="password" id="password" placeholder="•••••••�?>
+    <input type="password" id="password" placeholder="••••••••">
   </div>
   <button class="btn" onclick="doLogin()">Log In</button>
 
@@ -54,7 +54,7 @@ async function doLogin() {
 
     if (data.success) {
       saveAuth(data.token, data.user);
-      showAlert('Login successful! Redirecting�?, 'success');
+      showAlert('Login successful! Redirecting…', 'success');
       setTimeout(() => location.href = '/', 800);
     } else {
       showAlert(data.message || 'Login failed.');
