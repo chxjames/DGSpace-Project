@@ -480,8 +480,12 @@ def get_staff_notifications():
 
     now = datetime.datetime.utcnow()
 
+    # Only notify the staff member who originally assigned this job
+    current_email = payload['email']
+
     active_jobs = db.fetch_all("""
         SELECT pj.job_id, pj.print_end_expected, pj.staff_notified,
+               pj.assigned_by,
                pr.project_name, pr.student_email,
                s.full_name AS student_name,
                p.printer_name
@@ -492,7 +496,8 @@ def get_staff_notifications():
         WHERE  pj.status = 'printing'
           AND  pj.print_end_expected IS NOT NULL
           AND  pj.staff_notified = 0
-    """, ()) or []
+          AND  pj.assigned_by = %s
+    """, (current_email,)) or []
 
     notifications = []
     for job in active_jobs:

@@ -422,17 +422,27 @@ function renderJobCard(j, pos) {
   const hasEnd = endRaw && endRaw !== 'null' && endRaw !== 'None';
   const cdProject  = escHtml(j.project_name || '');
   const cdPrinter  = escHtml(j.printer_name || '');
+  const assignedBy     = j.assigned_by || '';
+  const cdAssignedBy   = escHtml(assignedBy);
+  const currentUser    = getUser();
+  const isMyJob        = currentUser && assignedBy && assignedBy === currentUser.email;
+  const assignerLabel  = assignedBy
+    ? `<span title="Assigned by ${escHtml(assignedBy)}" style="color:${isMyJob ? '#007bff' : '#888'}">🔖 ${escHtml(assignedBy)}</span>`
+    : '';
+
   const countdownHtml = (j.job_status === 'printing' && hasEnd)
     ? `<span class="job-countdown countdown-ok" id="cd-${j.job_id}"
             data-end="${endRaw}"
             data-project="${cdProject}"
-            data-printer="${cdPrinter}">⏱ …</span>`
+            data-printer="${cdPrinter}"
+            data-assigned-by="${cdAssignedBy}">⏱ …</span>`
     : (j.job_status === 'printing'
         ? `<span class="job-countdown countdown-ok" id="cd-${j.job_id}"
                 data-mins="${j.ufp_print_time_minutes || 0}"
                 data-started="${j.started_at || ''}"
                 data-project="${cdProject}"
-                data-printer="${cdPrinter}">⏱ …</span>`
+                data-printer="${cdPrinter}"
+                data-assigned-by="${cdAssignedBy}">⏱ …</span>`
         : '');
 
   return `
@@ -447,6 +457,7 @@ function renderJobCard(j, pos) {
           <span>👤 ${escHtml(j.student_name || j.student_email)}</span>
           ${dl}
           ${j.estimated_start ? `<span>🕐 Est. start: ${fmtDt(j.estimated_start)}</span>` : ''}
+          ${assignerLabel}
         </div>
         ${countdownHtml}
       </div>
@@ -738,14 +749,19 @@ function tickCountdowns() {
       label = '🔴 Time Up!';
       el.classList.add('countdown-overdue');
 
-      // Fire notification exactly once per job per page session
+      // Fire notification exactly once per job per page session,
+      // and ONLY if the current user is the one who assigned this job
       const jobId = el.id.replace('cd-', '');
       if (!_firedTimesUp.has(jobId)) {
         _firedTimesUp.add(jobId);
-        const project = el.dataset.project || 'Unknown project';
-        const printer = el.dataset.printer || '';
-        const msg = `⏰ Print complete: "${project}"${printer ? ' on ' + printer : ''}`;
-        sendBrowserNotification(msg, 'print_done');
+        const assignedBy = el.dataset.assignedBy || '';
+        const me = getUser();
+        if (me && assignedBy && assignedBy === me.email) {
+          const project = el.dataset.project || 'Unknown project';
+          const printer = el.dataset.printer || '';
+          const msg = `⏰ Print complete: "${project}"${printer ? ' on ' + printer : ''}`;
+          sendBrowserNotification(msg, 'print_done');
+        }
       }
     } else if (diffSec <= 600) {
       label = `🔴 ${fmtCountdown(diffSec)}`;
