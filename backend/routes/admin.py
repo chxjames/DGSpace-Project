@@ -469,6 +469,27 @@ def _job_exceeds_hours(print_end_dt):
     return print_end_dt > closing
 
 
+@admin_bp.route('/api/admin/jobs/<int:job_id>/mark-notified', methods=['POST'])
+def mark_job_notified(job_id):
+    """Mark a job's staff_notified flag as 1 so pollNotifications won't re-fire it.
+    Called by the client-side tickCountdowns when it fires a notification."""
+    auth_header = request.headers.get('Authorization', '')
+    if not auth_header.startswith('Bearer '):
+        return jsonify({'success': False}), 401
+    payload = AuthService.verify_jwt_token(auth_header.split(' ')[1])
+    if not payload or payload.get('user_type') not in ('admin', 'student_staff'):
+        return jsonify({'success': False}), 403
+
+    current_email = payload['email']
+    # Only allow the assigned staff member to mark it (prevents spoofing)
+    db.execute_update(
+        "UPDATE print_jobs SET staff_notified = 1 "
+        "WHERE job_id = %s AND assigned_by = %s AND staff_notified = 0",
+        (job_id, current_email)
+    )
+    return jsonify({'success': True}), 200
+
+
 @admin_bp.route('/api/admin/notifications', methods=['GET'])
 def get_staff_notifications():
     """Poll endpoint — returns pending notifications for the logged-in staff member."""

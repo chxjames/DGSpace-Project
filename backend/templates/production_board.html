@@ -767,6 +767,8 @@ function tickCountdowns() {
           const printer = el.dataset.printer || '';
           const msg = `⏰ Print complete: "${project}"${printer ? ' on ' + printer : ''}`;
           sendBrowserNotification(msg, 'print_done');
+          // Mark in DB so pollNotifications won't fire a duplicate 30s later
+          apiFetch(`/api/admin/jobs/${jobId}/mark-notified`, { method: 'POST' }).catch(() => {});
         }
       }
     } else if (diffSec <= 600) {
@@ -809,11 +811,14 @@ async function pollNotifications() {
     const data = await res.json();
     if (!data.success) return;
     (data.notifications || []).forEach(n => {
+      const jobIdStr = String(n.job_id);
+      // Skip if tickCountdowns already fired this notification in this session
+      if (_firedTimesUp.has(jobIdStr)) return;
       if (_notifiedJobs.has(n.job_id)) return;
       _notifiedJobs.add(n.job_id);
       // Also mark in _firedTimesUp so tickCountdowns won't fire a second popup
       // for the same job when the countdown element reaches zero
-      _firedTimesUp.add(String(n.job_id));
+      _firedTimesUp.add(jobIdStr);
       sendBrowserNotification(n.message, n.type);
     });
   } catch(e) { /* silent — non-critical */ }
