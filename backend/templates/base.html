@@ -139,7 +139,6 @@
     <div class="nav-links">
       <span id="nav-username" style="display:none"></span>
       <a href="/print-requests/" id="nav-print" style="display:none">Print Requests</a>
-      <a href="/printers/" id="nav-printers" style="display:none">🖨 Printers</a>
       <a href="/profile/" id="nav-profile" style="display:none">👤 Profile</a>
       <a href="/login" id="nav-login">Log In</a>
       <a href="/signup" id="nav-signup">Sign Up</a>
@@ -169,7 +168,6 @@
         }).then(r => r.json()).then(d => {
           if (d.is_active || d.enabled) {
             document.getElementById('nav-print').style.display = 'inline';
-            document.getElementById('nav-printers').style.display = 'inline';
           }
         }).catch(() => {});
       }
