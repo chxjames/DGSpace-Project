@@ -1,0 +1,371 @@
+import os
+import uuid
+from flask import Blueprint, request, jsonify, send_from_directory, current_app
+from database import db
+from auth_service import AuthService
+from print_service import PrintService
+from ufp_analysis import analyze_ufp
+
+print_bp = Blueprint('print_requests', __name__)
+
+
+# ==================== 3D PRINT REQUEST ENDPOINTS ====================
+
+@print_bp.route('/api/print-requests/upload-stl', methods=['POST'])
+def upload_stl():
+    """Upload a .stl file before submitting a print request (Student / Student Staff / Admin)"""
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({'success': False, 'message': 'No token provided'}), 401
+
+    token = auth_header.split(' ')[1]
+    payload = AuthService.verify_jwt_token(token)
+    if not payload or payload.get('user_type') not in ('student', 'student_staff', 'admin'):
+        return jsonify({'success': False, 'message': 'Invalid token or not a student'}), 401
+
+    if 'file' not in request.files:
+        return jsonify({'success': False, 'message': 'No file provided'}), 400
+
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'success': False, 'message': 'No file selected'}), 400
+
+    original_name = file.filename
+    if not original_name.lower().endswith('.stl'):
+        return jsonify({'success': False, 'message': 'Only .stl files are allowed'}), 400
+
+    # Save as uuid.stl to avoid filename collisions
+    saved_name = f"{uuid.uuid4().hex}.stl"
+    save_path = os.path.join(current_app.config['UPLOAD_FOLDER'], saved_name)
+    file.save(save_path)
+
+    return jsonify({
+        'success': True,
+        'filename': saved_name,
+        'original_name': original_name
+    }), 201
+
+
+@print_bp.route('/api/print-requests/upload-stl/<filename>', methods=['DELETE'])
+def delete_uploaded_stl(filename: str):
+    """Delete a previously uploaded STL file before submitting a print request.
+
+    Supports the frontend "Remove" button so mistaken uploads don't linger on disk.
+    """
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({'success': False, 'message': 'No token provided'}), 401
+
+    token = auth_header.split(' ')[1]
+    payload = AuthService.verify_jwt_token(token)
+    if not payload or payload.get('user_type') not in ('student', 'student_staff', 'admin'):
+        return jsonify({'success': False, 'message': 'Invalid token or not a student'}), 401
+
+    # Basic path-traversal protection: only allow the basename.
+    safe_name = os.path.basename(filename)
+    if safe_name != filename:
+        return jsonify({'success': False, 'message': 'Invalid filename'}), 400
+
+    upload_dir = current_app.config['UPLOAD_FOLDER']
+    file_path = os.path.join(upload_dir, safe_name)
+
+    abs_upload_dir = os.path.abspath(upload_dir)
+    abs_file_path = os.path.abspath(file_path)
+    if not abs_file_path.startswith(abs_upload_dir + os.sep):
+        return jsonify({'success': False, 'message': 'Invalid filename'}), 400
+
+    if not os.path.exists(abs_file_path):
+        return jsonify({'success': True, 'message': 'File already deleted'}), 200
+
+    try:
+        os.remove(abs_file_path)
+        return jsonify({'success': True, 'message': 'File deleted'}), 200
+    except OSError:
+        return jsonify({'success': False, 'message': 'Failed to delete file'}), 500
+
+
+@print_bp.route('/api/print-requests/upload-ufp', methods=['POST'])
+def upload_ufp():
+    """Upload a .ufp (Ultimaker Format Package) file and return slicer estimates.
+
+    The .ufp is a ZIP archive produced by Cura. We extract print.json from it
+    to read the exact print time and material usage the slicer calculated.
+    """
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({'success': False, 'message': 'No token provided'}), 401
+
+    token = auth_header.split(' ')[1]
+    payload = AuthService.verify_jwt_token(token)
+    if not payload or payload.get('user_type') not in ('student', 'admin', 'student_staff'):
+        return jsonify({'success': False, 'message': 'Invalid token'}), 401
+
+    if 'file' not in request.files:
+        return jsonify({'success': False, 'message': 'No file provided'}), 400
+
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'success': False, 'message': 'No file selected'}), 400
+
+    original_name = file.filename
+    if not original_name.lower().endswith('.ufp'):
+        return jsonify({'success': False, 'message': 'Only .ufp files are allowed'}), 400
+
+    # Size limit: 100 MB (UFP contains G-code which can be large)
+    file.seek(0, 2)
+    size = file.tell()
+    file.seek(0)
+    if size > 100 * 1024 * 1024:
+        return jsonify({'success': False, 'message': 'File exceeds 100 MB limit'}), 400
+
+    saved_name = f"{uuid.uuid4().hex}.ufp"
+    save_path = os.path.join(current_app.config['UPLOAD_FOLDER'], saved_name)
+    file.save(save_path)
+
+    result = analyze_ufp(save_path)
+
+    if not result.get('success'):
+        try:
+            os.remove(save_path)
+        except OSError:
+            pass
+        return jsonify(result), 400
+
+    return jsonify({
+        'success':       True,
+        'filename':      saved_name,
+        'original_name': original_name,
+        'analysis': {
+            'print_time':            result['print_time'],
+            'material_weight_g':     result['material_weight_g'],
+            'material_length_mm':    result['material_length_mm'],
+            'layer_height':          result['layer_height'],
+            'infill_sparse_density': result['infill_sparse_density'],
+            'material_type':         result['material_type'],
+            'printer_name':          result['printer_name'],
+        }
+    }), 201
+
+
+@print_bp.route('/api/print-requests/upload-ufp/<filename>', methods=['DELETE'])
+def delete_uploaded_ufp(filename: str):
+    """Delete a previously uploaded UFP file."""
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({'success': False, 'message': 'No token provided'}), 401
+
+    token = auth_header.split(' ')[1]
+    payload = AuthService.verify_jwt_token(token)
+    if not payload or payload.get('user_type') not in ('student', 'admin', 'student_staff'):
+        return jsonify({'success': False, 'message': 'Invalid token'}), 401
+
+    safe_name = os.path.basename(filename)
+    abs_upload_dir = os.path.abspath(current_app.config['UPLOAD_FOLDER'])
+    abs_file_path  = os.path.abspath(os.path.join(abs_upload_dir, safe_name))
+    if not abs_file_path.startswith(abs_upload_dir + os.sep):
+        return jsonify({'success': False, 'message': 'Invalid filename'}), 400
+
+    if not os.path.exists(abs_file_path):
+        return jsonify({'success': True, 'message': 'File already deleted'}), 200
+
+    try:
+        os.remove(abs_file_path)
+        return jsonify({'success': True, 'message': 'File deleted'}), 200
+    except OSError:
+        return jsonify({'success': False, 'message': 'Failed to delete file'}), 500
+
+
+@print_bp.route('/api/uploads/<filename>', methods=['GET'])
+def serve_upload(filename: str):
+    """Serve uploaded STL / UFP files"""
+    return send_from_directory(current_app.config['UPLOAD_FOLDER'], filename)
+
+
+@print_bp.route('/api/print-requests', methods=['POST'])
+def create_print_request():
+    """Create a new 3D print request (Student / Student Staff)"""
+    auth_header = request.headers.get('Authorization')
+
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({'success': False, 'message': 'No token provided'}), 401
+
+    token = auth_header.split(' ')[1]
+    payload = AuthService.verify_jwt_token(token)
+
+    if not payload or payload.get('user_type') not in ('student', 'student_staff', 'admin'):
+        return jsonify({'success': False, 'message': 'Invalid token or not a student'}), 401
+
+    data = request.json
+
+    if 'project_name' not in data:
+        return jsonify({'success': False, 'message': 'Project name is required'}), 400
+
+    result = PrintService.create_print_request(
+        student_email=payload['email'],
+        project_name=data['project_name'],
+        description=data.get('description'),
+        material_type=data.get('material_type', 'PLA'),
+        color_preference=data.get('color_preference'),
+        is_senior_design=bool(data.get('is_senior_design', False)),
+        project_context=data.get('project_context', 'individual'),
+        estimated_weight_grams=data.get('estimated_weight_grams'),
+        estimated_print_time_hours=data.get('estimated_print_time_hours'),
+        priority=data.get('priority', 'normal'),
+        stl_file_path=data.get('stl_file_path'),
+        stl_original_name=data.get('stl_original_name'),
+        slicer_time_minutes=float(data['slicer_time_minutes']) if data.get('slicer_time_minutes') else None,
+        slicer_material_g=float(data['slicer_material_g']) if data.get('slicer_material_g') else None,
+        deadline_date=data.get('deadline_date') or None,
+        submitter_is_admin=payload.get('user_type') == 'admin',
+    )
+
+    if result['success']:
+        return jsonify(result), 201
+    else:
+        return jsonify(result), 400
+
+
+@print_bp.route('/api/print-requests/my-requests', methods=['GET'])
+def get_my_requests():
+    """Get all print requests for the authenticated student"""
+    auth_header = request.headers.get('Authorization')
+
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({'success': False, 'message': 'No token provided'}), 401
+
+    token = auth_header.split(' ')[1]
+    payload = AuthService.verify_jwt_token(token)
+
+    if not payload or payload.get('user_type') not in ('student', 'student_staff'):
+        return jsonify({'success': False, 'message': 'Invalid token or not a student'}), 401
+
+    status = request.args.get('status')
+    result = PrintService.get_student_requests(payload['email'], status)
+
+    if result['success']:
+        return jsonify(result), 200
+    else:
+        return jsonify(result), 400
+
+
+@print_bp.route('/api/print-requests/<int:request_id>', methods=['GET'])
+def get_request_details(request_id):
+    """Get details of a specific print request"""
+    auth_header = request.headers.get('Authorization')
+
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({'success': False, 'message': 'No token provided'}), 401
+
+    token = auth_header.split(' ')[1]
+    payload = AuthService.verify_jwt_token(token)
+
+    if not payload:
+        return jsonify({'success': False, 'message': 'Invalid token'}), 401
+
+    result = PrintService.get_request_by_id(request_id)
+
+    if not result['success']:
+        return jsonify(result), 404
+
+    if payload.get('user_type') == 'student':
+        if result['request']['student_email'] != payload['email']:
+            return jsonify({'success': False, 'message': 'Unauthorized'}), 403
+
+    return jsonify(result), 200
+
+
+@print_bp.route('/api/print-requests/<int:request_id>', methods=['DELETE'])
+def delete_print_request(request_id):
+    """Delete a pending print request (student only, own requests)"""
+    auth_header = request.headers.get('Authorization')
+
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({'success': False, 'message': 'No token provided'}), 401
+
+    token = auth_header.split(' ')[1]
+    payload = AuthService.verify_jwt_token(token)
+
+    if not payload:
+        return jsonify({'success': False, 'message': 'Invalid token'}), 401
+
+    if payload.get('user_type') not in ('student', 'student_staff'):
+        return jsonify({'success': False, 'message': 'Only students can delete requests'}), 403
+
+    result = PrintService.delete_print_request(request_id, payload['email'])
+
+    if result['success']:
+        return jsonify(result), 200
+    else:
+        if 'not found' in result['message']:
+            return jsonify(result), 404
+        if 'Unauthorized' in result['message']:
+            return jsonify(result), 403
+        return jsonify(result), 400
+
+
+@print_bp.route('/api/print-requests/<int:request_id>/resubmit', methods=['PATCH'])
+def resubmit_print_request(request_id):
+    """Student resubmits a revision_requested request in-place."""
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({'success': False, 'message': 'No token provided'}), 401
+
+    token = auth_header.split(' ')[1]
+    payload = AuthService.verify_jwt_token(token)
+    if not payload:
+        return jsonify({'success': False, 'message': 'Invalid token'}), 401
+
+    if payload.get('user_type') not in ('student', 'student_staff'):
+        return jsonify({'success': False, 'message': 'Only students can resubmit requests'}), 403
+
+    data = request.json or {}
+
+    result = PrintService.resubmit_request(
+        request_id=request_id,
+        student_email=payload['email'],
+        project_name=data.get('project_name'),
+        description=data.get('description'),
+        stl_file_path=data.get('stl_file_path'),
+        stl_original_name=data.get('stl_original_name'),
+        material_type=data.get('material_type'),
+        color_preference=data.get('color_preference'),
+    )
+
+    if result['success']:
+        return jsonify(result), 200
+    if 'not found' in result['message']:
+        return jsonify(result), 404
+    if 'Unauthorized' in result['message']:
+        return jsonify(result), 403
+    return jsonify(result), 400
+
+
+@print_bp.route('/api/print-requests/<int:request_id>/history', methods=['GET'])
+def get_request_history(request_id):
+    """Get status change history for a print request"""
+    auth_header = request.headers.get('Authorization')
+
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({'success': False, 'message': 'No token provided'}), 401
+
+    token = auth_header.split(' ')[1]
+    payload = AuthService.verify_jwt_token(token)
+
+    if not payload:
+        return jsonify({'success': False, 'message': 'Invalid token'}), 401
+
+    request_result = PrintService.get_request_by_id(request_id)
+
+    if not request_result['success']:
+        return jsonify(request_result), 404
+
+    if payload.get('user_type') == 'student':
+        if request_result['request']['student_email'] != payload['email']:
+            return jsonify({'success': False, 'message': 'Unauthorized'}), 403
+
+    result = PrintService.get_request_history(request_id)
+
+    if result['success']:
+        return jsonify(result), 200
+    else:
+        return jsonify(result), 400
