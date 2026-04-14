@@ -1,13 +1,13 @@
 {% extends "base.html" %}
-{% block title %}Request Detail — DGSpace{% endblock %}
+{% block title %}Request Detail �?DGSpace{% endblock %}
 
 {% block content %}
 <div style="max-width:860px;margin:0 auto">
 
   <!-- Back link -->
-  <a href="/" style="color:#888;font-size:0.9rem;text-decoration:none">← Home</a>
+  <a href="/" style="color:#888;font-size:0.9rem;text-decoration:none">�?Home</a>
 
-  <div id="loading-detail" style="text-align:center;padding:60px;color:#888">Loading…</div>
+  <div id="loading-detail" style="text-align:center;padding:60px;color:#888">Loading�?/div>
 
   <!-- Main detail card (hidden until data loads) -->
   <div id="detail-card" style="display:none">
@@ -68,11 +68,11 @@
             🖱 Drag to rotate · Scroll to zoom
           </div>
           <div id="stl-loading" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.85);font-size:0.85rem;color:#888">
-            Loading 3D model…
+            Loading 3D model�?
           </div>
           <a id="stl-download" href="#" download
              style="position:absolute;top:8px;right:10px;font-size:0.75rem;color:#007bff;text-decoration:none;background:rgba(255,255,255,0.9);padding:3px 8px;border-radius:4px">
-            ⬇ Download STL
+            �?Download STL
           </a>
         </div>
       </div>
@@ -84,7 +84,7 @@
       <div class="card" style="margin:0">
         <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:16px">
           <h3 style="margin:0;font-size:1rem;color:#444">🛠 Admin Actions</h3>
-          <!-- Priority selector — staff/admin only -->
+          <!-- Priority selector �?staff/admin only -->
           <div style="display:flex;align-items:center;gap:8px;font-size:0.88rem">
             <label style="color:#666;white-space:nowrap;font-weight:600">Priority:</label>
             <select id="admin-priority-select"
@@ -109,10 +109,10 @@
             <div style="min-width:26px;height:26px;background:#007bff;color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.85rem;flex-shrink:0">1</div>
             <div>
               <div style="font-weight:600;font-size:0.9rem;color:#333;margin-bottom:4px">Download &amp; slice the STL file</div>
-              <div style="font-size:0.85rem;color:#666;margin-bottom:6px">Open in Cura, slice it, then save as <code>.ufp</code> via <em>File → Save to Disk</em>.</div>
+              <div style="font-size:0.85rem;color:#666;margin-bottom:6px">Open in Cura, slice it, then save as <code>.ufp</code> via <em>File �?Save to Disk</em>.</div>
               <a id="ufp-stl-link" href="#" download
                  style="display:inline-flex;align-items:center;gap:6px;font-size:0.85rem;color:#007bff;text-decoration:none;border:1px solid #007bff;padding:5px 12px;border-radius:6px">
-                ⬇ Download STL
+                �?Download STL
               </a>
               <span id="ufp-no-stl-msg" style="display:none;font-size:0.85rem;color:#dc3545">⚠️ No STL file attached to this request.</span>
             </div>
@@ -141,7 +141,7 @@
 
               <!-- Upload progress -->
               <div id="ufp-uploading" style="display:none;margin-top:10px;font-size:0.88rem;color:#007bff;text-align:center">
-                ⏳ Uploading and reading slice data…
+                �?Uploading and reading slice data�?
               </div>
             </div>
           </div>
@@ -149,9 +149,9 @@
           <!-- Parsed data card (hidden until upload succeeds) -->
           <div id="ufp-parsed-card" style="display:none;margin-bottom:16px">
             <div style="display:flex;align-items:flex-start;gap:12px">
-              <div style="min-width:26px;height:26px;background:#28a745;color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.85rem;flex-shrink:0">✓</div>
+              <div style="min-width:26px;height:26px;background:#28a745;color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.85rem;flex-shrink:0">�?/div>
               <div style="flex:1;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:14px">
-                <div style="font-weight:600;font-size:0.9rem;color:#166534;margin-bottom:10px">✅ Slice data loaded from Cura</div>
+                <div style="font-weight:600;font-size:0.9rem;color:#166534;margin-bottom:10px">�?Slice data loaded from Cura</div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:0.88rem">
                   <div>
                     <div style="color:#888;margin-bottom:2px">Print Time</div>
@@ -172,7 +172,7 @@
                 </div>
                 <div style="margin-top:10px;font-size:0.8rem;color:#555">
                   File: <span id="ufp-disp-filename" style="color:#166534"></span>
-                  <a href="#" onclick="cancelUfpUpload();return false" style="margin-left:12px;color:#dc3545;font-size:0.78rem">✕ Remove</a>
+                  <a href="#" onclick="cancelUfpUpload();return false" style="margin-left:12px;color:#dc3545;font-size:0.78rem">�?Remove</a>
                 </div>
               </div>
             </div>
@@ -180,7 +180,7 @@
 
           <!-- ── Send-Back Templates ── -->
           <div id="sendback-section" style="margin-bottom:16px">
-            <label style="font-size:0.85rem;font-weight:600;color:#555;display:block;margin-bottom:8px">↩ Send Back — Select Reason(s)</label>
+            <label style="font-size:0.85rem;font-weight:600;color:#555;display:block;margin-bottom:8px">�?Send Back �?Select Reason(s)</label>
 
             <!-- Template chips (multi-select) -->
             <div id="fb-chips" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px">
@@ -189,7 +189,7 @@
 
             <!-- Notes textarea -->
             <textarea id="admin-notes-input" rows="3"
-                      placeholder="Select template(s) above or write custom feedback…"
+                      placeholder="Select template(s) above or write custom feedback�?
                       oninput="fbSyncChipsFromTextarea()"
                       style="width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:0.88rem;resize:vertical;font-family:inherit"></textarea>
             <div style="font-size:0.78rem;color:#aaa;margin-top:4px">Selected templates are appended automatically. You can also edit the text directly.</div>
@@ -198,27 +198,27 @@
           <!-- Approve notes (collapsed until UFP uploaded) -->
           <div id="approve-notes-section" style="display:none;margin-bottom:16px">
             <label style="font-size:0.85rem;font-weight:600;color:#555;display:block;margin-bottom:4px">Approval Notes <span style="font-weight:400;color:#aaa">(optional)</span></label>
-            <textarea id="approve-notes-input" rows="2" placeholder="Optional notes for the approval…"
+            <textarea id="approve-notes-input" rows="2" placeholder="Optional notes for the approval�?
                       style="width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:0.88rem;resize:vertical;font-family:inherit"></textarea>
           </div>
 
-          <!-- Action buttons — always visible -->
+          <!-- Action buttons �?always visible -->
           <div style="display:flex;gap:10px;flex-wrap:wrap">
             <button id="btn-confirm-approve" class="btn" onclick="adminApproveWithUfp()" disabled
                     style="width:auto;padding:10px 24px;background:#28a745;font-size:0.95rem;opacity:0.55;cursor:not-allowed">
-              ✅ Approve
+              �?Approve
             </button>
             <button id="btn-send-back" class="btn" onclick="adminSendBack()"
                     style="width:auto;padding:10px 24px;background:#f39c12;font-size:0.95rem">
-              ↩ Send Back
+              �?Send Back
             </button>
             <button id="btn-reject" class="btn" onclick="adminReject()"
                     style="width:auto;padding:10px 24px;background:#dc3545;font-size:0.95rem">
-              ❌ Reject
+              �?Reject
             </button>
             <button id="btn-cannot-deadline" class="btn" onclick="adminCannotCompleteByDeadline()"
                     style="width:auto;padding:10px 24px;background:#6c757d;font-size:0.95rem;display:none">
-              ⏰ Cannot Complete by Deadline
+              �?Cannot Complete by Deadline
             </button>
           </div>
         </div>
@@ -227,7 +227,7 @@
         <div id="admin-progress-group" style="display:none;margin-top:12px;display:flex;gap:12px;flex-wrap:wrap;align-items:center">
           <button id="btn-mark-completed" class="btn" onclick="adminSetStatus('completed')"
                   style="width:auto;padding:10px 24px;background:#28a745;font-size:0.95rem">
-            ✅ Mark Completed
+            �?Mark Completed
           </button>
           <button id="btn-cancel-job" class="btn" onclick="adminSetStatus('cancelled')"
                   style="width:auto;padding:10px 24px;background:#6c757d;font-size:0.95rem">
@@ -235,7 +235,7 @@
           </button>
           <a id="btn-go-board" href="/production/"
              style="display:none;width:auto;padding:10px 24px;background:#1a1a2e;color:#fff;border-radius:8px;font-size:0.95rem;text-decoration:none;font-weight:600">
-            🖨️ Go to Production Board
+            🖨�?Go to Production Board
           </a>
         </div>
       </div>
@@ -259,7 +259,7 @@
         <div id="rs-field-description" style="margin-bottom:12px;display:none">
           <label style="font-size:0.85rem;font-weight:600;color:#555;display:block;margin-bottom:4px">
             Description
-            <span style="font-weight:400;color:#e94560;font-size:0.8rem;margin-left:6px">⚑ Staff requested update</span>
+            <span style="font-weight:400;color:#e94560;font-size:0.8rem;margin-left:6px">�?Staff requested update</span>
           </label>
           <textarea id="rs-description" rows="4"
                     style="width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid #e94560;border-radius:6px;font-size:0.9rem;resize:vertical;font-family:inherit"></textarea>
@@ -269,7 +269,7 @@
         <div id="rs-field-material" style="margin-bottom:12px;display:none">
           <label style="font-size:0.85rem;font-weight:600;color:#555;display:block;margin-bottom:8px">
             Material &amp; Color
-            <span style="font-weight:400;color:#e94560;font-size:0.8rem;margin-left:6px">⚑ Staff requested update</span>
+            <span style="font-weight:400;color:#e94560;font-size:0.8rem;margin-left:6px">�?Staff requested update</span>
           </label>
           <div style="display:flex;gap:10px;flex-wrap:wrap">
             <div style="flex:1;min-width:140px">
@@ -289,8 +289,8 @@
               <select id="rs-color"
                       style="width:100%;padding:8px 10px;border:1px solid #e94560;border-radius:6px;font-size:0.9rem;font-family:inherit">
                 <option value="Any">🎨 Any (let staff decide)</option>
-                <option value="White">⬜ White</option>
-                <option value="Black">⬛ Black</option>
+                <option value="White">�?White</option>
+                <option value="Black">�?Black</option>
                 <option value="Red">🟥 Red</option>
                 <option value="Blue">🟦 Blue</option>
                 <option value="Green">🟩 Green</option>
@@ -306,14 +306,14 @@
         <div id="rs-field-stl" style="margin-bottom:16px">
           <label style="font-size:0.85rem;font-weight:600;color:#555;display:block;margin-bottom:4px">
             <span id="rs-stl-label">Replace STL File</span>
-            <span id="rs-stl-flag" style="display:none;font-weight:400;color:#e94560;font-size:0.8rem;margin-left:6px">⚑ Staff requested update</span>
+            <span id="rs-stl-flag" style="display:none;font-weight:400;color:#e94560;font-size:0.8rem;margin-left:6px">�?Staff requested update</span>
             <span id="rs-stl-optional" style="font-weight:400;color:#aaa;font-size:0.8rem;margin-left:6px">(optional)</span>
           </label>
 
           <!-- current file chip -->
           <div id="rs-current-stl" style="display:none;font-size:0.82rem;color:#555;margin-bottom:8px;padding:6px 10px;background:#f0f4ff;border:1px solid #c8d8ff;border-radius:6px">
             Keeping current: <span id="rs-current-stl-name" style="font-family:monospace;color:#007bff"></span>
-            <a href="#" onclick="rsRemoveCurrentStl();return false" style="margin-left:8px;color:#dc3545;font-size:0.78rem">✕ Replace with new file</a>
+            <a href="#" onclick="rsRemoveCurrentStl();return false" style="margin-left:8px;color:#dc3545;font-size:0.78rem">�?Replace with new file</a>
           </div>
 
           <!-- drop zone -->
@@ -331,10 +331,10 @@
 
           <!-- new file chip -->
           <div id="rs-new-stl-chip" style="display:none;margin-top:8px;font-size:0.82rem;padding:6px 10px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;color:#166534">
-            ✅ New STL ready: <strong id="rs-new-stl-name"></strong>
-            <a href="#" onclick="rsCancelNewStl();return false" style="margin-left:10px;color:#dc3545;font-size:0.78rem">✕ Cancel</a>
+            �?New STL ready: <strong id="rs-new-stl-name"></strong>
+            <a href="#" onclick="rsCancelNewStl();return false" style="margin-left:10px;color:#dc3545;font-size:0.78rem">�?Cancel</a>
           </div>
-          <div id="rs-stl-uploading" style="display:none;margin-top:8px;font-size:0.85rem;color:#007bff">⏳ Uploading STL…</div>
+          <div id="rs-stl-uploading" style="display:none;margin-top:8px;font-size:0.85rem;color:#007bff">�?Uploading STL�?/div>
         </div>
 
         <!-- Submit button -->
@@ -372,25 +372,25 @@ const requestId = parseInt(location.pathname.split('/').filter(Boolean).pop());
 async function loadDetail() {
   const _u = window.getUser ? window.getUser() : null;
 
-  // student_staff always use the admin-capable detail page …
-  // … EXCEPT when it is their own request sent back for revision.
+  // student_staff always use the admin-capable detail page �?
+  // �?EXCEPT when it is their own request sent back for revision.
   // We check after fetching so we know the owner + status.
   if (_u && _u.user_type === 'student_staff') {
     try {
       const res  = await window.apiFetch(`/api/print-requests/${requestId}`);
-      if (res.status === 401) { location.href = '/accounts/login'; return; }
+      if (res.status === 401) { location.href = '/login'; return; }
       const data = await res.json();
       if (!data.success) {
         document.getElementById('loading-detail').textContent = 'Request not found.';
         return;
       }
       const r = data.request;
-      // Own request that needs revision → stay here so the resubmit panel shows
+      // Own request that needs revision �?stay here so the resubmit panel shows
       if (r.status === 'revision_requested' && r.student_email === _u.email) {
         renderDetail(r);
         return;
       }
-      // All other cases → go to the admin review page
+      // All other cases �?go to the admin review page
       location.replace(`/print-requests/${requestId}/head/`);
     } catch(e) {
       document.getElementById('loading-detail').textContent = 'Failed to load. Is the backend running?';
@@ -401,7 +401,7 @@ async function loadDetail() {
   // Normal (non-student_staff) path
   try {
     const res  = await window.apiFetch(`/api/print-requests/${requestId}`);
-    if (res.status === 401) { location.href = '/accounts/login'; return; }
+    if (res.status === 401) { location.href = '/login'; return; }
     const data = await res.json();
 
     if (!data.success) {
@@ -433,11 +433,11 @@ function renderDetail(r) {
 
   document.getElementById('d-project-name').textContent = r.project_name;
   document.getElementById('d-status-badge').innerHTML    = statusBadge(r.status);
-  // Priority badge — only visible to admin / student_staff; rendered later in admin block
+  // Priority badge �?only visible to admin / student_staff; rendered later in admin block
   document.getElementById('d-created-at').textContent    = new Date(r.created_at).toLocaleDateString('en-US');
-  document.getElementById('d-material').textContent      = r.material_type || '—';
-  document.getElementById('d-color').textContent         = r.color_preference || '—';
-  document.getElementById('d-student').textContent         = r.student_name || r.student_email || '—';
+  document.getElementById('d-material').textContent      = r.material_type || '�?;
+  document.getElementById('d-color').textContent         = r.color_preference || '�?;
+  document.getElementById('d-student').textContent         = r.student_name || r.student_email || '�?;
 
   // Est. Weight (from UFP analysis)
   if (r.ufp_material_g != null) {
@@ -574,8 +574,8 @@ function renderDetail(r) {
       }
     } else {
       statusInfo.style.display = 'block';
-      const labels = { completed: '✅ Completed', rejected: '❌ Rejected', cancelled: '🚫 Cancelled' };
-      statusInfo.innerHTML = `<span style="font-size:1rem">${labels[r.status] || r.status}</span> — No further actions available.`;
+      const labels = { completed: '�?Completed', rejected: '�?Rejected', cancelled: '🚫 Cancelled' };
+      statusInfo.innerHTML = `<span style="font-size:1rem">${labels[r.status] || r.status}</span> �?No further actions available.`;
     }
   }
 
@@ -599,7 +599,7 @@ function renderDetail(r) {
     }
 
     // Apply revision_fields to show/hide flagged fields
-    // null → all fields unlocked (legacy / manual send-back)
+    // null �?all fields unlocked (legacy / manual send-back)
     const fields = r.revision_fields || ['stl', 'description', 'material'];
     if (fields.includes('description')) {
       document.getElementById('rs-field-description').style.display = 'block';
@@ -718,12 +718,12 @@ window.submitResubmit     = submitResubmit;
 // fields: 'stl' | 'description' | 'material'
 // ════════════════════════════════════════════════════════════
 const FB_TEMPLATES = [
-  { id: 'dims',     icon: '📐', label: 'Missing dimensions',           text: 'Missing dimensions — please add measurements to the description.',           fields: ['description'] },
-  { id: 'overhang', icon: '⚠️', label: 'Unsupported geometry / overhang', text: 'Unsupported geometry or excessive overhang — please revise the STL.',      fields: ['stl'] },
-  { id: 'toolarge', icon: '📦', label: 'Too large for printer',        text: 'Model is too large for our printer bed — please scale down or split the model.', fields: ['stl'] },
-  { id: 'material', icon: '🎨', label: 'Material/color unavailable',   text: 'Requested material or color is currently unavailable — please choose an alternative.', fields: ['material'] },
-  { id: 'wall',     icon: '🔧', label: 'Need stronger wall / redesign', text: 'Wall thickness is too thin or model needs structural redesign — please revise and re-upload.', fields: ['stl', 'description'] },
-  { id: 'manifold', icon: '🛠', label: 'STL not manifold / model issue', text: 'STL file has mesh errors (non-manifold geometry) — please repair and re-upload.', fields: ['stl'] },
+  { id: 'dims',     icon: '📐', label: 'Missing dimensions',           text: 'Missing dimensions �?please add measurements to the description.',           fields: ['description'] },
+  { id: 'overhang', icon: '⚠️', label: 'Unsupported geometry / overhang', text: 'Unsupported geometry or excessive overhang �?please revise the STL.',      fields: ['stl'] },
+  { id: 'toolarge', icon: '📦', label: 'Too large for printer',        text: 'Model is too large for our printer bed �?please scale down or split the model.', fields: ['stl'] },
+  { id: 'material', icon: '🎨', label: 'Material/color unavailable',   text: 'Requested material or color is currently unavailable �?please choose an alternative.', fields: ['material'] },
+  { id: 'wall',     icon: '🔧', label: 'Need stronger wall / redesign', text: 'Wall thickness is too thin or model needs structural redesign �?please revise and re-upload.', fields: ['stl', 'description'] },
+  { id: 'manifold', icon: '🛠', label: 'STL not manifold / model issue', text: 'STL file has mesh errors (non-manifold geometry) �?please repair and re-upload.', fields: ['stl'] },
 ];
 
 // Active chip IDs set
@@ -785,7 +785,7 @@ function fbToggleChip(id) {
 function fbRebuildTextarea() {
   const lines = FB_TEMPLATES
     .filter(t => _fbActive.has(t.id))
-    .map(t => `• ${t.text}`);
+    .map(t => `�?${t.text}`);
   document.getElementById('admin-notes-input').value = lines.join('\n');
 }
 
@@ -793,7 +793,7 @@ function fbRebuildTextarea() {
 function fbSyncChipsFromTextarea() {
   // Only deactivate if the text no longer matches all active templates
   const current = document.getElementById('admin-notes-input').value;
-  const expected = FB_TEMPLATES.filter(t => _fbActive.has(t.id)).map(t => `• ${t.text}`).join('\n');
+  const expected = FB_TEMPLATES.filter(t => _fbActive.has(t.id)).map(t => `�?${t.text}`).join('\n');
   if (current !== expected) {
     _fbActive.clear();
     FB_TEMPLATES.forEach(t => {
@@ -895,9 +895,9 @@ async function handleUfpUpload(file) {
     const a = data.analysis;
     const pt = a.print_time;
     document.getElementById('ufp-disp-time').textContent     = `${pt.hours}h ${pt.minutes}m`;
-    document.getElementById('ufp-disp-material').textContent = a.material_weight_g != null ? `${a.material_weight_g} g` : '—';
-    document.getElementById('ufp-disp-layer').textContent    = a.layer_height != null ? `${a.layer_height} mm` : '—';
-    document.getElementById('ufp-disp-infill').textContent   = a.infill_sparse_density != null ? `${a.infill_sparse_density}%` : '—';
+    document.getElementById('ufp-disp-material').textContent = a.material_weight_g != null ? `${a.material_weight_g} g` : '�?;
+    document.getElementById('ufp-disp-layer').textContent    = a.layer_height != null ? `${a.layer_height} mm` : '�?;
+    document.getElementById('ufp-disp-infill').textContent   = a.infill_sparse_density != null ? `${a.infill_sparse_density}%` : '�?;
     document.getElementById('ufp-disp-filename').textContent = data.original_name;
 
     document.getElementById('ufp-parsed-card').style.display = 'block';
@@ -924,7 +924,7 @@ async function adminApproveWithUfp() {
 
   const btn = document.getElementById('btn-confirm-approve');
   btn.disabled = true;
-  btn.textContent = 'Approving…';
+  btn.textContent = 'Approving�?;
 
   const a = _ufpUploadResult.analysis;
   const body = {
@@ -942,17 +942,17 @@ async function adminApproveWithUfp() {
     );
     const data = await res.json();
     if (data.success) {
-      adminShowAlert('✅ Request approved with slice data. Reloading…', 'success');
+      adminShowAlert('�?Request approved with slice data. Reloading�?, 'success');
       setTimeout(() => location.reload(), 1200);
     } else {
       adminShowAlert(data.message || 'Approval failed.');
       btn.disabled = false;
-      btn.textContent = '✅ Confirm Approval';
+      btn.textContent = '�?Confirm Approval';
     }
   } catch(e) {
     adminShowAlert('Network error. Make sure the backend is running.');
     btn.disabled = false;
-    btn.textContent = '✅ Confirm Approval';
+    btn.textContent = '�?Confirm Approval';
   }
 }
 
@@ -1005,7 +1005,7 @@ async function adminCannotCompleteByDeadline() {
     });
     const data = await res.json();
     if (data.success) {
-      adminShowAlert('Request sent back — deadline not met. Reloading…', 'success');
+      adminShowAlert('Request sent back �?deadline not met. Reloading�?, 'success');
       setTimeout(() => location.reload(), 1200);
     } else {
       adminShowAlert(data.message || 'Failed to send back.');
@@ -1052,7 +1052,7 @@ async function adminSendBack() {
 
   const btn = document.getElementById('btn-send-back');
   btn.disabled = true;
-  btn.textContent = 'Sending…';
+  btn.textContent = 'Sending�?;
 
   try {
     const res = await window.apiFetch(`/api/admin/print-requests/${window._currentRequestId}/return`, {
@@ -1061,17 +1061,17 @@ async function adminSendBack() {
     });
     const data = await res.json();
     if (data.success) {
-      adminShowAlert('Feedback sent successfully. Reloading…', 'success');
+      adminShowAlert('Feedback sent successfully. Reloading�?, 'success');
       setTimeout(() => location.reload(), 1000);
     } else {
       adminShowAlert(data.message || 'Failed to send feedback.');
       btn.disabled = false;
-      btn.textContent = '↩ Send Back';
+      btn.textContent = '�?Send Back';
     }
   } catch(e) {
     adminShowAlert('Network error. Make sure the backend is running.');
     btn.disabled = false;
-    btn.textContent = '↩ Send Back';
+    btn.textContent = '�?Send Back';
   }
 }
 
@@ -1157,28 +1157,28 @@ function rsShowAlert(msg, type='error') {
 async function submitResubmit() {
   const btn = document.getElementById('btn-resubmit');
   btn.disabled = true;
-  btn.textContent = 'Submitting…';
+  btn.textContent = 'Submitting�?;
   document.getElementById('resubmit-alert-box').innerHTML = '';
 
   const body = {
     project_name: document.getElementById('rs-project-name').value.trim() || undefined,
   };
 
-  // Description — only include if field is visible
+  // Description �?only include if field is visible
   const descField = document.getElementById('rs-field-description');
   if (descField && descField.style.display !== 'none') {
     const v = document.getElementById('rs-description').value.trim();
     if (v) body.description = v;
   }
 
-  // Material/color — only include if field is visible
+  // Material/color �?only include if field is visible
   const matField = document.getElementById('rs-field-material');
   if (matField && matField.style.display !== 'none') {
     body.material_type    = document.getElementById('rs-material').value;
     body.color_preference = document.getElementById('rs-color').value.trim() || undefined;
   }
 
-  // STL — only if user explicitly changed it
+  // STL �?only if user explicitly changed it
   if (_rsNewStl !== null) {
     body.stl_file_path     = _rsNewStl.filename      || null;
     body.stl_original_name = _rsNewStl.original_name || null;
@@ -1192,7 +1192,7 @@ async function submitResubmit() {
     });
     const data = await res.json();
     if (data.success) {
-      rsShowAlert('✅ Resubmitted! Reloading…', 'success');
+      rsShowAlert('�?Resubmitted! Reloading�?, 'success');
       setTimeout(() => location.reload(), 1200);
     } else {
       rsShowAlert(data.message || 'Resubmit failed.');

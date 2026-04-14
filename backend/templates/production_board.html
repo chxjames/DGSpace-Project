@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Production Board — DGSpace{% endblock %}
+{% block title %}Production Board �?DGSpace{% endblock %}
 
 {% block content %}
 <style>
@@ -187,7 +187,7 @@
       <p style="font-size:0.8rem;color:#888;margin:0 0 14px">
         Click a request, then choose a printer to assign it.
       </p>
-      <div id="rts-loading" style="text-align:center;padding:20px;color:#888">Loading…</div>
+      <div id="rts-loading" style="text-align:center;padding:20px;color:#888">Loading�?/div>
       <div id="rts-list"></div>
     </div>
   </div>
@@ -197,7 +197,7 @@
     <div class="pb-section-title" style="margin-bottom:14px">
       🖨 Printer Queues
     </div>
-    <div id="printers-loading" style="text-align:center;padding:20px;color:#888">Loading…</div>
+    <div id="printers-loading" style="text-align:center;padding:20px;color:#888">Loading�?/div>
     <div id="printers-list"></div>
   </div>
 
@@ -219,18 +219,18 @@
     <input id="modal-est-end" type="datetime-local">
 
     <label>Notes <span style="font-weight:400;color:#aaa">(optional)</span></label>
-    <textarea id="modal-notes" rows="2" placeholder="Any notes for this print job…"></textarea>
+    <textarea id="modal-notes" rows="2" placeholder="Any notes for this print job�?></textarea>
 
     <div class="modal-actions">
       <button id="modal-cancel-btn" onclick="closeModal()">Cancel</button>
-      <button id="modal-assign-btn" onclick="confirmAssign()">✅ Assign</button>
+      <button id="modal-assign-btn" onclick="confirmAssign()">�?Assign</button>
     </div>
   </div>
 </div>
 
 <script>
 /* ════════════════════════════════════════════════════════
-   Production Board — main script
+   Production Board �?main script
    ════════════════════════════════════════════════════════ */
 
 let _printers   = [];   // full printer list from API
@@ -240,7 +240,7 @@ let _selectedRts = null; // currently selected RTS request
 // ── Init ──────────────────────────────────────────────────
 (function init() {
   const user = getUser();
-  if (!user) { location.href = '/accounts/login'; return; }
+  if (!user) { location.href = '/login'; return; }
   if (user.user_type !== 'admin' && user.user_type !== 'student_staff') {
     location.href = '/';
     return;
@@ -282,7 +282,7 @@ async function loadBoard() {
     renderPrinters();
     tickCountdowns();   // immediately tick after render (don't wait 1 s)
   } catch(e) {
-    showAlert('Network error — make sure the backend is running.');
+    showAlert('Network error �?make sure the backend is running.');
     document.getElementById('rts-loading').style.display      = 'none';
     document.getElementById('printers-loading').style.display = 'none';
   }
@@ -294,13 +294,13 @@ function renderRts() {
   document.getElementById('rts-count').textContent = _rts.length;
 
   if (!_rts.length) {
-    el.innerHTML = '<div class="pb-empty">✅ No requests waiting to be scheduled.</div>';
+    el.innerHTML = '<div class="pb-empty">�?No requests waiting to be scheduled.</div>';
     return;
   }
 
   el.innerHTML = _rts.map(r => {
     const mins     = r.ufp_print_time_minutes;
-    const timeStr  = mins ? formatMinutes(mins) : '—';
+    const timeStr  = mins ? formatMinutes(mins) : '�?;
     const matStr   = [r.material_type, r.color_preference].filter(Boolean).join(' / ');
     const dl       = r.deadline_date ? deadlineBadge(r.deadline_date) : '';
     const sel      = _selectedRts && _selectedRts.id === r.id ? 'selected' : '';
@@ -317,12 +317,12 @@ function renderRts() {
         </div>
         <div class="card-meta">
           <span>👤 ${escHtml(r.student_name || r.student_email)}</span>
-          <span>⏱ ${timeStr}</span>
+          <span>�?${timeStr}</span>
           ${matStr ? `<span>🎨 ${escHtml(matStr)}</span>` : ''}
           ${dl}
         </div>
         <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-          <span style="font-size:0.72rem;color:#aaa">↖ drag to printer or click to assign</span>
+          <span style="font-size:0.72rem;color:#aaa">�?drag to printer or click to assign</span>
           <a href="/print-requests/${r.id}/" target="_blank"
              style="font-size:0.75rem;color:#007bff" onclick="event.stopPropagation()">🔗 View</a>
         </div>
@@ -340,7 +340,7 @@ function selectRts(id) {
 function renderPrinters() {
   const el = document.getElementById('printers-list');
   if (!_printers.length) {
-    el.innerHTML = '<div class="pb-empty">No printers configured. <a href="/admin/printers/">Add printers →</a></div>';
+    el.innerHTML = '<div class="pb-empty">No printers configured. <a href="/admin/printers/">Add printers �?/a></div>';
     return;
   }
   el.innerHTML = _printers.map(p => renderPrinterCol(p)).join('');
@@ -355,7 +355,7 @@ function renderPrinterCol(p) {
 
   const jobsHtml = hasJobs
     ? queue.map((j, idx) => renderJobCard(j, idx + 1)).join('')
-    : '<div class="pb-empty" style="padding:14px 0">— Queue empty —</div>';
+    : '<div class="pb-empty" style="padding:14px 0">�?Queue empty �?/div>';
 
   const queueSection = isActive ? `
       <div class="queue-drop-zone ${hasJobs ? 'has-jobs' : ''}"
@@ -384,7 +384,7 @@ function renderPrinterCol(p) {
 
 function renderJobCard(j, pos) {
   const mins    = j.ufp_print_time_minutes;
-  const timeStr = mins ? formatMinutes(mins) : '—';
+  const timeStr = mins ? formatMinutes(mins) : '�?;
   const jsCls   = j.job_status;
   const jsLabel = { queued: 'Queued', file_transferred: 'File Copied', printing: 'Printing' }[j.job_status] || j.job_status;
   const attempt = j.attempt_number || 1;
@@ -397,27 +397,27 @@ function renderJobCard(j, pos) {
   if (j.job_status === 'queued') {
     actionBtns = `
       <button class="job-btn btn-transfer" onclick="advanceJob(${j.job_id},'file_transferred',${attempt})">📁 File Copied</button>
-      <button class="job-btn btn-remove"   onclick="removeJob(${j.job_id})">✕</button>`;
+      <button class="job-btn btn-remove"   onclick="removeJob(${j.job_id})">�?/button>`;
   } else if (j.job_status === 'file_transferred') {
     if (isFirst) {
       actionBtns = `
-        <button class="job-btn btn-printing" onclick="advanceJob(${j.job_id},'printing',${attempt})">▶ Start Print</button>
-        <button class="job-btn btn-remove"   onclick="removeJob(${j.job_id})">✕</button>`;
+        <button class="job-btn btn-printing" onclick="advanceJob(${j.job_id},'printing',${attempt})">�?Start Print</button>
+        <button class="job-btn btn-remove"   onclick="removeJob(${j.job_id})">�?/button>`;
     } else {
-      // Waiting behind another job — can only remove
+      // Waiting behind another job �?can only remove
       actionBtns = `
-        <span style="font-size:0.72rem;color:#aaa;font-style:italic">Waiting in queue…</span>
-        <button class="job-btn btn-remove" onclick="removeJob(${j.job_id})">✕</button>`;
+        <span style="font-size:0.72rem;color:#aaa;font-style:italic">Waiting in queue�?/span>
+        <button class="job-btn btn-remove" onclick="removeJob(${j.job_id})">�?/button>`;
     }
   } else if (j.job_status === 'printing') {
     actionBtns = `
-      <button class="job-btn btn-complete" onclick="advanceJob(${j.job_id},'completed',${attempt})">✅ Done</button>
-      <button class="job-btn btn-fail"     onclick="advanceJob(${j.job_id},'failed',${attempt})">❌ Failed</button>`;
+      <button class="job-btn btn-complete" onclick="advanceJob(${j.job_id},'completed',${attempt})">�?Done</button>
+      <button class="job-btn btn-fail"     onclick="advanceJob(${j.job_id},'failed',${attempt})">�?Failed</button>`;
   }
 
   const dl = j.deadline_date ? deadlineBadge(j.deadline_date) : '';
 
-  // Countdown row — only for printing jobs with a known end time
+  // Countdown row �?only for printing jobs with a known end time
   const endRaw = j.print_end_expected;
   const hasEnd = endRaw && endRaw !== 'null' && endRaw !== 'None';
   const cdProject  = escHtml(j.project_name || '');
@@ -426,13 +426,13 @@ function renderJobCard(j, pos) {
     ? `<span class="job-countdown countdown-ok" id="cd-${j.job_id}"
             data-end="${endRaw}"
             data-project="${cdProject}"
-            data-printer="${cdPrinter}">⏱ …</span>`
+            data-printer="${cdPrinter}">�?�?/span>`
     : (j.job_status === 'printing'
         ? `<span class="job-countdown countdown-ok" id="cd-${j.job_id}"
                 data-mins="${j.ufp_print_time_minutes || 0}"
                 data-started="${j.started_at || ''}"
                 data-project="${cdProject}"
-                data-printer="${cdPrinter}">⏱ …</span>`
+                data-printer="${cdPrinter}">�?�?/span>`
         : '');
 
   return `
@@ -443,7 +443,7 @@ function renderJobCard(j, pos) {
         <div class="job-title">${attemptBadge}${escHtml(j.project_name)}</div>
         <div class="job-meta">
           <span><span class="job-status-badge jsb-${jsCls}">${jsLabel}</span></span>
-          <span>⏱ ${timeStr}</span>
+          <span>�?${timeStr}</span>
           <span>👤 ${escHtml(j.student_name || j.student_email)}</span>
           ${dl}
           ${j.estimated_start ? `<span>🕐 Est. start: ${fmtDt(j.estimated_start)}</span>` : ''}
@@ -480,7 +480,7 @@ async function handleDrop(event, targetPrinterId) {
 
   const rtsId = event.dataTransfer.getData('rts_id');
   if (rtsId) {
-    // ── Drag from RTS → assign to this printer ──
+    // ── Drag from RTS �?assign to this printer ──
     const req = _rts.find(r => r.id === parseInt(rtsId));
     if (!req) return;
 
@@ -508,7 +508,7 @@ async function handleDrop(event, targetPrinterId) {
       });
       const data = await res.json();
       if (data.success) {
-        showAlert(`✅ "${escHtml(req.project_name)}" → ${escHtml(printer.printer_name)} #${data.queue_position}`, 'success');
+        showAlert(`�?"${escHtml(req.project_name)}" �?${escHtml(printer.printer_name)} #${data.queue_position}`, 'success');
         loadBoard();
       } else {
         showAlert(data.message || 'Failed to assign.');
@@ -529,8 +529,8 @@ function openModal() {
   document.getElementById('assign-req-info').innerHTML = `
     <strong>${escHtml(r.project_name)}</strong><br>
     <span style="color:#888">${escHtml(r.student_name || r.student_email)}</span>
-    &nbsp;·&nbsp; ⏱ ${r.ufp_print_time_minutes ? formatMinutes(r.ufp_print_time_minutes) : '—'}
-    &nbsp;·&nbsp; 🎨 ${escHtml(r.material_type || '—')}`;
+    &nbsp;·&nbsp; �?${r.ufp_print_time_minutes ? formatMinutes(r.ufp_print_time_minutes) : '�?}
+    &nbsp;·&nbsp; 🎨 ${escHtml(r.material_type || '�?)}`;
 
   // Populate printer dropdown (active only)
   const sel = document.getElementById('modal-printer-select');
@@ -540,7 +540,7 @@ function openModal() {
     .join('');
 
   if (!sel.options.length) {
-    sel.innerHTML = '<option value="">— No active printers —</option>';
+    sel.innerHTML = '<option value="">�?No active printers �?/option>';
   }
 
   // Pre-fill estimated times if UFP time is known
@@ -571,7 +571,7 @@ async function confirmAssign() {
   if (!printerId) { alert('Please select a printer.'); return; }
 
   const btn = document.getElementById('modal-assign-btn');
-  btn.disabled = true; btn.textContent = 'Assigning…';
+  btn.disabled = true; btn.textContent = 'Assigning�?;
 
   const body = {
     printer_id:      printerId,
@@ -587,15 +587,15 @@ async function confirmAssign() {
     const data = await res.json();
     if (data.success) {
       closeModal();
-      showAlert(`✅ Assigned to printer — queue position #${data.queue_position}`, 'success');
+      showAlert(`�?Assigned to printer �?queue position #${data.queue_position}`, 'success');
       loadBoard();
     } else {
       showAlert(data.message || 'Failed to assign.');
-      btn.disabled = false; btn.textContent = '✅ Assign';
+      btn.disabled = false; btn.textContent = '�?Assign';
     }
   } catch(e) {
     showAlert('Network error.');
-    btn.disabled = false; btn.textContent = '✅ Assign';
+    btn.disabled = false; btn.textContent = '�?Assign';
   }
 }
 
@@ -610,13 +610,13 @@ async function advanceJob(jobId, newStatus, attempt) {
     if (attempt < MAX) {
       msg = `Mark as FAILED?\n\nAttempt ${attempt} of ${MAX}. A Retry #${attempt} job will be automatically queued on the same printer.`;
     } else {
-      msg = `Mark as FAILED?\n\nThis is attempt ${MAX} of ${MAX} — the final allowed attempt.\nThe request will be sent back to the student for revision.`;
+      msg = `Mark as FAILED?\n\nThis is attempt ${MAX} of ${MAX} �?the final allowed attempt.\nThe request will be sent back to the student for revision.`;
     }
   } else {
     const labels = {
       file_transferred: 'Mark file as copied to printer?',
       printing:         'Mark print as started?',
-      completed:        'Mark print as completed? ✅',
+      completed:        'Mark print as completed? �?,
     };
     msg = labels[newStatus] || `Set status to "${newStatus}"?`;
   }
@@ -630,9 +630,9 @@ async function advanceJob(jobId, newStatus, attempt) {
     const data = await res.json();
     if (data.success) {
       if (data.retry) {
-        showAlert(`❌ Failed — Retry #${data.attempt - 1} automatically queued (${data.attempts_remaining} attempt(s) left).`, 'success');
+        showAlert(`�?Failed �?Retry #${data.attempt - 1} automatically queued (${data.attempts_remaining} attempt(s) left).`, 'success');
       } else if (data.sent_back) {
-        showAlert('❌ All 3 attempts failed — request sent back to student for revision.', 'success');
+        showAlert('�?All 3 attempts failed �?request sent back to student for revision.', 'success');
       } else {
         showAlert(`Job updated: ${newStatus}`, 'success');
       }
@@ -676,7 +676,7 @@ function deadlineBadge(dateStr) {
 }
 
 function fmtDt(iso) {
-  if (!iso) return '—';
+  if (!iso) return '�?;
   const d = new Date(iso);
   return d.toLocaleDateString('en-US', { month:'short', day:'numeric' }) + ' ' +
          d.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit' });
@@ -713,7 +713,7 @@ function tickCountdowns() {
       endMs = parseUtcString(endStr);
     }
 
-    // Method 2: fallback — compute from started_at + ufp_print_time_minutes
+    // Method 2: fallback �?compute from started_at + ufp_print_time_minutes
     if (!endMs || isNaN(endMs)) {
       const startStr = el.dataset.started;
       const mins     = parseFloat(el.dataset.mins || '0');
@@ -723,9 +723,9 @@ function tickCountdowns() {
       }
     }
 
-    // Still no valid end time — show dashes
+    // Still no valid end time �?show dashes
     if (!endMs || isNaN(endMs)) {
-      el.textContent = '⏱ —';
+      el.textContent = '�?�?;
       return;
     }
 
@@ -744,7 +744,7 @@ function tickCountdowns() {
         _firedTimesUp.add(jobId);
         const project = el.dataset.project || 'Unknown project';
         const printer = el.dataset.printer || '';
-        const msg = `⏰ Print complete: "${project}"${printer ? ' on ' + printer : ''}`;
+        const msg = `�?Print complete: "${project}"${printer ? ' on ' + printer : ''}`;
         sendBrowserNotification(msg, 'print_done');
       }
     } else if (diffSec <= 600) {
@@ -791,7 +791,7 @@ async function pollNotifications() {
       _notifiedJobs.add(n.job_id);
       sendBrowserNotification(n.message, n.type);
     });
-  } catch(e) { /* silent — non-critical */ }
+  } catch(e) { /* silent �?non-critical */ }
 }
 
 function sendBrowserNotification(message, type) {
@@ -799,7 +799,7 @@ function sendBrowserNotification(message, type) {
 
   function _fire() {
     if ('Notification' in window && Notification.permission === 'granted') {
-      new Notification('DGSpace — Production Board', {
+      new Notification('DGSpace �?Production Board', {
         body: message,
         icon: '/static/favicon.ico',
         tag:  `dgspace-${type}-${Date.now()}`,
@@ -821,7 +821,7 @@ function sendBrowserNotification(message, type) {
       else showAlert(message, alertType);
     });
   } else {
-    // 'denied' — only in-page banner
+    // 'denied' �?only in-page banner
     showAlert(message, alertType);
   }
 }

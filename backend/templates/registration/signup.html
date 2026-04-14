@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Sign Up â€” DGSpace{% endblock %}
+{% block title %}Sign Up â€?DGSpace{% endblock %}
 
 {% block content %}
 <div class="card" style="max-width:460px;margin:0 auto">
@@ -99,7 +99,7 @@ async function doVerify() {
     const data = await res.json();
 
     if (data.success) {
-      showAlert('Email verified! Redirecting to loginâ€¦', 'success');
+      showAlert('Email verified! Redirecting to loginâ€?, 'success');
       setTimeout(() => location.href = '/login', 1500);
     } else {
       showAlert(data.message || 'Invalid verification code.');

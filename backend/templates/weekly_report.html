@@ -1,4 +1,4 @@
-ï»¿{% extends "base.html" %}
+{% extends "base.html" %}
 {% block title %}Report - DGSpace{% endblock %}
 
 {% block content %}
@@ -6,7 +6,7 @@
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px">
     <h2 style="color:#1a1a2e;margin:0">Print Request Report</h2>
     <div style="display:flex;align-items:center;gap:12px">
-      <a href="/" style="color:#888;text-decoration:none;font-size:0.9rem">â† Home</a>
+      <a href="/" style="color:#888;text-decoration:none;font-size:0.9rem">¡û Home</a>
       <button onclick="exportCSV()" style="padding:7px 14px;background:#fff;border:1px solid #ddd;border-radius:4px;cursor:pointer;font-size:0.85rem">Export CSV</button>
     </div>
   </div>
@@ -23,7 +23,7 @@
 
   <!-- Filament cost rate setting -->
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:24px;background:#f8f9ff;border:1px solid #e0e4ff;border-radius:6px;padding:10px 14px;flex-wrap:wrap">
-    <span style="font-size:0.85rem;color:#555">ğŸ’° Filament cost:</span>
+    <span style="font-size:0.85rem;color:#555">?? Filament cost:</span>
     <span style="font-size:0.85rem;color:#888">$</span>
     <input type="number" id="cost-per-g" min="0" step="0.001" value="0.025"
            style="width:80px;padding:4px 8px;border:1px solid #ddd;border-radius:4px;font-size:0.9rem"
@@ -63,11 +63,11 @@
   <div id="loading" style="text-align:center;padding:60px;color:#aaa">Loading...</div>
 </div>
 <script>
-(function(){var u=getUser();if(!u||['admin','professor','manager'].indexOf(u.user_type)===-1){location.href='/accounts/login';}})();
+(function(){var u=getUser();if(!u||['admin','professor','manager'].indexOf(u.user_type)===-1){location.href='/login';}})();
 var STATUS_BADGE={pending:'background:#fff3cd;color:#856404;border:1px solid #ffc107',approved:'background:#d1e7dd;color:#0a3622;border:1px solid #a3cfbb',in_progress:'background:#cfe2ff;color:#084298;border:1px solid #9ec5fe',completed:'background:#d1e7dd;color:#0a3622;border:1px solid #a3cfbb',rejected:'background:#f8d7da;color:#842029;border:1px solid #f1aeb5',cancelled:'background:#e2e3e5;color:#41464b;border:1px solid #c4c8cb'};
 var lastData=null;
 
-// â”€â”€ Cost rate helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ©¤©¤ Cost rate helpers ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤
 function getCostRate(){return parseFloat(document.getElementById('cost-per-g').value)||0;}
 function saveCostRate(){localStorage.setItem('dgspace_cost_per_g',document.getElementById('cost-per-g').value);}
 function loadCostRate(){var v=localStorage.getItem('dgspace_cost_per_g');if(v!=null)document.getElementById('cost-per-g').value=v;}

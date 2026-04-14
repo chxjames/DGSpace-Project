@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}My Profile ‚Äî DGSpace{% endblock %}
+{% block title %}My Profile ‚Ä?DGSpace{% endblock %}
 
 {% block content %}
 <style>
@@ -69,19 +69,19 @@
     <!-- Identity card -->
     <div class="card" style="margin-bottom:20px">
       <div class="profile-avatar" id="avatar-initials">?</div>
-      <div class="profile-name" id="profile-fullname">‚Äî</div>
-      <div class="profile-email" id="profile-email">‚Äî</div>
+      <div class="profile-name" id="profile-fullname">‚Ä?/div>
+      <div class="profile-email" id="profile-email">‚Ä?/div>
       <div class="profile-role">
-        <span class="badge" id="profile-role-badge">‚Äî</span>
+        <span class="badge" id="profile-role-badge">‚Ä?/span>
       </div>
 
       <div class="profile-stats">
         <div class="stat-box">
-          <div class="stat-num" id="stat-total">‚Äî</div>
+          <div class="stat-num" id="stat-total">‚Ä?/div>
           <div class="stat-label">Total Requests</div>
         </div>
         <div class="stat-box">
-          <div class="stat-num" id="stat-completed">‚Äî</div>
+          <div class="stat-num" id="stat-completed">‚Ä?/div>
           <div class="stat-label">Completed</div>
         </div>
       </div>
@@ -112,7 +112,7 @@
     <div class="card">
       <div class="section-title">üîê Two-Factor Authentication</div>
       <div id="twofa-status-box" class="twofa-box">
-        <div id="twofa-loading" style="color:#888;font-size:0.9rem">Loading‚Ä¶</div>
+        <div id="twofa-loading" style="color:#888;font-size:0.9rem">Loading‚Ä?/div>
 
         <!-- 2FA DISABLED STATE -->
         <div id="twofa-disabled" style="display:none">
@@ -130,13 +130,13 @@
           <div class="twofa-qr"><img id="qr-img" src="" alt="QR Code"></div>
           <ol class="twofa-steps">
             <li>Open <strong>DUO</strong>, <strong>Google Authenticator</strong>, or any TOTP app</li>
-            <li>Tap <strong>Add Account ‚Üí Scan QR code</strong></li>
+            <li>Tap <strong>Add Account ‚Ü?Scan QR code</strong></li>
             <li>Scan the code above</li>
             <li>Enter the 6-digit code shown in the app below</li>
           </ol>
           <input class="code-input" id="confirm-code-input" type="text" maxlength="6" placeholder="000000" inputmode="numeric">
           <div id="confirm-error" style="color:#e74c3c;font-size:0.82rem;min-height:18px;margin-bottom:8px"></div>
-          <button class="btn btn-sm" onclick="confirm2FA()" style="width:auto;margin:0 auto;display:block">‚úÖ Confirm &amp; Activate</button>
+          <button class="btn btn-sm" onclick="confirm2FA()" style="width:auto;margin:0 auto;display:block">‚ú?Confirm &amp; Activate</button>
           <button class="btn-outline" style="margin-top:8px;display:block;width:auto;margin-left:auto;margin-right:auto" onclick="cancelSetup()">Cancel</button>
         </div>
 
@@ -170,12 +170,12 @@
         <option value="revision_requested">Revision Requested</option>
         <option value="cancelled">Cancelled</option>
       </select>
-      <input id="filter-search" type="text" placeholder="Search project name‚Ä¶"
+      <input id="filter-search" type="text" placeholder="Search project name‚Ä?
         oninput="renderHistory()"
         style="padding:5px 10px;border:1px solid #ddd;border-radius:4px;font-size:0.85rem;flex:1;min-width:140px">
     </div>
 
-    <div id="history-loading" style="text-align:center;padding:32px;color:#888">Loading‚Ä¶</div>
+    <div id="history-loading" style="text-align:center;padding:32px;color:#888">Loading‚Ä?/div>
 
     <table id="history-table" style="display:none">
       <thead>
@@ -202,7 +202,7 @@
 <script>
 (function() {
   const user = getUser();
-  if (!user) { location.href = '/accounts/login'; return; }
+  if (!user) { location.href = '/login'; return; }
 
   /* ‚îÄ‚îÄ Load profile info ‚îÄ‚îÄ */
   async function loadProfile() {
@@ -267,19 +267,19 @@
     document.getElementById('history-empty').style.display = 'none';
 
     filtered.forEach(req => {
-      const date = req.created_at ? new Date(req.created_at).toLocaleDateString() : '‚Äî';
+      const date = req.created_at ? new Date(req.created_at).toLocaleDateString() : '‚Ä?;
       const printTime = req.slicer_time_minutes
         ? (req.slicer_time_minutes >= 60
             ? Math.floor(req.slicer_time_minutes/60) + 'h ' + (req.slicer_time_minutes%60) + 'm'
             : req.slicer_time_minutes + 'm')
-        : '‚Äî';
-      const material = req.slicer_material_g ? req.slicer_material_g.toFixed(1) + ' g' : '‚Äî';
+        : '‚Ä?;
+      const material = req.slicer_material_g ? req.slicer_material_g.toFixed(1) + ' g' : '‚Ä?;
       const statusLabel = req.status.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
       tbody.insertAdjacentHTML('beforeend', `
         <tr>
           <td style="color:#aaa;font-size:0.8rem">#${req.request_id}</td>
-          <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${req.project_name||''}">${req.project_name||'‚Äî'}</td>
-          <td>${req.material_type||'‚Äî'}</td>
+          <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${req.project_name||''}">${req.project_name||'‚Ä?}</td>
+          <td>${req.material_type||'‚Ä?}</td>
           <td><span class="status-dot dot-${req.status}"></span>${statusLabel}</td>
           <td>${printTime}</td>
           <td>${material}</td>
@@ -314,10 +314,10 @@
   }
 
   window.startSetup2FA = async function() {
-    // If QR is already showing, don't regenerate ‚Äî that would invalidate the scanned code
+    // If QR is already showing, don't regenerate ‚Ä?that would invalidate the scanned code
     if (document.getElementById('twofa-setup').style.display !== 'none') return;
     document.getElementById('btn-enable-2fa').disabled = true;
-    document.getElementById('btn-enable-2fa').textContent = 'Generating‚Ä¶';
+    document.getElementById('btn-enable-2fa').textContent = 'Generating‚Ä?;
     try {
       const r = await apiFetch('/api/2fa/setup', { method: 'POST' });
       const d = await r.json();
@@ -348,7 +348,7 @@
       const r = await apiFetch('/api/2fa/confirm', { method: 'POST', body: JSON.stringify({ code }) });
       const d = await r.json();
       if (d.success) {
-        showAlert('‚úÖ 2FA is now active! Your account is protected.', 'success');
+        showAlert('‚ú?2FA is now active! Your account is protected.', 'success');
         load2FAStatus();
         document.getElementById('change-pw-card').style.display = 'block';
       } else {
@@ -389,7 +389,7 @@
       alertEl.innerHTML = '<div class="alert alert-error">New passwords do not match.</div>'; return;
     }
     const btn = document.getElementById('btn-change-pw');
-    btn.disabled = true; btn.textContent = 'Updating‚Ä¶';
+    btn.disabled = true; btn.textContent = 'Updating‚Ä?;
     try {
       const r = await apiFetch('/api/profile/change-password', {
         method: 'POST',
@@ -397,7 +397,7 @@
       });
       const d = await r.json();
       if (d.success) {
-        alertEl.innerHTML = '<div class="alert alert-success">‚úÖ Password updated! Please log in again.</div>';
+        alertEl.innerHTML = '<div class="alert alert-success">‚ú?Password updated! Please log in again.</div>';
         document.getElementById('pw-current').value = '';
         document.getElementById('pw-new').value = '';
         document.getElementById('pw-confirm').value = '';

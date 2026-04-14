@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Print Requests â€” DGSpace{% endblock %}
+{% block title %}Print Requests â€?DGSpace{% endblock %}
 
 {% block content %}
 <style>
@@ -24,7 +24,7 @@
 
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
   <h2 style="color:#1a1a2e">ğŸ“‹ Print Requests</h2>
-  <a href="/" style="color:#888;text-decoration:none;font-size:0.9rem">â† Home</a>
+  <a href="/" style="color:#888;text-decoration:none;font-size:0.9rem">â†?Home</a>
 </div>
 
 <div id="alert-box"></div>
@@ -37,12 +37,12 @@
       style="padding:5px 10px;border:1px solid #ddd;border-radius:4px;font-size:0.85rem;cursor:pointer">
       <option value="date-desc">Date (Newest first)</option>
       <option value="date-asc">Date (Oldest first)</option>
-      <option value="alpha-asc">Name (A â†’ Z)</option>
-      <option value="alpha-desc">Name (Z â†’ A)</option>
+      <option value="alpha-asc">Name (A â†?Z)</option>
+      <option value="alpha-desc">Name (Z â†?A)</option>
     </select>
   </div>
 
-  <div id="loading" style="text-align:center;padding:32px;color:#888">Loadingâ€¦</div>
+  <div id="loading" style="text-align:center;padding:32px;color:#888">Loadingâ€?/div>
   <div id="req-groups"></div>
   <p id="no-data" style="display:none;text-align:center;color:#888;padding:32px">
     No print requests yet. <a href="/print-requests/new/">Submit one now</a>
@@ -57,7 +57,7 @@ var _cachedUser = null;
 
 (function() {
   const user = getUser();
-  if (!user) { location.href = '/accounts/login'; return; }
+  if (!user) { location.href = '/login'; return; }
 
   loadRequests(user.user_type, user);
 })();
@@ -103,8 +103,8 @@ function renderTable(list, userType, user) {
   const groups = [
     { key: 'feedback',    label: 'âš ï¸ Needs Your Attention',  statuses: ['revision_requested'],            color: '#fff3cd', border: '#f0ad4e' },
     { key: 'pending',     label: 'ğŸ• Pending Review',         statuses: ['pending'],                       color: '#e8f4fd', border: '#3498db' },
-    { key: 'inprogress',  label: 'ğŸ–¨ï¸ In Progress',            statuses: ['approved','queued','printing'],  color: '#eaf7ef', border: '#2ecc71' },
-    { key: 'done',        label: 'âœ… Completed',               statuses: ['completed','failed','cancelled','rejected'], color: '#f8f9fa', border: '#adb5bd' },
+    { key: 'inprogress',  label: 'ğŸ–¨ï¸?In Progress',            statuses: ['approved','queued','printing'],  color: '#eaf7ef', border: '#2ecc71' },
+    { key: 'done',        label: 'âœ?Completed',               statuses: ['completed','failed','cancelled','rejected'], color: '#f8f9fa', border: '#adb5bd' },
   ];
 
   const showPriority = (userType === 'admin' || userType === 'student_staff');
@@ -135,7 +135,7 @@ function renderTable(list, userType, user) {
         const isOwn = (userType === 'student_staff') ? (r.student_email === user.email) : true;
         const canDelete = isOwn && ['pending','revision_requested','rejected'].includes(r.status) && userType !== 'admin';
 
-        let deadlineHtml = '<span style="color:#aaa">â€”</span>';
+        let deadlineHtml = '<span style="color:#aaa">â€?/span>';
         if (r.deadline_date) {
           const dl   = new Date(r.deadline_date);
           const now  = new Date();
@@ -157,7 +157,7 @@ function renderTable(list, userType, user) {
             ${statusBadge(r.status)}
           </div>
           <div class="req-card-meta">
-            ${showStudent ? `<span>ğŸ‘¤ ${r.student_name || r.student_email || 'â€”'}</span>` : ''}
+            ${showStudent ? `<span>ğŸ‘¤ ${r.student_name || r.student_email || 'â€?}</span>` : ''}
             <span>ğŸ“… ${deadlineHtml}</span>
             ${showPriority ? `<span>${priorityLabel(r.priority)}</span>` : ''}
             <span style="color:#bbb">${new Date(r.created_at).toLocaleDateString('en-US')}</span>
@@ -180,9 +180,9 @@ function renderTable(list, userType, user) {
             <th>Project Name</th>
             ${showStudent  ? '<th>Student</th>' : ''}
             <th>Status</th>
-            <th style="cursor:pointer;user-select:none" onclick="sortByColumn('deadline')">Deadline <span id="sort-arrow-deadline">â¬‡</span></th>
+            <th style="cursor:pointer;user-select:none" onclick="sortByColumn('deadline')">Deadline <span id="sort-arrow-deadline">â¬?/span></th>
             <th style="color:#999">Submitted</th>
-            ${showPriority ? '<th style="cursor:pointer;user-select:none" onclick="sortByColumn(\'priority\')">Priority <span id="sort-arrow-priority">â¬‡</span></th>' : ''}
+            ${showPriority ? '<th style="cursor:pointer;user-select:none" onclick="sortByColumn(\'priority\')">Priority <span id="sort-arrow-priority">â¬?/span></th>' : ''}
           </tr>
         </thead>`;
       const tbody = document.createElement('tbody');
@@ -192,7 +192,7 @@ function renderTable(list, userType, user) {
         const isOwn = (userType === 'student_staff') ? (r.student_email === user.email) : true;
         const canDelete = isOwn && ['pending','revision_requested','rejected'].includes(r.status) && userType !== 'admin';
 
-        let deadlineHtml = '<span style="color:#aaa">â€”</span>';
+        let deadlineHtml = '<span style="color:#aaa">â€?/span>';
         if (r.deadline_date) {
           const dl   = new Date(r.deadline_date);
           const now  = new Date();
@@ -209,7 +209,7 @@ function renderTable(list, userType, user) {
         tr.innerHTML = `
           <td>${globalIdx}</td>
           <td><a href="/print-requests/${r.id}/" style="color:#e94560;font-weight:500" onclick="event.stopPropagation()">${r.project_name}</a></td>
-          ${showStudent  ? `<td style="font-size:0.82rem;color:#555">${r.student_name || r.student_email || 'â€”'}</td>` : ''}
+          ${showStudent  ? `<td style="font-size:0.82rem;color:#555">${r.student_name || r.student_email || 'â€?}</td>` : ''}
           <td>${statusBadge(r.status)}</td>
           <td>${deadlineHtml}</td>
           <td style="color:#999;font-size:0.85rem">${new Date(r.created_at).toLocaleDateString('en-US')}</td>
@@ -225,7 +225,7 @@ function renderTable(list, userType, user) {
             <td colspan="${cols}" style="padding:0 12px 10px 32px">
               <div class="feedback-banner">
                 <strong>âš ï¸ Admin Feedback:</strong> ${r.admin_notes}
-                &nbsp;â€”&nbsp; <em>Please review and delete or resubmit a new request.</em>
+                &nbsp;â€?nbsp; <em>Please review and delete or resubmit a new request.</em>
               </div>
             </td>`;
           tbody.appendChild(feedbackTr);
@@ -261,7 +261,7 @@ function sortByColumn(field) {
   // Update arrow indicators
   ['deadline','priority'].forEach(f => {
     const el = document.getElementById(`sort-arrow-${f}`);
-    if (el) el.textContent = (f === _colSortField) ? (_colSortAsc ? 'â¬†' : 'â¬‡') : 'â¬‡';
+    if (el) el.textContent = (f === _colSortField) ? (_colSortAsc ? 'â¬? : 'â¬?) : 'â¬?;
   });
   const sorted = [..._cachedList].sort((a, b) => {
     let va, vb;
@@ -286,7 +286,7 @@ async function loadRequests(userType, user) {
       : '/api/print-requests/my-requests';
 
     const res  = await apiFetch(endpoint);
-    if (res.status === 401) { location.href = '/accounts/login'; return; }
+    if (res.status === 401) { location.href = '/login'; return; }
     const data = await res.json();
     const list = data.requests || [];
 
