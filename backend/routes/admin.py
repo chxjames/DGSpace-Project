@@ -480,12 +480,13 @@ def get_staff_notifications():
 
     now = datetime.datetime.utcnow()
 
-    # Only notify the staff member who originally assigned this job
+    # Only notify the staff member who originally assigned this job.
+    # Use an atomic UPDATE...WHERE staff_notified=0 to claim the notification
+    # and avoid race conditions where multiple staff members poll simultaneously.
     current_email = payload['email']
 
-    active_jobs = db.fetch_all("""
-        SELECT pj.job_id, pj.print_end_expected, pj.staff_notified,
-               pj.assigned_by,
+    candidate_jobs = db.fetch_all("""
+        SELECT pj.job_id, pj.print_end_expected,
                pr.project_name, pr.student_email,
                s.full_name AS student_name,
                p.printer_name
@@ -500,39 +501,40 @@ def get_staff_notifications():
     """, (current_email,)) or []
 
     notifications = []
-    for job in active_jobs:
+    for job in candidate_jobs:
         end_dt = job.get('print_end_expected')
         if not end_dt:
             continue
         if isinstance(end_dt, str):
             end_dt = datetime.datetime.fromisoformat(end_dt)
 
-        note = None
         if end_dt <= now:
-            note = {
-                'type':         'print_done',
-                'job_id':       job['job_id'],
-                'project_name': job['project_name'],
-                'student_name': job.get('student_name') or job['student_email'],
-                'printer_name': job.get('printer_name', ''),
-                'message':      f"⏰ Print complete: \"{job['project_name']}\" on {job.get('printer_name','')}",
-            }
+            note_type = 'print_done'
+            message   = f"⏰ Print complete: \"{job['project_name']}\" on {job.get('printer_name','')}"
         elif _job_exceeds_hours(end_dt):
-            note = {
-                'type':         'overschedule',
-                'job_id':       job['job_id'],
-                'project_name': job['project_name'],
-                'student_name': job.get('student_name') or job['student_email'],
-                'printer_name': job.get('printer_name', ''),
-                'message':      f"⚠️ \"{job['project_name']}\" will exceed today's closing time on {job.get('printer_name','')}",
-            }
+            note_type = 'overschedule'
+            message   = f"⚠️ \"{job['project_name']}\" will exceed today's closing time on {job.get('printer_name','')}"
+        else:
+            continue
 
-        if note:
-            notifications.append(note)
-            db.execute_query(
-                "UPDATE print_jobs SET staff_notified = 1 WHERE job_id = %s",
-                (job['job_id'],)
-            )
+        # Atomically claim this notification — only the first caller wins
+        rows_updated = db.execute_update(
+            "UPDATE print_jobs SET staff_notified = 1 "
+            "WHERE job_id = %s AND staff_notified = 0",
+            (job['job_id'],)
+        )
+        # rows_updated == 0 means another process already claimed it; skip
+        if not rows_updated or rows_updated < 1:
+            continue  # DB helper returned None — skip to be safe
+
+        notifications.append({
+            'type':         note_type,
+            'job_id':       job['job_id'],
+            'project_name': job['project_name'],
+            'student_name': job.get('student_name') or job['student_email'],
+            'printer_name': job.get('printer_name', ''),
+            'message':      message,
+        })
 
     return jsonify({'success': True, 'notifications': notifications}), 200
 

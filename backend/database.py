@@ -108,6 +108,26 @@ class Database:
             print(f"[ERROR] execute_query (pool): {e}")
             return None
 
+    def execute_update(self, query, params=None):
+        """Execute UPDATE / DELETE. Returns number of affected rows, or -1 on error."""
+        def _fn(conn):
+            cursor = conn.cursor()
+            try:
+                cursor.execute(query, params or ())
+                conn.commit()
+                return cursor.rowcount
+            except Error as e:
+                conn.rollback()
+                print(f"[ERROR] execute_update: {e}")
+                return -1
+            finally:
+                cursor.close()
+        try:
+            return self._run(_fn)
+        except Exception as e:
+            print(f"[ERROR] execute_update (pool): {e}")
+            return -1
+
     def fetch_one(self, query, params=None):
         """Fetch a single row as dict, or None."""
         def _fn(conn):
