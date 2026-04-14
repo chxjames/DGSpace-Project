@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify, send_from_directory, render_template
 from flask_cors import CORS
 from database import db
 from auth_service import AuthService
@@ -27,6 +27,69 @@ class _AppEncoder(app.json_provider_class):
 
 app.json_provider_class = _AppEncoder
 app.json = _AppEncoder(app)
+
+# ── Page routes ───────────────────────────────────────────────────────────────
+@app.route('/')
+def home_page():
+    return render_template('home.html')
+
+@app.route('/login')
+def login_page():
+    return render_template('registration/login.html')
+
+@app.route('/signup')
+def signup_page():
+    return render_template('registration/signup.html')
+
+@app.route('/reset-password')
+def reset_password_page():
+    return render_template('registration/reset_password.html')
+
+@app.route('/print-requests/')
+def print_requests_page():
+    return render_template('print_requests.html')
+
+@app.route('/print-requests/new/')
+def print_request_new_page():
+    return render_template('print_request_new.html')
+
+@app.route('/print-requests/<int:request_id>/')
+def print_request_detail_page(request_id):
+    return render_template('print_request_detail.html')
+
+@app.route('/print-requests/<int:request_id>/head/')
+def print_request_detail_head_page(request_id):
+    return render_template('print_request_detail_HEAD.html')
+
+@app.route('/print-requests/<int:request_id>/return/')
+def print_request_return_page(request_id):
+    return render_template('print_request_return.html')
+
+@app.route('/admin/students/')
+def admin_students_page():
+    return render_template('admin_students.html')
+
+@app.route('/admin/printers/')
+def admin_printers_page():
+    return render_template('manage_printers.html')
+
+@app.route('/admin/admins/')
+def admin_admins_page():
+    return render_template('manage_admins.html')
+
+@app.route('/production/')
+def production_page():
+    return render_template('production_board.html')
+
+@app.route('/reports/weekly/')
+def weekly_report_page():
+    return render_template('weekly_report.html')
+
+@app.route('/profile/')
+def profile_page():
+    return render_template('profile.html')
+
+# ─────────────────────────────────────────────────────────────────────────────
 
 # Configure upload folder
 app.config['UPLOAD_FOLDER'] = Config.UPLOAD_FOLDER
