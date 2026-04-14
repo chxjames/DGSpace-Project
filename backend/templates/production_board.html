@@ -428,26 +428,37 @@ function renderJobCard(j, pos) {
   const currentUser  = getUser();
   const isMyJob      = currentUser && assignedBy && assignedBy === currentUser.email;
   const isMyApproval = currentUser && reviewedBy && reviewedBy === currentUser.email;
-  const assignerLabel  = assignedBy
-    ? `<span title="Assigned by ${escHtml(assignedBy)}" style="color:${isMyJob ? '#007bff' : '#888'}">🔖 ${escHtml(assignedBy)}</span>`
+
+  // Show full_name if available, fallback to email
+  const assignedByDisplay  = escHtml(j.assigned_by_name || j.assigned_by || '');
+  const reviewedByDisplay  = escHtml(j.reviewed_by_name || j.reviewed_by || '');
+  const assignerLabel  = assignedByDisplay
+    ? `<span title="Assigned by ${assignedByDisplay}" style="color:${isMyJob ? '#007bff' : '#888'}">🔖 ${assignedByDisplay}</span>`
     : '';
-  const approverLabel  = reviewedBy
-    ? `<span title="Approved by ${escHtml(reviewedBy)}" style="color:${isMyApproval ? '#28a745' : '#888'}">✅ ${escHtml(reviewedBy)}</span>`
+  const approverLabel  = reviewedByDisplay
+    ? `<span title="Approved by ${reviewedByDisplay}" style="color:${isMyApproval ? '#28a745' : '#888'}">✅ ${reviewedByDisplay}</span>`
     : '';
+
+  // If already notified (from a previous session / page reload), pre-seed _firedTimesUp
+  if (j.staff_notified) {
+    _firedTimesUp.add(String(j.job_id));
+  }
 
   const countdownHtml = (j.job_status === 'printing' && hasEnd)
     ? `<span class="job-countdown countdown-ok" id="cd-${j.job_id}"
             data-end="${endRaw}"
             data-project="${cdProject}"
             data-printer="${cdPrinter}"
-            data-reviewed-by="${cdReviewedBy}">⏱ …</span>`
+            data-reviewed-by="${cdReviewedBy}"
+            data-notified="${j.staff_notified ? '1' : '0'}">⏱ …</span>`
     : (j.job_status === 'printing'
         ? `<span class="job-countdown countdown-ok" id="cd-${j.job_id}"
                 data-mins="${j.ufp_print_time_minutes || 0}"
                 data-started="${j.started_at || ''}"
                 data-project="${cdProject}"
                 data-printer="${cdPrinter}"
-                data-reviewed-by="${cdReviewedBy}">⏱ …</span>`
+                data-reviewed-by="${cdReviewedBy}"
+                data-notified="${j.staff_notified ? '1' : '0'}">⏱ …</span>`
         : '');
 
   return `
@@ -760,6 +771,8 @@ function tickCountdowns() {
       const jobId = el.id.replace('cd-', '');
       if (!_firedTimesUp.has(jobId)) {
         _firedTimesUp.add(jobId);
+        // Skip if DB already marked as notified (covers page reloads / re-renders)
+        if (el.dataset.notified === '1') return;
         const reviewedBy = el.dataset.reviewedBy || '';
         const me = getUser();
         if (me && reviewedBy && reviewedBy === me.email) {

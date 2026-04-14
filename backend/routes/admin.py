@@ -172,6 +172,7 @@ def get_production_board():
                 pj.estimated_start,
                 pj.estimated_end,
                 pj.started_at,
+                pj.staff_notified,
                 COALESCE(
                     pj.print_end_expected,
                     CASE WHEN pj.status = 'printing' AND pj.started_at IS NOT NULL
@@ -188,10 +189,14 @@ def get_production_board():
                 pr.priority,
                 pr.deadline_date,
                 pr.ufp_print_time_minutes,
-                pr.ufp_material_g
+                pr.ufp_material_g,
+                ab.full_name       AS assigned_by_name,
+                rb.full_name       AS reviewed_by_name
             FROM print_jobs pj
             JOIN print_requests pr ON pr.request_id = pj.request_id
             LEFT JOIN students s   ON s.email = pr.student_email
+            LEFT JOIN admins ab    ON ab.email = pj.assigned_by
+            LEFT JOIN admins rb    ON rb.email = pr.reviewed_by
             WHERE pj.printer_id = %s
               AND pj.status NOT IN ('completed', 'cancelled', 'failed')
             ORDER BY pj.queue_position ASC
