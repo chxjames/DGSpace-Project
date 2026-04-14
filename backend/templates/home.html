@@ -1,9 +1,9 @@
-{% extends "base.html" %}
-{% block title %}Home �?DGSpace{% endblock %}
+﻿{% extends "base.html" %}
+{% block title %}Home 鈥?DGSpace{% endblock %}
 
 {% block content %}
 <style>
-  /* ── Hero ── */
+  /* 鈹€鈹€ Hero 鈹€鈹€ */
   .hero {
     text-align: center;
     padding: 72px 24px 56px;
@@ -17,7 +17,7 @@
   .hero-btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
   .hero-btns .btn { width: auto; padding: 12px 36px; font-size: 1rem; }
 
-  /* ── Welcome banner ── */
+  /* 鈹€鈹€ Welcome banner 鈹€鈹€ */
   .welcome-banner {
     background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
     border-radius: 12px; padding: 32px 36px;
@@ -34,7 +34,7 @@
     white-space: nowrap;
   }
 
-  /* ── Quick-action cards ── */
+  /* 鈹€鈹€ Quick-action cards 鈹€鈹€ */
   .action-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -58,7 +58,7 @@
   .action-card .label { font-weight: bold; color: #1a1a2e; font-size: 0.95rem; margin-bottom: 4px; }
   .action-card .desc { font-size: 0.8rem; color: #999; }
 
-  /* ── Stats strip (admin) ── */
+  /* 鈹€鈹€ Stats strip (admin) 鈹€鈹€ */
   .stats-strip {
     display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
     gap: 14px; margin-bottom: 28px;
@@ -71,7 +71,7 @@
   .stat-card .num { font-size: 2rem; font-weight: bold; color: #e94560; }
   .stat-card .lbl { font-size: 0.78rem; color: #888; margin-top: 4px; }
 
-  /* ── Production Board (embedded) ── */
+  /* 鈹€鈹€ Production Board (embedded) 鈹€鈹€ */
   .pb-section-header {
     display: flex; align-items: center; justify-content: space-between;
     margin: 32px 0 16px; padding-bottom: 10px;
@@ -190,10 +190,10 @@
   @keyframes pulse-red { 0%,100%{opacity:1} 50%{opacity:.6} }
 </style>
 
-<!-- ══════════════════ GUEST ══════════════════ -->
+<!-- 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲 GUEST 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲 -->
 <div id="section-guest" style="display:none">
   <div class="hero">
-    <div style="font-size:3.5rem;margin-bottom:16px">🖨</div>
+    <div style="font-size:3.5rem;margin-bottom:16px">馃枿</div>
     <h1>Welcome to DGSpace</h1>
     <p>Donald's Garage 3D Print Request Management Platform at the University of San Diego</p>
     <div class="hero-btns">
@@ -203,7 +203,7 @@
   </div>
 </div>
 
-<!-- ══════════════════ LOGGED IN ══════════════════ -->
+<!-- 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲 LOGGED IN 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲 -->
 <div id="section-user" style="display:none">
 
   <!-- Welcome banner -->
@@ -215,170 +215,170 @@
     <span class="badge-role" id="role-badge"></span>
   </div>
 
-  <!-- ── 2FA NOT SET UP (locked state) ── -->
+  <!-- 鈹€鈹€ 2FA NOT SET UP (locked state) 鈹€鈹€ -->
   <div id="panel-no2fa" style="display:none">
     <div style="background:#fff8e1;border:1px solid #ffe082;border-radius:12px;padding:32px;text-align:center;margin-bottom:24px">
-      <div style="font-size:3rem;margin-bottom:12px">🔐</div>
+      <div style="font-size:3rem;margin-bottom:12px">馃攼</div>
       <h3 style="color:#7a5800;margin-bottom:8px">Two-Factor Authentication Required</h3>
       <p style="color:#7a5800;font-size:0.95rem;max-width:420px;margin:0 auto 20px">
         Your account is not yet fully secured. Please set up 2FA on your Profile page before you can access any features.
       </p>
       <a href="/profile/" class="btn" style="width:auto;padding:12px 32px;display:inline-block">
-        👤 Go to Profile &amp; Set Up 2FA
+        馃懁 Go to Profile &amp; Set Up 2FA
       </a>
     </div>
   </div>
 
-  <!-- ── STUDENT ── -->
+  <!-- 鈹€鈹€ STUDENT 鈹€鈹€ -->
   <div id="panel-student" style="display:none">
     <div class="action-grid">
       <a href="/print-requests/" class="action-card">
-        <div class="icon">📋</div>
+        <div class="icon">馃搵</div>
         <div class="label">My Requests</div>
         <div class="desc">View & track your print jobs</div>
       </a>
       <a href="/print-requests/new/" class="action-card">
-        <div class="icon">�?/div>
+        <div class="icon">鉃?/div>
         <div class="label">New Request</div>
         <div class="desc">Submit a new 3D print job</div>
       </a>
       <a href="/profile/" class="action-card">
-        <div class="icon">👤</div>
+        <div class="icon">馃懁</div>
         <div class="label">My Profile</div>
         <div class="desc">Settings &amp; 2FA security</div>
       </a>
     </div>
   </div>
 
-  <!-- ── ADMIN ── -->
+  <!-- 鈹€鈹€ ADMIN 鈹€鈹€ -->
   <div id="panel-admin" style="display:none">
     <!-- Stats strip -->
     <div class="stats-strip" id="admin-stats">
-      <div class="stat-card"><div class="num" id="s-pending">�?/div><div class="lbl">Pending</div></div>
-      <div class="stat-card"><div class="num" id="s-approved">�?/div><div class="lbl">Approved</div></div>
-      <div class="stat-card"><div class="num" id="s-inprogress">�?/div><div class="lbl">In Progress</div></div>
-      <div class="stat-card"><div class="num" id="s-completed">�?/div><div class="lbl">Completed</div></div>
-      <div class="stat-card"><div class="num" id="s-total">�?/div><div class="lbl">Total</div></div>
+      <div class="stat-card"><div class="num" id="s-pending">鈥?/div><div class="lbl">Pending</div></div>
+      <div class="stat-card"><div class="num" id="s-approved">鈥?/div><div class="lbl">Approved</div></div>
+      <div class="stat-card"><div class="num" id="s-inprogress">鈥?/div><div class="lbl">In Progress</div></div>
+      <div class="stat-card"><div class="num" id="s-completed">鈥?/div><div class="lbl">Completed</div></div>
+      <div class="stat-card"><div class="num" id="s-total">鈥?/div><div class="lbl">Total</div></div>
     </div>
     <!-- Actions -->
     <div class="action-grid">
       <a href="/print-requests/" class="action-card">
-        <div class="icon">📋</div>
+        <div class="icon">馃搵</div>
         <div class="label">Print Requests</div>
         <div class="desc">Review &amp; manage all jobs</div>
       </a>
       <a href="/print-requests/new/" class="action-card">
-        <div class="icon">�?/div>
+        <div class="icon">鉃?/div>
         <div class="label">New Request</div>
         <div class="desc">Submit a new 3D print job</div>
       </a>
       <a href="/admin/printers/" class="action-card">
-        <div class="icon">🖨�?/div>
+        <div class="icon">馃枿锔?/div>
         <div class="label">Printers</div>
         <div class="desc">Manage printer inventory</div>
       </a>
       <a href="/admin/students/" class="action-card">
-        <div class="icon">🎓</div>
+        <div class="icon">馃帗</div>
         <div class="label">Students</div>
         <div class="desc">View student accounts</div>
       </a>
       <a href="/admin/admins/" class="action-card">
-        <div class="icon">🔑</div>
+        <div class="icon">馃攽</div>
         <div class="label">Admins</div>
         <div class="desc">Manage admin accounts</div>
       </a>
       <a href="/reports/weekly/" class="action-card">
-        <div class="icon">📊</div>
+        <div class="icon">馃搳</div>
         <div class="label">Reports</div>
         <div class="desc">Stats &amp; analytics</div>
       </a>
       <a href="/profile/" class="action-card">
-        <div class="icon">👤</div>
+        <div class="icon">馃懁</div>
         <div class="label">My Profile</div>
         <div class="desc">Settings &amp; 2FA security</div>
       </a>
     </div>
 
-    <!-- ── Embedded Production Board ── -->
+    <!-- 鈹€鈹€ Embedded Production Board 鈹€鈹€ -->
     <div class="pb-section-header">
-      <h3>🏭 Production Board</h3>
-      <button class="btn" onclick="loadBoard()" style="width:auto;padding:6px 16px;font-size:0.82rem;background:#6c757d">🔄 Refresh</button>
+      <h3>馃彮 Production Board</h3>
+      <button class="btn" onclick="loadBoard()" style="width:auto;padding:6px 16px;font-size:0.82rem;background:#6c757d">馃攧 Refresh</button>
     </div>
     <div id="pb-alert"></div>
     <div id="pb-layout">
       <div>
         <div class="card" style="margin:0">
           <div class="pb-section-title">
-            📋 Ready to Schedule
+            馃搵 Ready to Schedule
             <span id="rts-count" class="pb-count-badge">0</span>
           </div>
           <p style="font-size:0.8rem;color:#888;margin:0 0 14px">
             Click a request or drag it to a printer queue to assign.
           </p>
-          <div id="rts-loading" style="text-align:center;padding:20px;color:#888">Loading�?/div>
+          <div id="rts-loading" style="text-align:center;padding:20px;color:#888">Loading鈥?/div>
           <div id="rts-list"></div>
         </div>
       </div>
       <div>
-        <div class="pb-section-title" style="margin-bottom:14px">🖨 Printer Queues</div>
-        <div id="printers-loading" style="text-align:center;padding:20px;color:#888">Loading�?/div>
+        <div class="pb-section-title" style="margin-bottom:14px">馃枿 Printer Queues</div>
+        <div id="printers-loading" style="text-align:center;padding:20px;color:#888">Loading鈥?/div>
         <div id="printers-list"></div>
       </div>
     </div>
   </div>
 
-  <!-- ── STUDENT STAFF ── -->
+  <!-- 鈹€鈹€ STUDENT STAFF 鈹€鈹€ -->
   <div id="panel-student-staff" style="display:none">
     <div class="action-grid">
       <a href="/print-requests/" class="action-card">
-        <div class="icon">📋</div>
+        <div class="icon">馃搵</div>
         <div class="label">Print Requests</div>
         <div class="desc">Manage all print jobs</div>
       </a>
       <a href="/print-requests/new/" class="action-card">
-        <div class="icon">�?/div>
+        <div class="icon">鉃?/div>
         <div class="label">New Request</div>
         <div class="desc">Submit a new 3D print job</div>
       </a>
       <a href="/profile/" class="action-card">
-        <div class="icon">👤</div>
+        <div class="icon">馃懁</div>
         <div class="label">My Profile</div>
         <div class="desc">Settings &amp; 2FA security</div>
       </a>
     </div>
 
-    <!-- ── Embedded Production Board (student_staff) ── -->
+    <!-- 鈹€鈹€ Embedded Production Board (student_staff) 鈹€鈹€ -->
     <div class="pb-section-header">
-      <h3>🏭 Production Board</h3>
-      <button class="btn" onclick="loadBoard()" style="width:auto;padding:6px 16px;font-size:0.82rem;background:#6c757d">🔄 Refresh</button>
+      <h3>馃彮 Production Board</h3>
+      <button class="btn" onclick="loadBoard()" style="width:auto;padding:6px 16px;font-size:0.82rem;background:#6c757d">馃攧 Refresh</button>
     </div>
     <div id="pb-alert-ss"></div>
     <div id="pb-layout-ss">
       <div>
         <div class="card" style="margin:0">
           <div class="pb-section-title">
-            📋 Ready to Schedule
+            馃搵 Ready to Schedule
             <span id="rts-count-ss" class="pb-count-badge">0</span>
           </div>
           <p style="font-size:0.8rem;color:#888;margin:0 0 14px">
             Click a request or drag it to a printer queue to assign.
           </p>
-          <div id="rts-loading-ss" style="text-align:center;padding:20px;color:#888">Loading�?/div>
+          <div id="rts-loading-ss" style="text-align:center;padding:20px;color:#888">Loading鈥?/div>
           <div id="rts-list-ss"></div>
         </div>
       </div>
       <div>
-        <div class="pb-section-title" style="margin-bottom:14px">🖨 Printer Queues</div>
-        <div id="printers-loading-ss" style="text-align:center;padding:20px;color:#888">Loading�?/div>
+        <div class="pb-section-title" style="margin-bottom:14px">馃枿 Printer Queues</div>
+        <div id="printers-loading-ss" style="text-align:center;padding:20px;color:#888">Loading鈥?/div>
         <div id="printers-list-ss"></div>
       </div>
     </div>
   </div>
 
-<!-- ══ Assign Modal (shared) ══ -->
+<!-- 鈺愨晲 Assign Modal (shared) 鈺愨晲 -->
 <div id="assign-modal-bg">
   <div id="assign-modal">
-    <h3>📌 Assign to Printer</h3>
+    <h3>馃搶 Assign to Printer</h3>
     <div id="assign-req-info" style="background:#f8f9fa;border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:0.85rem;color:#333"></div>
     <label>Select Printer *</label>
     <select id="modal-printer-select"></select>
@@ -387,27 +387,27 @@
     <label>Estimated End <span style="font-weight:400;color:#aaa">(optional)</span></label>
     <input id="modal-est-end" type="datetime-local">
     <label>Notes <span style="font-weight:400;color:#aaa">(optional)</span></label>
-    <textarea id="modal-notes" rows="2" placeholder="Any notes for this print job�?></textarea>
+    <textarea id="modal-notes" rows="2" placeholder="Any notes for this print job鈥?></textarea>
     <div class="modal-actions">
       <button id="modal-cancel-btn" onclick="closeModal()">Cancel</button>
-      <button id="modal-assign-btn" onclick="confirmAssign()">�?Assign</button>
+      <button id="modal-assign-btn" onclick="confirmAssign()">鉁?Assign</button>
     </div>
   </div>
 </div>
 
 <script>
-/* ════════════════════════════════════════════════════════
-   Home page �?role routing + embedded Production Board
-   ════════════════════════════════════════════════════════ */
+/* 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲
+   Home page 鈥?role routing + embedded Production Board
+   鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲 */
 
-// ── Production Board state ────────────────────────────────
+// 鈹€鈹€ Production Board state 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 let _printers    = [];
 let _rts         = [];
 let _selectedRts = null;
 const _firedTimesUp = new Set();
 const _notifiedJobs = new Set();
 
-// ── Helpers ───────────────────────────────────────────────
+// 鈹€鈹€ Helpers 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 function pbId(base) {
   // Returns the correct element ID depending on which panel is active
   const ss = document.getElementById('panel-student-staff');
@@ -429,16 +429,16 @@ function deadlineBadge(dateStr) {
   if (!dateStr) return '';
   const datePart = String(dateStr).slice(0, 10);
   const dl    = new Date(datePart + 'T00:00:00');
-  if (isNaN(dl.getTime())) return `<span style="color:#888">📅 ${escHtml(datePart)}</span>`;
+  if (isNaN(dl.getTime())) return `<span style="color:#888">馃搮 ${escHtml(datePart)}</span>`;
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const days  = Math.round((dl - today) / 86400000);
-  if (days < 0)   return `<span class="deadline-warn">⚠️ Overdue</span>`;
-  if (days === 0) return `<span class="deadline-warn">⚠️ Due today</span>`;
-  if (days <= 3)  return `<span class="deadline-warn">⚠️ ${days}d left</span>`;
-  return `<span style="color:#888">📅 ${days}d left</span>`;
+  if (days < 0)   return `<span class="deadline-warn">鈿狅笍 Overdue</span>`;
+  if (days === 0) return `<span class="deadline-warn">鈿狅笍 Due today</span>`;
+  if (days <= 3)  return `<span class="deadline-warn">鈿狅笍 ${days}d left</span>`;
+  return `<span style="color:#888">馃搮 ${days}d left</span>`;
 }
 function fmtDt(iso) {
-  if (!iso) return '�?;
+  if (!iso) return '鈥?;
   const d = new Date(iso);
   return d.toLocaleDateString('en-US', { month:'short', day:'numeric' }) + ' ' +
          d.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit' });
@@ -461,7 +461,7 @@ function fmtCountdown(totalSec) {
   return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
 }
 
-// ── Load Board ────────────────────────────────────────────
+// 鈹€鈹€ Load Board 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 async function loadBoard() {
   const rtsLoading      = pbEl('rts-loading');
   const printersLoading = pbEl('printers-loading');
@@ -487,26 +487,26 @@ async function loadBoard() {
     renderPrinters();
     tickCountdowns();
   } catch(e) {
-    pbAlert('Network error �?make sure the backend is running.');
+    pbAlert('Network error 鈥?make sure the backend is running.');
     rtsLoading.style.display      = 'none';
     printersLoading.style.display = 'none';
   }
 }
 
-// ── Render Ready-to-Schedule ──────────────────────────────
+// 鈹€鈹€ Render Ready-to-Schedule 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 function renderRts() {
   const el  = pbEl('rts-list');
   const cnt = pbEl('rts-count');
   if (!el) return;
   cnt.textContent = _rts.length;
   if (!_rts.length) {
-    el.innerHTML = '<div class="pb-empty">�?No requests waiting to be scheduled.</div>';
+    el.innerHTML = '<div class="pb-empty">鉁?No requests waiting to be scheduled.</div>';
     return;
   }
   const sfx = pbId('rts-list') === 'rts-list-ss' ? '-ss' : '';
   el.innerHTML = _rts.map(r => {
     const mins     = r.ufp_print_time_minutes;
-    const timeStr  = mins ? formatMinutes(mins) : '�?;
+    const timeStr  = mins ? formatMinutes(mins) : '鈥?;
     const matStr   = [r.material_type, r.color_preference].filter(Boolean).join(' / ');
     const dl       = r.deadline_date ? deadlineBadge(r.deadline_date) : '';
     const sel      = _selectedRts && _selectedRts.id === r.id ? 'selected' : '';
@@ -521,15 +521,15 @@ function renderRts() {
           <span class="priority-dot ${dotClass}"></span>${escHtml(r.project_name)}
         </div>
         <div class="card-meta">
-          <span>👤 ${escHtml(r.student_name || r.student_email)}</span>
-          <span>�?${timeStr}</span>
-          ${matStr ? `<span>🎨 ${escHtml(matStr)}</span>` : ''}
+          <span>馃懁 ${escHtml(r.student_name || r.student_email)}</span>
+          <span>鈴?${timeStr}</span>
+          ${matStr ? `<span>馃帹 ${escHtml(matStr)}</span>` : ''}
           ${dl}
         </div>
         <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-          <span style="font-size:0.72rem;color:#aaa">�?drag to printer or click to assign</span>
+          <span style="font-size:0.72rem;color:#aaa">鈫?drag to printer or click to assign</span>
           <a href="/print-requests/${r.id}/" target="_blank"
-             style="font-size:0.75rem;color:#007bff" onclick="event.stopPropagation()">🔗 View</a>
+             style="font-size:0.75rem;color:#007bff" onclick="event.stopPropagation()">馃敆 View</a>
         </div>
       </div>`;
   }).join('');
@@ -541,12 +541,12 @@ function selectRts(id) {
   if (_selectedRts) openModal();
 }
 
-// ── Render Printer Queues ─────────────────────────────────
+// 鈹€鈹€ Render Printer Queues 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 function renderPrinters() {
   const el = pbEl('printers-list');
   if (!el) return;
   if (!_printers.length) {
-    el.innerHTML = '<div class="pb-empty">No printers configured. <a href="/admin/printers/">Add printers �?/a></div>';
+    el.innerHTML = '<div class="pb-empty">No printers configured. <a href="/admin/printers/">Add printers 鈫?/a></div>';
     return;
   }
   el.innerHTML = _printers.map(p => renderPrinterCol(p)).join('');
@@ -561,7 +561,7 @@ function renderPrinterCol(p) {
   const hasJobs  = queue.length > 0;
   const jobsHtml = hasJobs
     ? queue.map((j, idx) => renderJobCard(j, idx + 1)).join('')
-    : '<div class="pb-empty" style="padding:14px 0">�?Queue empty �?/div>';
+    : '<div class="pb-empty" style="padding:14px 0">鈥?Queue empty 鈥?/div>';
   const dzId     = `dz${sfx}-${p.printer_id}`;
   const queueSection = isActive ? `
     <div class="queue-drop-zone ${hasJobs ? 'has-jobs' : ''}" id="${dzId}"
@@ -575,8 +575,8 @@ function renderPrinterCol(p) {
     <div class="printer-col">
       <div class="printer-header">
         <div>
-          <div class="printer-name">🖨 ${escHtml(p.printer_name)}</div>
-          <div class="printer-meta">${escHtml(p.model || '')}${p.location ? ' · ' + escHtml(p.location) : ''}</div>
+          <div class="printer-name">馃枿 ${escHtml(p.printer_name)}</div>
+          <div class="printer-meta">${escHtml(p.model || '')}${p.location ? ' 路 ' + escHtml(p.location) : ''}</div>
         </div>
         <span class="printer-status-badge ${sbClass}">${sbLabel}</span>
       </div>
@@ -586,7 +586,7 @@ function renderPrinterCol(p) {
 
 function renderJobCard(j, pos) {
   const mins    = j.ufp_print_time_minutes;
-  const timeStr = mins ? formatMinutes(mins) : '�?;
+  const timeStr = mins ? formatMinutes(mins) : '鈥?;
   const jsCls   = j.job_status;
   const jsLabel = { queued: 'Queued', file_transferred: 'File Copied', printing: 'Printing' }[j.job_status] || j.job_status;
   const attempt = j.attempt_number || 1;
@@ -597,18 +597,18 @@ function renderJobCard(j, pos) {
   let actionBtns = '';
   if (j.job_status === 'queued') {
     actionBtns = `
-      <button class="job-btn btn-transfer" onclick="advanceJob(${j.job_id},'file_transferred',${attempt})">📁 File Copied</button>
-      <button class="job-btn btn-remove"   onclick="removeJob(${j.job_id})">�?/button>`;
+      <button class="job-btn btn-transfer" onclick="advanceJob(${j.job_id},'file_transferred',${attempt})">馃搧 File Copied</button>
+      <button class="job-btn btn-remove"   onclick="removeJob(${j.job_id})">鉁?/button>`;
   } else if (j.job_status === 'file_transferred') {
     actionBtns = isFirst ? `
-      <button class="job-btn btn-printing" onclick="advanceJob(${j.job_id},'printing',${attempt})">�?Start Print</button>
-      <button class="job-btn btn-remove"   onclick="removeJob(${j.job_id})">�?/button>` : `
-      <span style="font-size:0.72rem;color:#aaa;font-style:italic">Waiting in queue�?/span>
-      <button class="job-btn btn-remove" onclick="removeJob(${j.job_id})">�?/button>`;
+      <button class="job-btn btn-printing" onclick="advanceJob(${j.job_id},'printing',${attempt})">鈻?Start Print</button>
+      <button class="job-btn btn-remove"   onclick="removeJob(${j.job_id})">鉁?/button>` : `
+      <span style="font-size:0.72rem;color:#aaa;font-style:italic">Waiting in queue鈥?/span>
+      <button class="job-btn btn-remove" onclick="removeJob(${j.job_id})">鉁?/button>`;
   } else if (j.job_status === 'printing') {
     actionBtns = `
-      <button class="job-btn btn-complete" onclick="advanceJob(${j.job_id},'completed',${attempt})">�?Done</button>
-      <button class="job-btn btn-fail"     onclick="advanceJob(${j.job_id},'failed',${attempt})">�?Failed</button>`;
+      <button class="job-btn btn-complete" onclick="advanceJob(${j.job_id},'completed',${attempt})">鉁?Done</button>
+      <button class="job-btn btn-fail"     onclick="advanceJob(${j.job_id},'failed',${attempt})">鉂?Failed</button>`;
   }
   const dl    = j.deadline_date ? deadlineBadge(j.deadline_date) : '';
   const endRaw = j.print_end_expected;
@@ -616,9 +616,9 @@ function renderJobCard(j, pos) {
   const cdProject = escHtml(j.project_name || '');
   const cdPrinter = escHtml(j.printer_name || '');
   const countdownHtml = (j.job_status === 'printing' && hasEnd)
-    ? `<span class="job-countdown countdown-ok" id="cd-${j.job_id}" data-end="${endRaw}" data-project="${cdProject}" data-printer="${cdPrinter}">�?�?/span>`
+    ? `<span class="job-countdown countdown-ok" id="cd-${j.job_id}" data-end="${endRaw}" data-project="${cdProject}" data-printer="${cdPrinter}">鈴?鈥?/span>`
     : (j.job_status === 'printing'
-        ? `<span class="job-countdown countdown-ok" id="cd-${j.job_id}" data-mins="${j.ufp_print_time_minutes || 0}" data-started="${j.started_at || ''}" data-project="${cdProject}" data-printer="${cdPrinter}">�?�?/span>`
+        ? `<span class="job-countdown countdown-ok" id="cd-${j.job_id}" data-mins="${j.ufp_print_time_minutes || 0}" data-started="${j.started_at || ''}" data-project="${cdProject}" data-printer="${cdPrinter}">鈴?鈥?/span>`
         : '');
   return `
     <div class="job-card ${jsCls}" draggable="true"
@@ -628,10 +628,10 @@ function renderJobCard(j, pos) {
         <div class="job-title">${attemptBadge}${escHtml(j.project_name)}</div>
         <div class="job-meta">
           <span><span class="job-status-badge jsb-${jsCls}">${jsLabel}</span></span>
-          <span>�?${timeStr}</span>
-          <span>👤 ${escHtml(j.student_name || j.student_email)}</span>
+          <span>鈴?${timeStr}</span>
+          <span>馃懁 ${escHtml(j.student_name || j.student_email)}</span>
           ${dl}
-          ${j.estimated_start ? `<span>🕐 Est. start: ${fmtDt(j.estimated_start)}</span>` : ''}
+          ${j.estimated_start ? `<span>馃晲 Est. start: ${fmtDt(j.estimated_start)}</span>` : ''}
         </div>
         ${countdownHtml}
       </div>
@@ -639,7 +639,7 @@ function renderJobCard(j, pos) {
     </div>`;
 }
 
-// ── Drag & Drop ───────────────────────────────────────────
+// 鈹€鈹€ Drag & Drop 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 function rtsCardDragStart(event, requestId) {
   event.dataTransfer.setData('rts_id', String(requestId));
   event.dataTransfer.effectAllowed = 'move';
@@ -676,7 +676,7 @@ async function handleDrop(event, targetPrinterId, sfx) {
     try {
       const res  = await apiFetch(`/api/admin/print-requests/${req.id}/assign`, { method: 'POST', body: JSON.stringify(body) });
       const data = await res.json();
-      if (data.success) { pbAlert(`�?"${escHtml(req.project_name)}" �?${escHtml(printer.printer_name)} #${data.queue_position}`, 'success'); loadBoard(); }
+      if (data.success) { pbAlert(`鉁?"${escHtml(req.project_name)}" 鈫?${escHtml(printer.printer_name)} #${data.queue_position}`, 'success'); loadBoard(); }
       else pbAlert(data.message || 'Failed to assign.');
     } catch(e) { pbAlert('Network error.'); }
     return;
@@ -684,20 +684,20 @@ async function handleDrop(event, targetPrinterId, sfx) {
   loadBoard();
 }
 
-// ── Assign Modal ──────────────────────────────────────────
+// 鈹€鈹€ Assign Modal 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 function openModal() {
   if (!_selectedRts) return;
   const r = _selectedRts;
   document.getElementById('assign-req-info').innerHTML = `
     <strong>${escHtml(r.project_name)}</strong><br>
     <span style="color:#888">${escHtml(r.student_name || r.student_email)}</span>
-    &nbsp;·&nbsp; �?${r.ufp_print_time_minutes ? formatMinutes(r.ufp_print_time_minutes) : '�?}
-    &nbsp;·&nbsp; 🎨 ${escHtml(r.material_type || '�?)}`;
+    &nbsp;路&nbsp; 鈴?${r.ufp_print_time_minutes ? formatMinutes(r.ufp_print_time_minutes) : '鈥?}
+    &nbsp;路&nbsp; 馃帹 ${escHtml(r.material_type || '鈥?)}`;
   const sel = document.getElementById('modal-printer-select');
   sel.innerHTML = _printers.filter(p => p.status === 'active')
     .map(p => `<option value="${p.printer_id}">${escHtml(p.printer_name)}${p.location ? ' (' + escHtml(p.location) + ')' : ''}</option>`)
     .join('');
-  if (!sel.options.length) sel.innerHTML = '<option value="">�?No active printers �?/option>';
+  if (!sel.options.length) sel.innerHTML = '<option value="">鈥?No active printers 鈥?/option>';
   if (r.ufp_print_time_minutes) {
     const now = new Date(); now.setMinutes(Math.ceil(now.getMinutes() / 15) * 15, 0, 0);
     const end = new Date(now.getTime() + r.ufp_print_time_minutes * 60000);
@@ -720,7 +720,7 @@ async function confirmAssign() {
   const printerId = parseInt(document.getElementById('modal-printer-select').value);
   if (!printerId) { alert('Please select a printer.'); return; }
   const btn = document.getElementById('modal-assign-btn');
-  btn.disabled = true; btn.textContent = 'Assigning�?;
+  btn.disabled = true; btn.textContent = 'Assigning鈥?;
   const body = {
     printer_id:      printerId,
     estimated_start: document.getElementById('modal-est-start').value || null,
@@ -730,21 +730,21 @@ async function confirmAssign() {
   try {
     const res  = await apiFetch(`/api/admin/print-requests/${_selectedRts.id}/assign`, { method: 'POST', body: JSON.stringify(body) });
     const data = await res.json();
-    if (data.success) { closeModal(); pbAlert(`�?Assigned to printer �?queue position #${data.queue_position}`, 'success'); loadBoard(); }
-    else { pbAlert(data.message || 'Failed to assign.'); btn.disabled = false; btn.textContent = '�?Assign'; }
-  } catch(e) { pbAlert('Network error.'); btn.disabled = false; btn.textContent = '�?Assign'; }
+    if (data.success) { closeModal(); pbAlert(`鉁?Assigned to printer 鈥?queue position #${data.queue_position}`, 'success'); loadBoard(); }
+    else { pbAlert(data.message || 'Failed to assign.'); btn.disabled = false; btn.textContent = '鉁?Assign'; }
+  } catch(e) { pbAlert('Network error.'); btn.disabled = false; btn.textContent = '鉁?Assign'; }
 }
 
-// ── Job lifecycle ─────────────────────────────────────────
+// 鈹€鈹€ Job lifecycle 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 async function advanceJob(jobId, newStatus, attempt) {
   const MAX = 3; attempt = attempt || 1;
   let msg;
   if (newStatus === 'failed') {
     msg = attempt < MAX
       ? `Mark as FAILED?\n\nAttempt ${attempt} of ${MAX}. A Retry #${attempt} job will be automatically queued.`
-      : `Mark as FAILED?\n\nThis is attempt ${MAX} of ${MAX} �?the final allowed attempt.\nThe request will be sent back to the student.`;
+      : `Mark as FAILED?\n\nThis is attempt ${MAX} of ${MAX} 鈥?the final allowed attempt.\nThe request will be sent back to the student.`;
   } else {
-    const labels = { file_transferred:'Mark file as copied to printer?', printing:'Mark print as started?', completed:'Mark print as completed? �? };
+    const labels = { file_transferred:'Mark file as copied to printer?', printing:'Mark print as started?', completed:'Mark print as completed? 鉁? };
     msg = labels[newStatus] || `Set status to "${newStatus}"?`;
   }
   if (!confirm(msg)) return;
@@ -752,8 +752,8 @@ async function advanceJob(jobId, newStatus, attempt) {
     const res  = await apiFetch(`/api/admin/jobs/${jobId}/status`, { method: 'PATCH', body: JSON.stringify({ status: newStatus }) });
     const data = await res.json();
     if (data.success) {
-      if (data.retry)      pbAlert(`�?Failed �?Retry #${data.attempt - 1} automatically queued (${data.attempts_remaining} left).`, 'success');
-      else if (data.sent_back) pbAlert('�?All 3 attempts failed �?request sent back to student.', 'success');
+      if (data.retry)      pbAlert(`鉂?Failed 鈥?Retry #${data.attempt - 1} automatically queued (${data.attempts_remaining} left).`, 'success');
+      else if (data.sent_back) pbAlert('鉂?All 3 attempts failed 鈥?request sent back to student.', 'success');
       else                 pbAlert(`Job updated: ${newStatus}`, 'success');
       loadBoard();
     } else { pbAlert(data.message || 'Failed to update job.'); }
@@ -769,7 +769,7 @@ async function removeJob(jobId) {
   } catch(e) { pbAlert('Network error.'); }
 }
 
-// ── Countdown ticker ──────────────────────────────────────
+// 鈹€鈹€ Countdown ticker 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 function tickCountdowns() {
   const now = Date.now();
   document.querySelectorAll('[id^="cd-"]').forEach(el => {
@@ -783,20 +783,20 @@ function tickCountdowns() {
         if (!isNaN(startMs)) endMs = startMs + mins * 60000;
       }
     }
-    if (!endMs || isNaN(endMs)) { el.textContent = '�?�?; return; }
+    if (!endMs || isNaN(endMs)) { el.textContent = '鈴?鈥?; return; }
     const diffSec = Math.round((endMs - now) / 1000);
     el.className = 'job-countdown';
     let label;
     if (diffSec <= 0) {
-      label = '🔴 Time Up!'; el.classList.add('countdown-overdue');
+      label = '馃敶 Time Up!'; el.classList.add('countdown-overdue');
       const jobId = el.id.replace('cd-', '');
       if (!_firedTimesUp.has(jobId)) {
         _firedTimesUp.add(jobId);
-        sendBrowserNotification(`�?Print complete: "${el.dataset.project}"${el.dataset.printer ? ' on ' + el.dataset.printer : ''}`, 'print_done');
+        sendBrowserNotification(`鈴?Print complete: "${el.dataset.project}"${el.dataset.printer ? ' on ' + el.dataset.printer : ''}`, 'print_done');
       }
-    } else if (diffSec <= 600)  { label = `🔴 ${fmtCountdown(diffSec)}`; el.classList.add('countdown-urgent'); }
-    else if (diffSec <= 1800)   { label = `🟡 ${fmtCountdown(diffSec)}`; el.classList.add('countdown-warn'); }
-    else                        { label = `🟢 ${fmtCountdown(diffSec)}`; el.classList.add('countdown-ok'); }
+    } else if (diffSec <= 600)  { label = `馃敶 ${fmtCountdown(diffSec)}`; el.classList.add('countdown-urgent'); }
+    else if (diffSec <= 1800)   { label = `馃煛 ${fmtCountdown(diffSec)}`; el.classList.add('countdown-warn'); }
+    else                        { label = `馃煝 ${fmtCountdown(diffSec)}`; el.classList.add('countdown-ok'); }
     el.textContent = label;
   });
 }
@@ -816,7 +816,7 @@ function sendBrowserNotification(message, type) {
   const alertType = type === 'print_done' ? 'success' : 'error';
   function _fire() {
     if ('Notification' in window && Notification.permission === 'granted')
-      new Notification('DGSpace �?Production Board', { body: message, icon: '/static/favicon.ico', tag: `dgspace-${type}-${Date.now()}` });
+      new Notification('DGSpace 鈥?Production Board', { body: message, icon: '/static/favicon.ico', tag: `dgspace-${type}-${Date.now()}` });
     pbAlert(message, alertType);
   }
   if (!('Notification' in window)) { pbAlert(message, alertType); return; }
@@ -825,7 +825,7 @@ function sendBrowserNotification(message, type) {
   else pbAlert(message, alertType);
 }
 
-// ── Role routing ──────────────────────────────────────────
+// 鈹€鈹€ Role routing 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 (function() {
   const user = getUser();
   if (!user) {
@@ -837,8 +837,8 @@ function sendBrowserNotification(message, type) {
   document.getElementById('user-email').textContent = user.email || '';
 
   const roleMap = {
-    student: '🎓 Student', student_staff: '�?Student Staff',
-    admin: '👤 Admin', professor: '🏫 Professor', manager: '🛠 Manager'
+    student: '馃帗 Student', student_staff: '猸?Student Staff',
+    admin: '馃懁 Admin', professor: '馃彨 Professor', manager: '馃洜 Manager'
   };
   document.getElementById('role-badge').textContent = roleMap[user.user_type] || user.user_type;
 
@@ -867,7 +867,7 @@ function sendBrowserNotification(message, type) {
         document.getElementById('s-approved').textContent   = by.approved    ?? 0;
         document.getElementById('s-inprogress').textContent = by.in_progress ?? 0;
         document.getElementById('s-completed').textContent  = by.completed   ?? 0;
-        document.getElementById('s-total').textContent      = s.total_requests ?? '�?;
+        document.getElementById('s-total').textContent      = s.total_requests ?? '鈥?;
       }).catch(() => {});
     }
   }).catch(() => {
