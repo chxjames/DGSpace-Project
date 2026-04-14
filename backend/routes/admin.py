@@ -205,6 +205,85 @@ def get_production_board():
     }), 200
 
 
+@admin_bp.route('/api/printers/status', methods=['GET'])
+def get_printer_status():
+    """
+    Student-facing printer status summary.
+    Returns a sanitised per-printer view — no student names, no job details.
+    Access: any authenticated user (student, admin, student_staff).
+    """
+    auth_header = request.headers.get('Authorization', '')
+    if not auth_header.startswith('Bearer '):
+        return jsonify({'success': False, 'message': 'No token provided'}), 401
+    payload = AuthService.verify_jwt_token(auth_header.split(' ')[1])
+    if not payload:
+        return jsonify({'success': False, 'message': 'Invalid token'}), 403
+
+    now = datetime.datetime.utcnow()
+
+    printers = db.fetch_all(
+        "SELECT printer_id, printer_name, model, location, status FROM printers ORDER BY printer_name"
+    ) or []
+
+    result = []
+    for p in printers:
+        # Active (non-terminal) jobs for this printer
+        jobs = db.fetch_all("""
+            SELECT
+                pj.status AS job_status,
+                COALESCE(
+                    pj.print_end_expected,
+                    CASE WHEN pj.status = 'printing' AND pj.started_at IS NOT NULL
+                         THEN DATE_ADD(pj.started_at, INTERVAL pr.ufp_print_time_minutes MINUTE)
+                         ELSE NULL END
+                ) AS print_end_expected
+            FROM print_jobs pj
+            JOIN print_requests pr ON pr.request_id = pj.request_id
+            WHERE pj.printer_id = %s
+              AND pj.status NOT IN ('completed', 'cancelled', 'failed')
+            ORDER BY pj.queue_position ASC
+        """, (p['printer_id'],)) or []
+
+        printing_job = next((j for j in jobs if j['job_status'] == 'printing'), None)
+        queued_count = sum(1 for j in jobs if j['job_status'] in ('queued', 'file_transferred'))
+
+        # Minutes remaining for the active printing job
+        minutes_remaining = None
+        print_end_expected = None
+        if printing_job and printing_job.get('print_end_expected'):
+            end_dt = printing_job['print_end_expected']
+            if isinstance(end_dt, str):
+                end_dt = datetime.datetime.fromisoformat(end_dt)
+            diff_sec = (end_dt - now).total_seconds()
+            minutes_remaining = max(0, int(diff_sec / 60))
+            print_end_expected = end_dt.isoformat()
+
+        # Derive a simple display state
+        printer_hw_status = p['status']  # 'active', 'inactive', 'maintenance'
+        if printer_hw_status in ('inactive', 'maintenance'):
+            display_state = 'offline'
+        elif printing_job:
+            display_state = 'printing'
+        elif queued_count > 0:
+            display_state = 'busy'
+        else:
+            display_state = 'idle'
+
+        result.append({
+            'printer_id':         p['printer_id'],
+            'printer_name':       p['printer_name'],
+            'model':              p['model'] or '',
+            'location':           p['location'] or '',
+            'hw_status':          printer_hw_status,
+            'display_state':      display_state,      # 'printing'|'busy'|'idle'|'offline'
+            'queued_count':       queued_count,
+            'minutes_remaining':  minutes_remaining,  # None if not printing
+            'print_end_expected': print_end_expected, # ISO string UTC, or None
+        })
+
+    return jsonify({'success': True, 'printers': result}), 200
+
+
 @admin_bp.route('/api/admin/print-requests/<int:request_id>/assign', methods=['POST'])
 def assign_to_printer(request_id):
     """

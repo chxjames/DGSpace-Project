@@ -55,6 +55,10 @@ def admin_admins_page():
 def production_page():
     return render_template('production_board.html')
 
+@pages_bp.route('/printers/')
+def printer_status_page():
+    return render_template('printer_status.html')
+
 @pages_bp.route('/reports/weekly/')
 def weekly_report_page():
     return render_template('weekly_report.html')
