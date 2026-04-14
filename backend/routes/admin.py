@@ -560,10 +560,12 @@ def mark_job_notified(job_id):
         return jsonify({'success': False}), 403
 
     current_email = payload['email']
-    # Only allow the assigned staff member to mark it (prevents spoofing)
+    # Only allow the approver of this request to mark it (prevents spoofing)
     db.execute_update(
-        "UPDATE print_jobs SET staff_notified = 1 "
-        "WHERE job_id = %s AND assigned_by = %s AND staff_notified = 0",
+        "UPDATE print_jobs pj "
+        "JOIN print_requests pr ON pr.request_id = pj.request_id "
+        "SET pj.staff_notified = 1 "
+        "WHERE pj.job_id = %s AND pr.reviewed_by = %s AND pj.staff_notified = 0",
         (job_id, current_email)
     )
     return jsonify({'success': True}), 200
@@ -598,7 +600,7 @@ def get_staff_notifications():
         WHERE  pj.status = 'printing'
           AND  pj.print_end_expected IS NOT NULL
           AND  pj.staff_notified = 0
-          AND  pj.assigned_by = %s
+          AND  pr.reviewed_by = %s
     """, (current_email,)) or []
 
     notifications = []

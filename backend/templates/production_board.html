@@ -420,14 +420,14 @@ function renderJobCard(j, pos) {
   // Countdown row — only for printing jobs with a known end time
   const endRaw = j.print_end_expected;
   const hasEnd = endRaw && endRaw !== 'null' && endRaw !== 'None';
-  const cdProject  = escHtml(j.project_name || '');
-  const cdPrinter  = escHtml(j.printer_name || '');
-  const assignedBy     = j.assigned_by || '';
-  const cdAssignedBy   = escHtml(assignedBy);
-  const reviewedBy     = j.reviewed_by || '';
-  const currentUser    = getUser();
-  const isMyJob        = currentUser && assignedBy && assignedBy === currentUser.email;
-  const isMyApproval   = currentUser && reviewedBy && reviewedBy === currentUser.email;
+  const cdProject    = escHtml(j.project_name || '');
+  const cdPrinter    = escHtml(j.printer_name || '');
+  const assignedBy   = j.assigned_by || '';
+  const cdReviewedBy = escHtml(j.reviewed_by || '');
+  const reviewedBy   = j.reviewed_by || '';
+  const currentUser  = getUser();
+  const isMyJob      = currentUser && assignedBy && assignedBy === currentUser.email;
+  const isMyApproval = currentUser && reviewedBy && reviewedBy === currentUser.email;
   const assignerLabel  = assignedBy
     ? `<span title="Assigned by ${escHtml(assignedBy)}" style="color:${isMyJob ? '#007bff' : '#888'}">🔖 ${escHtml(assignedBy)}</span>`
     : '';
@@ -440,14 +440,14 @@ function renderJobCard(j, pos) {
             data-end="${endRaw}"
             data-project="${cdProject}"
             data-printer="${cdPrinter}"
-            data-assigned-by="${cdAssignedBy}">⏱ …</span>`
+            data-reviewed-by="${cdReviewedBy}">⏱ …</span>`
     : (j.job_status === 'printing'
         ? `<span class="job-countdown countdown-ok" id="cd-${j.job_id}"
                 data-mins="${j.ufp_print_time_minutes || 0}"
                 data-started="${j.started_at || ''}"
                 data-project="${cdProject}"
                 data-printer="${cdPrinter}"
-                data-assigned-by="${cdAssignedBy}">⏱ …</span>`
+                data-reviewed-by="${cdReviewedBy}">⏱ …</span>`
         : '');
 
   return `
@@ -756,13 +756,13 @@ function tickCountdowns() {
       el.classList.add('countdown-overdue');
 
       // Fire notification exactly once per job per page session,
-      // and ONLY if the current user is the one who assigned this job
+      // and ONLY if the current user is the one who approved this request
       const jobId = el.id.replace('cd-', '');
       if (!_firedTimesUp.has(jobId)) {
         _firedTimesUp.add(jobId);
-        const assignedBy = el.dataset.assignedBy || '';
+        const reviewedBy = el.dataset.reviewedBy || '';
         const me = getUser();
-        if (me && assignedBy && assignedBy === me.email) {
+        if (me && reviewedBy && reviewedBy === me.email) {
           const project = el.dataset.project || 'Unknown project';
           const printer = el.dataset.printer || '';
           const msg = `⏰ Print complete: "${project}"${printer ? ' on ' + printer : ''}`;
