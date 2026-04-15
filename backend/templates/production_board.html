@@ -83,6 +83,10 @@
 .queue-drop-zone.rts-droppable  { border-color: #28a745; border-style: dashed; }
 .queue-drop-zone.job-droppable  { border-color: #6f42c1; border-style: dashed; }
 
+/* While any drag is in progress, block pointer events on job card internals
+   so dragover/dragleave on the drop zone fire reliably */
+body.is-dragging .job-card * { pointer-events: none; }
+
 /* ── Job card in queue ───────────────────────────────────── */
 .job-card {
   background: #f8f9fa;
@@ -362,7 +366,7 @@ function renderPrinterCol(p) {
       <div class="queue-drop-zone ${hasJobs ? 'has-jobs' : ''}"
            id="dz-${p.printer_id}"
            ondragover="event.preventDefault();document.getElementById('dz-${p.printer_id}').classList.add('drag-over')"
-           ondragleave="document.getElementById('dz-${p.printer_id}').classList.remove('drag-over')"
+           ondragleave="dzDragLeave(event,'dz-${p.printer_id}')"
            ondrop="handleDrop(event, ${p.printer_id})">
         ${jobsHtml}
       </div>` : `
@@ -484,11 +488,21 @@ function renderJobCard(j, pos) {
     </div>`;
 }
 
+// ── Drop-zone drag leave (ignore transitions into child elements) ──
+function dzDragLeave(event, dzId) {
+  const dz = document.getElementById(dzId);
+  if (!dz) return;
+  if (!dz.contains(event.relatedTarget)) {
+    dz.classList.remove('drag-over');
+  }
+}
+
 // ── RTS card drag events ──────────────────────────────────
 function rtsCardDragStart(event, requestId) {
   event.dataTransfer.setData('rts_id', String(requestId));
   event.dataTransfer.effectAllowed = 'move';
   event.currentTarget.classList.add('dragging');
+  document.body.classList.add('is-dragging');
   // Highlight only active printer drop zones
   _printers.filter(p => p.status === 'active').forEach(p => {
     const dz = document.getElementById(`dz-${p.printer_id}`);
@@ -498,6 +512,7 @@ function rtsCardDragStart(event, requestId) {
 
 function rtsCardDragEnd(event) {
   event.currentTarget.classList.remove('dragging');
+  document.body.classList.remove('is-dragging');
   document.querySelectorAll('.queue-drop-zone').forEach(dz => {
     dz.classList.remove('drag-over', 'rts-droppable', 'job-droppable');
   });
@@ -508,6 +523,7 @@ function jobCardDragStart(event, jobId, fromPrinterId, jobStatus) {
   event.dataTransfer.setData('job_id', String(jobId));
   event.dataTransfer.setData('from_printer', String(fromPrinterId));
   event.dataTransfer.effectAllowed = 'move';
+  document.body.classList.add('is-dragging');
   // Only queued jobs can be moved cross-printer — highlight all active drop zones
   if (jobStatus === 'queued') {
     _printers.filter(p => p.status === 'active').forEach(p => {
@@ -518,6 +534,7 @@ function jobCardDragStart(event, jobId, fromPrinterId, jobStatus) {
 }
 
 function jobCardDragEnd(event) {
+  document.body.classList.remove('is-dragging');
   document.querySelectorAll('.queue-drop-zone').forEach(dz => {
     dz.classList.remove('drag-over', 'rts-droppable', 'job-droppable');
   });
