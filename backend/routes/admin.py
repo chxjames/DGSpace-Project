@@ -361,6 +361,68 @@ def assign_to_printer(request_id):
     }), 201
 
 
+@admin_bp.route('/api/admin/jobs/<int:job_id>/move', methods=['PATCH'])
+def move_job_to_printer(job_id):
+    """
+    Move a queued job to a different (active) printer.
+    Only allowed when job status is 'queued' (file not yet copied).
+    Body: { printer_id: <int> }
+    """
+    auth_header = request.headers.get('Authorization', '')
+    if not auth_header.startswith('Bearer '):
+        return jsonify({'success': False, 'message': 'No token provided'}), 401
+    payload = AuthService.verify_jwt_token(auth_header.split(' ')[1])
+    if not payload or payload.get('user_type') not in ('admin', 'student_staff'):
+        return jsonify({'success': False, 'message': 'Admin access required'}), 403
+
+    data = request.json or {}
+    target_printer_id = data.get('printer_id')
+    if not target_printer_id:
+        return jsonify({'success': False, 'message': 'printer_id is required'}), 400
+
+    job = db.fetch_one(
+        "SELECT job_id, request_id, printer_id, status FROM print_jobs WHERE job_id = %s",
+        (job_id,)
+    )
+    if not job:
+        return jsonify({'success': False, 'message': 'Job not found'}), 404
+
+    if job['status'] != 'queued':
+        return jsonify({'success': False, 'message': 'Only queued jobs (before file copy) can be moved to a different printer'}), 400
+
+    if job['printer_id'] == target_printer_id:
+        return jsonify({'success': True, 'message': 'Already on this printer'}), 200
+
+    target = db.fetch_one(
+        "SELECT printer_id, printer_name, status FROM printers WHERE printer_id = %s",
+        (target_printer_id,)
+    )
+    if not target:
+        return jsonify({'success': False, 'message': 'Target printer not found'}), 404
+    if target['status'] != 'active':
+        return jsonify({'success': False, 'message': 'Target printer is not active'}), 400
+
+    # Assign next queue position on target printer
+    pos_row = db.fetch_one(
+        "SELECT COALESCE(MAX(queue_position), 0) + 1 AS next_pos FROM print_jobs "
+        "WHERE printer_id = %s AND status NOT IN ('completed', 'cancelled', 'failed')",
+        (target_printer_id,)
+    )
+    next_pos = pos_row['next_pos'] if pos_row else 1
+
+    db.execute_query(
+        "UPDATE print_jobs SET printer_id = %s, queue_position = %s WHERE job_id = %s",
+        (target_printer_id, next_pos, job_id)
+    )
+
+    return jsonify({
+        'success': True,
+        'message': f'Job moved to {target["printer_name"]} (position #{next_pos})',
+        'queue_position': next_pos,
+        'printer_name': target['printer_name'],
+    }), 200
+
+
 @admin_bp.route('/api/admin/jobs/<int:job_id>/status', methods=['PATCH'])
 def update_job_status(job_id):
     """

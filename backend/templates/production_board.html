@@ -80,7 +80,8 @@
 }
 .queue-drop-zone.drag-over     { background: #e8f4ff; border-color: #007bff; }
 .queue-drop-zone.has-jobs      { border-style: solid; border-color: #dee2e6; }
-.queue-drop-zone.rts-droppable { border-color: #28a745; border-style: dashed; }
+.queue-drop-zone.rts-droppable  { border-color: #28a745; border-style: dashed; }
+.queue-drop-zone.job-droppable  { border-color: #6f42c1; border-style: dashed; }
 
 /* ── Job card in queue ───────────────────────────────────── */
 .job-card {
@@ -463,7 +464,8 @@ function renderJobCard(j, pos) {
 
   return `
     <div class="job-card ${jsCls}" draggable="true"
-         ondragstart="event.dataTransfer.setData('job_id','${j.job_id}');event.dataTransfer.setData('from_printer','${j.printer_id || ''}')">
+         ondragstart="jobCardDragStart(event, ${j.job_id}, '${j.printer_id || ''}', '${j.job_status}')"
+         ondragend="jobCardDragEnd(event)">
       <div class="job-pos">${pos}</div>
       <div class="job-body">
         <div class="job-title">${attemptBadge}${escHtml(j.project_name)}</div>
@@ -497,14 +499,34 @@ function rtsCardDragStart(event, requestId) {
 function rtsCardDragEnd(event) {
   event.currentTarget.classList.remove('dragging');
   document.querySelectorAll('.queue-drop-zone').forEach(dz => {
-    dz.classList.remove('drag-over', 'rts-droppable');
+    dz.classList.remove('drag-over', 'rts-droppable', 'job-droppable');
   });
 }
 
-// ── Drop handler: handles BOTH rts→printer and job reorder ──
+// ── Job card drag events ─────────────────────────────────
+function jobCardDragStart(event, jobId, fromPrinterId, jobStatus) {
+  event.dataTransfer.setData('job_id', String(jobId));
+  event.dataTransfer.setData('from_printer', String(fromPrinterId));
+  event.dataTransfer.effectAllowed = 'move';
+  // Only queued jobs can be moved cross-printer — highlight all active drop zones
+  if (jobStatus === 'queued') {
+    _printers.filter(p => p.status === 'active').forEach(p => {
+      const dz = document.getElementById(`dz-${p.printer_id}`);
+      if (dz) dz.classList.add('job-droppable');
+    });
+  }
+}
+
+function jobCardDragEnd(event) {
+  document.querySelectorAll('.queue-drop-zone').forEach(dz => {
+    dz.classList.remove('drag-over', 'rts-droppable', 'job-droppable');
+  });
+}
+
+// ── Drop handler: handles BOTH rts→printer and job reorder/move ──
 async function handleDrop(event, targetPrinterId) {
   event.preventDefault();
-  document.getElementById(`dz-${targetPrinterId}`).classList.remove('drag-over', 'rts-droppable');
+  document.getElementById(`dz-${targetPrinterId}`).classList.remove('drag-over', 'rts-droppable', 'job-droppable');
 
   const rtsId = event.dataTransfer.getData('rts_id');
   if (rtsId) {
@@ -545,7 +567,32 @@ async function handleDrop(event, targetPrinterId) {
     return;
   }
 
-  // ── Job reorder (job dragged within or between printers) ──
+  // ── Job card dropped onto a printer queue ──
+  const jobId       = event.dataTransfer.getData('job_id');
+  const fromPrinter = event.dataTransfer.getData('from_printer');
+  if (jobId && fromPrinter && parseInt(fromPrinter) !== targetPrinterId) {
+    // Cross-printer move — only works for queued jobs
+    const printer = _printers.find(p => p.printer_id === targetPrinterId);
+    if (!printer || printer.status !== 'active') {
+      showAlert('Cannot move to a non-active printer.');
+      return;
+    }
+    try {
+      const res  = await apiFetch(`/api/admin/jobs/${jobId}/move`, {
+        method: 'PATCH', body: JSON.stringify({ printer_id: targetPrinterId })
+      });
+      const data = await res.json();
+      if (data.success) {
+        showAlert(`✅ Job moved to ${escHtml(printer.printer_name)} #${data.queue_position}`, 'success');
+        loadBoard();
+      } else {
+        showAlert(data.message || 'Cannot move this job.');
+      }
+    } catch(e) { showAlert('Network error.'); }
+    return;
+  }
+
+  // Same-printer drop (reorder) — just refresh
   loadBoard();
 }
 
