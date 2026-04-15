@@ -355,7 +355,7 @@ function renderPrinterCol(p) {
   const hasJobs  = queue.length > 0;
 
   const jobsHtml = hasJobs
-    ? queue.map((j, idx) => renderJobCard(j, idx + 1)).join('')
+    ? queue.map((j, idx) => renderJobCard(Object.assign({}, j, { printer_id: p.printer_id }), idx + 1)).join('')
     : '<div class="pb-empty" style="padding:14px 0">— Queue empty —</div>';
 
   const queueSection = isActive ? `
@@ -463,7 +463,7 @@ function renderJobCard(j, pos) {
         : '');
 
   return `
-    <div class="job-card ${jsCls}" draggable="true"
+    <div class="job-card ${jsCls}" draggable="${j.job_status === 'queued' ? 'true' : 'false'}"
          ondragstart="jobCardDragStart(event, ${j.job_id}, '${j.printer_id || ''}', '${j.job_status}')"
          ondragend="jobCardDragEnd(event)">
       <div class="job-pos">${pos}</div>
