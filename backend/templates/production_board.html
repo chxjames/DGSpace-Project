@@ -95,9 +95,10 @@
   gap: 10px;
   position: relative;
 }
-.job-card.movable { cursor: grab; }
+.job-card.movable { cursor: grab; -webkit-user-drag: element; }
 .job-card.movable:active { cursor: grabbing; }
 .job-card.locked  { cursor: default; }
+.job-card .job-btn { -webkit-user-drag: none; }
 .job-card:last-child { margin-bottom: 0; }
 .job-card .job-pos {
   min-width: 22px; height: 22px;
@@ -400,8 +401,8 @@ function renderJobCard(j, pos) {
   let actionBtns = '';
   if (j.job_status === 'queued') {
     actionBtns = `
-      <button class="job-btn btn-transfer" onclick="advanceJob(${j.job_id},'file_transferred',${attempt})">📁 File Copied</button>
-      <button class="job-btn btn-remove"   onclick="removeJob(${j.job_id})">✕</button>`;
+      <button class="job-btn btn-transfer" draggable="false" onclick="advanceJob(${j.job_id},'file_transferred',${attempt})">📁 File Copied</button>
+      <button class="job-btn btn-remove" draggable="false" onclick="removeJob(${j.job_id})">✕</button>`;
   } else if (j.job_status === 'file_transferred') {
     if (isFirst) {
       actionBtns = `
@@ -515,6 +516,7 @@ function rtsCardDragEnd(event) {
 
 // ── Explicit drag handlers for queued job cards ─────────────
 function jobCardDragStart(event, jobId, requestId, printerId) {
+  console.log('[DRAG] jobCardDragStart fired', {jobId, requestId, printerId});
   const card = event.currentTarget;
   if (card.dataset.jobStatus !== 'queued') { event.preventDefault(); return; }
   event.dataTransfer.effectAllowed = 'move';
