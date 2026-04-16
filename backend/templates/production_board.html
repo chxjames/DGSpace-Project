@@ -470,7 +470,8 @@ function renderJobCard(j, pos) {
          data-job-id="${j.job_id}"
          data-request-id="${j.request_id}"
          data-printer-id="${j.printer_id || ''}"
-         data-job-status="${j.job_status}">
+         data-job-status="${j.job_status}"
+         ondragover="event.preventDefault()">
       <div class="job-pos">${pos}</div>
       <div class="job-body">
         <div class="job-title">${attemptBadge}${escHtml(j.project_name)}</div>
