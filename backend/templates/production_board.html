@@ -468,6 +468,7 @@ function renderJobCard(j, pos) {
     <div class="job-card ${jsCls}"
          draggable="${locked ? 'false' : 'true'}"
          data-job-id="${j.job_id}"
+         data-request-id="${j.request_id}"
          data-printer-id="${j.printer_id || ''}"
          data-job-status="${j.job_status}">
       <div class="job-pos">${pos}</div>
@@ -513,12 +514,11 @@ document.addEventListener('dragstart', function(event) {
   const card = event.target.closest('.job-card[data-job-id]');
   if (!card) return;
   const status = card.dataset.jobStatus;
-  // Lock when file already copied or printing
   if (status === 'file_transferred' || status === 'printing') { event.preventDefault(); return; }
   event.dataTransfer.effectAllowed = 'move';
-  event.dataTransfer.setData('job_id', card.dataset.jobId);
+  event.dataTransfer.setData('job_id',     card.dataset.jobId);
+  event.dataTransfer.setData('request_id', card.dataset.requestId);
   event.dataTransfer.setData('from_printer', card.dataset.printerId || '');
-  // Highlight all active printer drop zones
   _printers.filter(p => p.status === 'active').forEach(p => {
     const dz = document.getElementById(`dz-${p.printer_id}`);
     if (dz) dz.classList.add('job-droppable');
@@ -578,30 +578,56 @@ async function handleDrop(event, targetPrinterId) {
   }
 
   // ── Job card dropped onto a printer queue ──
-  const jobId       = event.dataTransfer.getData('job_id');
-  const fromPrinter = parseInt(event.dataTransfer.getData('from_printer') || '0');
-  if (jobId && fromPrinter && fromPrinter !== targetPrinterId) {
-    const printer = _printers.find(p => p.printer_id === targetPrinterId);
+  const jobId      = event.dataTransfer.getData('job_id');
+  const requestId  = event.dataTransfer.getData('request_id');
+  const fromPrinter = event.dataTransfer.getData('from_printer');
+  // Only act if we have a job AND it's being dropped on a DIFFERENT printer
+  if (jobId && requestId && String(fromPrinter) !== String(targetPrinterId)) {
+    const printer = _printers.find(p => String(p.printer_id) === String(targetPrinterId));
     if (!printer || printer.status !== 'active') {
       showAlert('Cannot move to a non-active printer.');
       return;
     }
+    // Find the request info from RTS or from current board data
+    const req = _rts.find(r => String(r.id) === String(requestId))
+      || (() => {
+        for (const p of _printers) {
+          const j = (p.queue || []).find(j => String(j.job_id) === String(jobId));
+          if (j) return { id: j.request_id, ufp_print_time_minutes: j.ufp_print_time_minutes, project_name: j.project_name };
+        }
+        return null;
+      })();
+
     try {
-      const res  = await apiFetch(`/api/admin/jobs/${jobId}/move`, {
-        method: 'PATCH', body: JSON.stringify({ printer_id: targetPrinterId })
+      // Step 1: Remove old job (cancels it, puts request back to approved)
+      const delRes  = await apiFetch(`/api/admin/jobs/${jobId}`, { method: 'DELETE' });
+      const delData = await delRes.json();
+      if (!delData.success) { showAlert(delData.message || 'Failed to remove old job.'); return; }
+
+      // Step 2: Assign to new printer
+      const assignRes  = await apiFetch(`/api/admin/print-requests/${requestId}/assign`, {
+        method: 'POST',
+        body: JSON.stringify({
+          printer_id: targetPrinterId,
+          estimated_start: null,
+          estimated_end: req && req.ufp_print_time_minutes
+            ? new Date(Date.now() + req.ufp_print_time_minutes * 60000).toISOString()
+            : null,
+          notes: null,
+        })
       });
-      const data = await res.json();
-      if (data.success) {
-        showAlert(`✅ Job moved to ${escHtml(printer.printer_name)} #${data.queue_position}`, 'success');
+      const assignData = await assignRes.json();
+      if (assignData.success) {
+        showAlert(`✅ Job moved to ${escHtml(printer.printer_name)} #${assignData.queue_position}`, 'success');
         loadBoard();
       } else {
-        showAlert(data.message || 'Cannot move this job.');
+        showAlert(assignData.message || 'Failed to assign to new printer.');
+        loadBoard(); // reload anyway to reflect the delete
       }
-    } catch(e) { showAlert('Network error.'); }
+    } catch(e) { showAlert('Network error.'); loadBoard(); }
     return;
   }
 
-  // Same-printer drop or no-op — just refresh
   loadBoard();
 }
 
