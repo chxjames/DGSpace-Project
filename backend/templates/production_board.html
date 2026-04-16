@@ -540,6 +540,10 @@ function jobCardDragEnd(event) {
 // ── Drop handler: handles BOTH rts→printer and job move ──
 async function handleDrop(event, targetPrinterId) {
   event.preventDefault();
+  console.log('[DROP] handleDrop fired, targetPrinterId=', targetPrinterId,
+    'job_id=', event.dataTransfer.getData('job_id'),
+    'rts_id=', event.dataTransfer.getData('rts_id'),
+    'from_printer=', event.dataTransfer.getData('from_printer'));
   document.getElementById(`dz-${targetPrinterId}`).classList.remove('drag-over', 'rts-droppable', 'job-droppable');
 
   const rtsId = event.dataTransfer.getData('rts_id');
