@@ -471,7 +471,7 @@ function renderJobCard(j, pos) {
          data-printer-id="${j.printer_id || ''}"
          data-job-status="${j.job_status}">
       <div class="job-pos">${pos}</div>
-      <div class="job-body" style="pointer-events:none">
+      <div class="job-body">
         <div class="job-title">${attemptBadge}${escHtml(j.project_name)}</div>
         <div class="job-meta">
           <span><span class="job-status-badge jsb-${jsCls}">${jsLabel}</span></span>
