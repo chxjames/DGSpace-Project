@@ -26,7 +26,7 @@ A full-stack web application for **Donald's Garage** at the University of San Di
 ```
 DGSpace-Project/
 ├── backend/                        # Flask application (single service)
-│   ├── app.py                      # Page routes + all API routes + background scheduler
+│   ├── app.py                      # App factory, blueprint registration, background scheduler
 │   ├── auth_service.py             # Register / login / JWT logic
 │   ├── email_service.py            # Gmail API OAuth2 email sending
 │   ├── print_service.py            # Print request CRUD + statistics
@@ -40,16 +40,24 @@ DGSpace-Project/
 │   ├── nixpacks.toml               # Railway build config
 │   ├── uploads/                    # Uploaded STL & UFP files (UUID-named)
 │   ├── .env                        # Local secrets (not committed)
+│   ├── routes/
+│   │   ├── pages.py                # HTML page routes (render_template)
+│   │   ├── auth.py                 # /api/auth/* endpoints
+│   │   ├── print_requests.py       # /api/print-requests/* endpoints
+│   │   └── admin.py                # /api/admin/* endpoints (production board, jobs, printers)
+│   ├── jobs/
+│   │   └── cleanup.py              # Background job: auto-purge old uploaded files
 │   └── templates/                  # Jinja2 HTML templates
 │       ├── base.html               # Layout, CSS, shared JS helpers (JWT, apiFetch)
-│       ├── home.html               # Landing page + live dashboard stats
+│       ├── home.html               # Landing page + embedded live production board (admin/staff)
 │       ├── profile.html            # User profile: stats, print history, 2FA, change password
 │       ├── print_requests.html     # Request list grouped by status
 │       ├── print_request_new.html  # Submit new print request
 │       ├── print_request_detail.html       # Detail + Three.js STL viewer + admin actions
 │       ├── print_request_detail_HEAD.html  # HEAD/staff detail view
 │       ├── print_request_return.html       # Send-back feedback form
-│       ├── production_board.html   # Live production board with countdown timers
+│       ├── production_board.html   # Standalone live production board
+│       ├── printer_status.html     # Public-facing printer status page
 │       ├── admin_students.html     # Admin: student management + search
 │       ├── manage_printers.html    # Admin: printer management
 │       ├── manage_admins.html      # Admin: admin account management
@@ -92,7 +100,7 @@ All pages and API endpoints are served from the same Flask process on the same d
 
 | URL | Description |
 |-----|-------------|
-| `/` | Home / dashboard |
+| `/` | Home / dashboard (includes embedded production board for admin/staff) |
 | `/login` | Log in |
 | `/signup` | Student registration |
 | `/reset-password` | Password reset (token from email) |
@@ -104,7 +112,8 @@ All pages and API endpoints are served from the same Flask process on the same d
 | `/admin/students/` | Student management |
 | `/admin/printers/` | Printer management |
 | `/admin/admins/` | Admin account management |
-| `/production/` | Live production board |
+| `/production/` | Standalone live production board |
+| `/printers/` | Public printer status board |
 | `/reports/weekly/` | Weekly report |
 | `/profile/` | User profile |
 | `/api/*` | REST API endpoints |
@@ -116,8 +125,8 @@ All pages and API endpoints are served from the same Flask process on the same d
 | Role | Description |
 |------|-------------|
 | `student` | Submit print requests, track status |
-| `student_staff` | Student with extra lab access |
-| `admin` | Review, approve, slice, manage prints; can also submit requests |
+| `student_staff` | Student with lab staff access (can manage production board) |
+| `admin` | Review, approve, slice, manage prints; full production board access |
 | `professor` | View weekly reports |
 | `manager` | View weekly reports + broader access |
 | `super_admin` | Full access, can manage other admins |
@@ -196,13 +205,19 @@ Set the same variables as in `.env` above via Railway → Variables.
 
 ## Key Features
 
-- **Print request workflow**: pending → approved → queued → printing → completed
+- **Print request workflow**: pending → approved → queued → file copied → printing → completed/failed
 - **STL file upload** with Three.js in-browser 3D preview
 - **UFP file parsing** — extracts print time, material weight, filament cost from Cura slice files
 - **TOTP 2FA** — mandatory before accessing print requests
 - **Email verification** on signup + password reset via Gmail API
-- **Production board** — live countdown timers, printer assignment, status updates
+- **Production board** (standalone `/production/` and embedded in home page)
+  - Drag-and-drop: assign RTS requests to printers, move queued jobs between printers
+  - Live countdown timers per job with color-coded urgency (green → yellow → red → overdue)
+  - Browser push notifications when a print timer expires (only sent to the approving admin)
+  - Per-job assigner and approver name display
+  - Retry logic: up to 3 attempts per request, auto-queues retry jobs on failure
 - **Weekly report** — per-student stats, CSV export
 - **Admin invite email** — newly created admins receive credentials by email
 - **Background cleanup** — auto-purges uploaded files for completed/cancelled requests after 2 weeks
 - **Mobile responsive** layout
+
