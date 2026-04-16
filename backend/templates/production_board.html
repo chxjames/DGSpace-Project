@@ -466,15 +466,16 @@ function renderJobCard(j, pos) {
         : '');
 
   const locked = j.job_status !== 'queued';
+  const pid = j.printer_id || 0;
   return `
     <div class="job-card ${jsCls} ${locked ? 'locked' : 'movable'}"
          draggable="${locked ? 'false' : 'true'}"
          data-job-id="${j.job_id}"
          data-request-id="${j.request_id}"
-         data-printer-id="${j.printer_id || ''}"
+         data-printer-id="${pid}"
          data-job-status="${j.job_status}"
-         ${locked ? '' : `ondragstart="jobCardDragStart(event, ${j.job_id}, ${j.request_id}, ${j.printer_id || 0})"`}
-         ${locked ? '' : 'ondragend="jobCardDragEnd(event)"'}>
+         ondragstart="jobCardDragStart(event, ${j.job_id}, ${j.request_id}, ${pid})"
+         ondragend="jobCardDragEnd(event)">
       <div class="job-pos">${pos}</div>
       <div class="job-body">
         <div class="job-title">${attemptBadge}${escHtml(j.project_name)}</div>
@@ -514,10 +515,13 @@ function rtsCardDragEnd(event) {
 
 // ── Explicit drag handlers for queued job cards ─────────────
 function jobCardDragStart(event, jobId, requestId, printerId) {
+  const card = event.currentTarget;
+  if (card.dataset.jobStatus !== 'queued') { event.preventDefault(); return; }
   event.dataTransfer.effectAllowed = 'move';
   event.dataTransfer.setData('job_id',       String(jobId));
   event.dataTransfer.setData('request_id',   String(requestId));
   event.dataTransfer.setData('from_printer',  String(printerId));
+  card.classList.add('dragging');
   _printers.filter(p => p.status === 'active').forEach(p => {
     const dz = document.getElementById(`dz-${p.printer_id}`);
     if (dz) dz.classList.add('job-droppable');
@@ -525,6 +529,7 @@ function jobCardDragStart(event, jobId, requestId, printerId) {
 }
 
 function jobCardDragEnd(event) {
+  event.currentTarget.classList.remove('dragging');
   document.querySelectorAll('.queue-drop-zone').forEach(dz => {
     dz.classList.remove('drag-over', 'job-droppable');
   });
