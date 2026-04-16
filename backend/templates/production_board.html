@@ -473,7 +473,8 @@ function renderJobCard(j, pos) {
          data-request-id="${j.request_id}"
          data-printer-id="${j.printer_id || ''}"
          data-job-status="${j.job_status}"
-         ondragover="event.preventDefault()">
+         ${locked ? '' : `ondragstart="jobCardDragStart(event, ${j.job_id}, ${j.request_id}, ${j.printer_id || 0})"`}
+         ${locked ? '' : 'ondragend="jobCardDragEnd(event)"'}>
       <div class="job-pos">${pos}</div>
       <div class="job-body">
         <div class="job-title">${attemptBadge}${escHtml(j.project_name)}</div>
@@ -511,30 +512,23 @@ function rtsCardDragEnd(event) {
   });
 }
 
-// ── Document-level drag events for job cards ─────────────
-// Using event delegation so it works regardless of which child element the drag starts on
-document.addEventListener('dragstart', function(event) {
-  const card = event.target.closest('.job-card[data-job-id]');
-  if (!card) return;
-  const status = card.dataset.jobStatus;
-  if (status !== 'queued') { event.preventDefault(); return; }
+// ── Explicit drag handlers for queued job cards ─────────────
+function jobCardDragStart(event, jobId, requestId, printerId) {
   event.dataTransfer.effectAllowed = 'move';
-  event.dataTransfer.setData('job_id',     card.dataset.jobId);
-  event.dataTransfer.setData('request_id', card.dataset.requestId);
-  event.dataTransfer.setData('from_printer', card.dataset.printerId || '');
+  event.dataTransfer.setData('job_id',       String(jobId));
+  event.dataTransfer.setData('request_id',   String(requestId));
+  event.dataTransfer.setData('from_printer',  String(printerId));
   _printers.filter(p => p.status === 'active').forEach(p => {
     const dz = document.getElementById(`dz-${p.printer_id}`);
     if (dz) dz.classList.add('job-droppable');
   });
-});
+}
 
-document.addEventListener('dragend', function(event) {
-  const card = event.target.closest('.job-card[data-job-id]');
-  if (!card) return;
+function jobCardDragEnd(event) {
   document.querySelectorAll('.queue-drop-zone').forEach(dz => {
     dz.classList.remove('drag-over', 'job-droppable');
   });
-});
+}
 
 // ── Drop handler: handles BOTH rts→printer and job move ──
 async function handleDrop(event, targetPrinterId) {
