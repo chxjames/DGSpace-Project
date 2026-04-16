@@ -93,9 +93,11 @@
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  cursor: grab;
   position: relative;
 }
+.job-card.movable { cursor: grab; }
+.job-card.movable:active { cursor: grabbing; }
+.job-card.locked  { cursor: default; }
 .job-card:last-child { margin-bottom: 0; }
 .job-card .job-pos {
   min-width: 22px; height: 22px;
@@ -463,15 +465,15 @@ function renderJobCard(j, pos) {
                 data-notified="${j.staff_notified ? '1' : '0'}">⏱ …</span>`
         : '');
 
-  const locked = j.job_status === 'file_transferred';
+  const locked = j.job_status !== 'queued';
   return `
-    <div class="job-card ${jsCls}"
+    <div class="job-card ${jsCls} ${locked ? 'locked' : 'movable'}"
          draggable="${locked ? 'false' : 'true'}"
          data-job-id="${j.job_id}"
          data-request-id="${j.request_id}"
          data-printer-id="${j.printer_id || ''}"
          data-job-status="${j.job_status}"
-         ondragover="event.preventDefault()">
+         ondragover="event.preventDefault()">`;
       <div class="job-pos">${pos}</div>
       <div class="job-body">
         <div class="job-title">${attemptBadge}${escHtml(j.project_name)}</div>
@@ -515,7 +517,7 @@ document.addEventListener('dragstart', function(event) {
   const card = event.target.closest('.job-card[data-job-id]');
   if (!card) return;
   const status = card.dataset.jobStatus;
-  if (status === 'file_transferred') { event.preventDefault(); return; }
+  if (status !== 'queued') { event.preventDefault(); return; }
   event.dataTransfer.effectAllowed = 'move';
   event.dataTransfer.setData('job_id',     card.dataset.jobId);
   event.dataTransfer.setData('request_id', card.dataset.requestId);
