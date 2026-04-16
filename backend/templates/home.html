@@ -575,7 +575,7 @@ function renderPrinterCol(p) {
   const queueSection = isActive ? `
     <div class="queue-drop-zone ${hasJobs ? 'has-jobs' : ''}" id="${dzId}"
          ondragover="event.preventDefault();document.getElementById('${dzId}').classList.add('drag-over')"
-         ondragleave="document.getElementById('${dzId}').classList.remove('drag-over')"
+         ondragleave="if(!event.currentTarget.contains(event.relatedTarget)){event.currentTarget.classList.remove('drag-over')}"
          ondrop="handleDrop(event,${p.printer_id},'${sfx}')">
       ${jobsHtml}
     </div>` : `
@@ -622,13 +622,40 @@ function renderJobCard(j, pos) {
   const dl    = j.deadline_date ? deadlineBadge(j.deadline_date) : '';
   const endRaw = j.print_end_expected;
   const hasEnd = endRaw && endRaw !== 'null' && endRaw !== 'None';
-  const cdProject = escHtml(j.project_name || '');
-  const cdPrinter = escHtml(j.printer_name || '');
+  const cdProject    = escHtml(j.project_name || '');
+  const cdPrinter    = escHtml(j.printer_name || '');
+  const cdReviewedBy = escHtml(j.reviewed_by  || '');
+
+  // Pre-seed _firedTimesUp so page reloads don't re-fire notifications
+  if (j.staff_notified) _firedTimesUp.add(String(j.job_id));
+
   const countdownHtml = (j.job_status === 'printing' && hasEnd)
-    ? `<span class="job-countdown countdown-ok" id="cd-${j.job_id}" data-end="${endRaw}" data-project="${cdProject}" data-printer="${cdPrinter}">⏱ …</span>`
+    ? `<span class="job-countdown countdown-ok" id="cd-${j.job_id}"
+            data-end="${endRaw}"
+            data-project="${cdProject}" data-printer="${cdPrinter}"
+            data-reviewed-by="${cdReviewedBy}"
+            data-notified="${j.staff_notified ? '1' : '0'}">⏱ …</span>`
     : (j.job_status === 'printing'
-        ? `<span class="job-countdown countdown-ok" id="cd-${j.job_id}" data-mins="${j.ufp_print_time_minutes || 0}" data-started="${j.started_at || ''}" data-project="${cdProject}" data-printer="${cdPrinter}">⏱ …</span>`
+        ? `<span class="job-countdown countdown-ok" id="cd-${j.job_id}"
+                data-mins="${j.ufp_print_time_minutes || 0}"
+                data-started="${j.started_at || ''}"
+                data-project="${cdProject}" data-printer="${cdPrinter}"
+                data-reviewed-by="${cdReviewedBy}"
+                data-notified="${j.staff_notified ? '1' : '0'}">⏱ …</span>`
         : '');
+
+  const currentUser    = getUser();
+  const assignedBy     = j.assigned_by || '';
+  const reviewedBy     = j.reviewed_by || '';
+  const isMyJob        = currentUser && assignedBy && assignedBy === currentUser.email;
+  const isMyApproval   = currentUser && reviewedBy && reviewedBy === currentUser.email;
+  const assignerLabel  = (j.assigned_by_name || j.assigned_by)
+    ? `<span title="Assigned by ${escHtml(j.assigned_by_name || j.assigned_by)}" style="color:${isMyJob ? '#007bff' : '#888'}">🔖 ${escHtml(j.assigned_by_name || j.assigned_by)}</span>`
+    : '';
+  const approverLabel  = (j.reviewed_by_name || j.reviewed_by)
+    ? `<span title="Approved by ${escHtml(j.reviewed_by_name || j.reviewed_by)}" style="color:${isMyApproval ? '#28a745' : '#888'}">✅ ${escHtml(j.reviewed_by_name || j.reviewed_by)}</span>`
+    : '';
+
   const locked = j.job_status !== 'queued';
   const pid = j.printer_id || 0;
   return `
@@ -649,6 +676,8 @@ function renderJobCard(j, pos) {
           <span>👤 ${escHtml(j.student_name || j.student_email)}</span>
           ${dl}
           ${j.estimated_start ? `<span>🕐 Est. start: ${fmtDt(j.estimated_start)}</span>` : ''}
+          ${approverLabel}
+          ${assignerLabel}
         </div>
         ${countdownHtml}
       </div>
@@ -843,7 +872,14 @@ function tickCountdowns() {
       const jobId = el.id.replace('cd-', '');
       if (!_firedTimesUp.has(jobId)) {
         _firedTimesUp.add(jobId);
-        sendBrowserNotification(`⏰ Print complete: "${el.dataset.project}"${el.dataset.printer ? ' on ' + el.dataset.printer : ''}`, 'print_done');
+        if (el.dataset.notified === '1') return;
+        const reviewedBy = el.dataset.reviewedBy || '';
+        const me = getUser();
+        if (me && reviewedBy && reviewedBy === me.email) {
+          const msg = `⏰ Print complete: "${el.dataset.project}"${el.dataset.printer ? ' on ' + el.dataset.printer : ''}`;
+          sendBrowserNotification(msg, 'print_done');
+          apiFetch(`/api/admin/jobs/${jobId}/mark-notified`, { method: 'POST' }).catch(() => {});
+        }
       }
     } else if (diffSec <= 600)  { label = `🔴 ${fmtCountdown(diffSec)}`; el.classList.add('countdown-urgent'); }
     else if (diffSec <= 1800)   { label = `🟡 ${fmtCountdown(diffSec)}`; el.classList.add('countdown-warn'); }
