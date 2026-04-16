@@ -232,11 +232,10 @@
   </div>
 </div>
 
-<!-- cache-bust: v20260416-2 -->
 <script>
-window.PB_VERSION = 'v20260416-2';   // ← if this is defined, new script is running
 /* ════════════════════════════════════════════════════════
-   Production Board — main script v20260416-1
+   Production Board — main script
+   ════════════════════════════════════════════════════════ */
    ════════════════════════════════════════════════════════ */
 
 let _printers   = [];   // full printer list from API
@@ -518,7 +517,6 @@ function rtsCardDragEnd(event) {
 
 // ── Explicit drag handlers for queued job cards ─────────────
 function jobCardDragStart(event, jobId, requestId, printerId) {
-  console.log('[DRAG] jobCardDragStart fired', {jobId, requestId, printerId});
   const card = event.currentTarget;
   if (card.dataset.jobStatus !== 'queued') { event.preventDefault(); return; }
   event.dataTransfer.effectAllowed = 'move';
@@ -542,10 +540,6 @@ function jobCardDragEnd(event) {
 // ── Drop handler: handles BOTH rts→printer and job move ──
 async function handleDrop(event, targetPrinterId) {
   event.preventDefault();
-  console.log('[DROP] handleDrop fired, targetPrinterId=', targetPrinterId,
-    'job_id=', event.dataTransfer.getData('job_id'),
-    'rts_id=', event.dataTransfer.getData('rts_id'),
-    'from_printer=', event.dataTransfer.getData('from_printer'));
   document.getElementById(`dz-${targetPrinterId}`).classList.remove('drag-over', 'rts-droppable', 'job-droppable');
 
   const rtsId = event.dataTransfer.getData('rts_id');
