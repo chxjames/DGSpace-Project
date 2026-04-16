@@ -382,8 +382,8 @@ def move_job_to_printer(job_id):
     )
     if not job:
         return jsonify({'success': False, 'message': 'Job not found'}), 404
-    if job['status'] != 'queued':
-        return jsonify({'success': False, 'message': 'Only queued jobs can be moved (file not yet copied)'}), 400
+    if job['status'] in ('file_transferred', 'printing', 'completed', 'failed', 'cancelled'):
+        return jsonify({'success': False, 'message': 'Cannot move: file already copied or print in progress'}), 400
     if job['printer_id'] == target_printer_id:
         return jsonify({'success': True, 'message': 'Already on this printer'}), 200
 

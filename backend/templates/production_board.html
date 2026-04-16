@@ -463,9 +463,10 @@ function renderJobCard(j, pos) {
                 data-notified="${j.staff_notified ? '1' : '0'}">⏱ …</span>`
         : '');
 
+  const locked = j.job_status === 'file_transferred' || j.job_status === 'printing';
   return `
     <div class="job-card ${jsCls}"
-         draggable="${j.job_status === 'queued' ? 'true' : 'false'}"
+         draggable="${locked ? 'false' : 'true'}"
          data-job-id="${j.job_id}"
          data-printer-id="${j.printer_id || ''}"
          data-job-status="${j.job_status}">
@@ -511,7 +512,9 @@ function rtsCardDragEnd(event) {
 document.addEventListener('dragstart', function(event) {
   const card = event.target.closest('.job-card[data-job-id]');
   if (!card) return;
-  if (card.dataset.jobStatus !== 'queued') { event.preventDefault(); return; }
+  const status = card.dataset.jobStatus;
+  // Lock when file already copied or printing
+  if (status === 'file_transferred' || status === 'printing') { event.preventDefault(); return; }
   event.dataTransfer.effectAllowed = 'move';
   event.dataTransfer.setData('job_id', card.dataset.jobId);
   event.dataTransfer.setData('from_printer', card.dataset.printerId || '');
