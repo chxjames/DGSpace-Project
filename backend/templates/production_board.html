@@ -81,6 +81,7 @@
 .queue-drop-zone.drag-over     { background: #e8f4ff; border-color: #007bff; }
 .queue-drop-zone.has-jobs      { border-style: solid; border-color: #dee2e6; }
 .queue-drop-zone.rts-droppable { border-color: #28a745; border-style: dashed; }
+.queue-drop-zone.job-droppable { border-color: #6f42c1; border-style: dashed; }
 
 /* ── Job card in queue ───────────────────────────────────── */
 .job-card {
@@ -360,9 +361,10 @@ function renderPrinterCol(p) {
   const queueSection = isActive ? `
       <div class="queue-drop-zone ${hasJobs ? 'has-jobs' : ''}"
            id="dz-${p.printer_id}"
-           ondragover="event.preventDefault();document.getElementById('dz-${p.printer_id}').classList.add('drag-over')"
-           ondragleave="document.getElementById('dz-${p.printer_id}').classList.remove('drag-over')"
-           ondrop="handleDrop(event, ${p.printer_id})">
+           data-printer-id="${p.printer_id}"
+           ondragover="event.preventDefault();event.currentTarget.classList.add('drag-over')"
+           ondragleave="if(!event.currentTarget.contains(event.relatedTarget)){event.currentTarget.classList.remove('drag-over')}"
+           ondrop="handleDrop(event,${p.printer_id})">
         ${jobsHtml}
       </div>` : `
       <div style="font-size:0.8rem;color:#aaa;padding:6px 2px;font-style:italic">
@@ -462,10 +464,13 @@ function renderJobCard(j, pos) {
         : '');
 
   return `
-    <div class="job-card ${jsCls}" draggable="${j.job_status === 'queued' ? 'true' : 'false'}"
-         ondragstart="event.dataTransfer.setData('job_id','${j.job_id}');event.dataTransfer.setData('from_printer','${j.printer_id || ''}')">
+    <div class="job-card ${jsCls}"
+         draggable="${j.job_status === 'queued' ? 'true' : 'false'}"
+         data-job-id="${j.job_id}"
+         data-printer-id="${j.printer_id || ''}"
+         data-job-status="${j.job_status}">
       <div class="job-pos">${pos}</div>
-      <div class="job-body">
+      <div class="job-body" style="pointer-events:none">
         <div class="job-title">${attemptBadge}${escHtml(j.project_name)}</div>
         <div class="job-meta">
           <span><span class="job-status-badge jsb-${jsCls}">${jsLabel}</span></span>
@@ -497,14 +502,38 @@ function rtsCardDragStart(event, requestId) {
 function rtsCardDragEnd(event) {
   event.currentTarget.classList.remove('dragging');
   document.querySelectorAll('.queue-drop-zone').forEach(dz => {
-    dz.classList.remove('drag-over', 'rts-droppable');
+    dz.classList.remove('drag-over', 'rts-droppable', 'job-droppable');
   });
 }
 
-// ── Drop handler: handles BOTH rts→printer and job reorder ──
+// ── Document-level drag events for job cards ─────────────
+// Using event delegation so it works regardless of which child element the drag starts on
+document.addEventListener('dragstart', function(event) {
+  const card = event.target.closest('.job-card[data-job-id]');
+  if (!card) return;
+  if (card.dataset.jobStatus !== 'queued') { event.preventDefault(); return; }
+  event.dataTransfer.effectAllowed = 'move';
+  event.dataTransfer.setData('job_id', card.dataset.jobId);
+  event.dataTransfer.setData('from_printer', card.dataset.printerId || '');
+  // Highlight all active printer drop zones
+  _printers.filter(p => p.status === 'active').forEach(p => {
+    const dz = document.getElementById(`dz-${p.printer_id}`);
+    if (dz) dz.classList.add('job-droppable');
+  });
+});
+
+document.addEventListener('dragend', function(event) {
+  const card = event.target.closest('.job-card[data-job-id]');
+  if (!card) return;
+  document.querySelectorAll('.queue-drop-zone').forEach(dz => {
+    dz.classList.remove('drag-over', 'job-droppable');
+  });
+});
+
+// ── Drop handler: handles BOTH rts→printer and job move ──
 async function handleDrop(event, targetPrinterId) {
   event.preventDefault();
-  document.getElementById(`dz-${targetPrinterId}`).classList.remove('drag-over', 'rts-droppable');
+  document.getElementById(`dz-${targetPrinterId}`).classList.remove('drag-over', 'rts-droppable', 'job-droppable');
 
   const rtsId = event.dataTransfer.getData('rts_id');
   if (rtsId) {
