@@ -363,7 +363,7 @@ def assign_to_printer(request_id):
 
 @admin_bp.route('/api/admin/jobs/<int:job_id>/move', methods=['PATCH'])
 def move_job_to_printer(job_id):
-    """Move a queued job to a different active printer. Only allowed before file_transferred."""
+    """Move a job to a different active printer. Allowed for queued and printing; blocked only after file is copied (file_transferred) or terminal states."""
     auth_header = request.headers.get('Authorization', '')
     if not auth_header.startswith('Bearer '):
         return jsonify({'success': False, 'message': 'No token provided'}), 401
@@ -382,8 +382,8 @@ def move_job_to_printer(job_id):
     )
     if not job:
         return jsonify({'success': False, 'message': 'Job not found'}), 404
-    if job['status'] in ('file_transferred', 'printing', 'completed', 'failed', 'cancelled'):
-        return jsonify({'success': False, 'message': 'Cannot move: file already copied or print in progress'}), 400
+    if job['status'] in ('file_transferred', 'completed', 'failed', 'cancelled'):
+        return jsonify({'success': False, 'message': 'Cannot move: file already copied or job is in a terminal state'}), 400
     if job['printer_id'] == target_printer_id:
         return jsonify({'success': True, 'message': 'Already on this printer'}), 200
 
