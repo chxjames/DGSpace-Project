@@ -354,7 +354,7 @@ function renderPrinterCol(p) {
   const hasJobs  = queue.length > 0;
 
   const jobsHtml = hasJobs
-    ? queue.map((j, idx) => renderJobCard(j, idx + 1)).join('')
+    ? queue.map((j, idx) => renderJobCard(Object.assign({}, j, { printer_id: p.printer_id }), idx + 1)).join('')
     : '<div class="pb-empty" style="padding:14px 0">— Queue empty —</div>';
 
   const queueSection = isActive ? `
@@ -462,7 +462,7 @@ function renderJobCard(j, pos) {
         : '');
 
   return `
-    <div class="job-card ${jsCls}" draggable="true"
+    <div class="job-card ${jsCls}" draggable="${j.job_status === 'queued' ? 'true' : 'false'}"
          ondragstart="event.dataTransfer.setData('job_id','${j.job_id}');event.dataTransfer.setData('from_printer','${j.printer_id || ''}')">
       <div class="job-pos">${pos}</div>
       <div class="job-body">
@@ -545,7 +545,31 @@ async function handleDrop(event, targetPrinterId) {
     return;
   }
 
-  // ── Job reorder (job dragged within or between printers) ──
+  // ── Job card dropped onto a printer queue ──
+  const jobId       = event.dataTransfer.getData('job_id');
+  const fromPrinter = parseInt(event.dataTransfer.getData('from_printer') || '0');
+  if (jobId && fromPrinter && fromPrinter !== targetPrinterId) {
+    const printer = _printers.find(p => p.printer_id === targetPrinterId);
+    if (!printer || printer.status !== 'active') {
+      showAlert('Cannot move to a non-active printer.');
+      return;
+    }
+    try {
+      const res  = await apiFetch(`/api/admin/jobs/${jobId}/move`, {
+        method: 'PATCH', body: JSON.stringify({ printer_id: targetPrinterId })
+      });
+      const data = await res.json();
+      if (data.success) {
+        showAlert(`✅ Job moved to ${escHtml(printer.printer_name)} #${data.queue_position}`, 'success');
+        loadBoard();
+      } else {
+        showAlert(data.message || 'Cannot move this job.');
+      }
+    } catch(e) { showAlert('Network error.'); }
+    return;
+  }
+
+  // Same-printer drop or no-op — just refresh
   loadBoard();
 }
 
