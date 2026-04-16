@@ -126,7 +126,11 @@
   }
   .queue-drop-zone.drag-over     { background: #e8f4ff; border-color: #007bff; }
   .queue-drop-zone.has-jobs      { border-style: solid; border-color: #dee2e6; }
-  .queue-drop-zone.rts-droppable { border-color: #28a745; border-style: dashed; }
+  .job-card.movable { cursor: grab; -webkit-user-drag: element; }
+  .job-card.movable:active { cursor: grabbing; }
+  .job-card.locked  { cursor: default; }
+  .job-card .job-btn { -webkit-user-drag: none; }
+  .queue-drop-zone.job-droppable { border-color: #6f42c1; border-style: dashed; }
   .job-card {
     background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px;
     padding: 10px 12px; margin-bottom: 8px;
@@ -602,8 +606,8 @@ function renderJobCard(j, pos) {
   let actionBtns = '';
   if (j.job_status === 'queued') {
     actionBtns = `
-      <button class="job-btn btn-transfer" onclick="advanceJob(${j.job_id},'file_transferred',${attempt})">📁 File Copied</button>
-      <button class="job-btn btn-remove"   onclick="removeJob(${j.job_id})">✕</button>`;
+      <button class="job-btn btn-transfer" draggable="false" onclick="advanceJob(${j.job_id},'file_transferred',${attempt})">📁 File Copied</button>
+      <button class="job-btn btn-remove" draggable="false" onclick="removeJob(${j.job_id})">✕</button>`;
   } else if (j.job_status === 'file_transferred') {
     actionBtns = isFirst ? `
       <button class="job-btn btn-printing" onclick="advanceJob(${j.job_id},'printing',${attempt})">▶ Start Print</button>
@@ -625,9 +629,17 @@ function renderJobCard(j, pos) {
     : (j.job_status === 'printing'
         ? `<span class="job-countdown countdown-ok" id="cd-${j.job_id}" data-mins="${j.ufp_print_time_minutes || 0}" data-started="${j.started_at || ''}" data-project="${cdProject}" data-printer="${cdPrinter}">⏱ …</span>`
         : '');
+  const locked = j.job_status !== 'queued';
+  const pid = j.printer_id || 0;
   return `
-    <div class="job-card ${jsCls}" draggable="true"
-         ondragstart="event.dataTransfer.setData('job_id','${j.job_id}');event.dataTransfer.setData('from_printer','${j.printer_id || ''}')">
+    <div class="job-card ${jsCls} ${locked ? 'locked' : 'movable'}"
+         draggable="${locked ? 'false' : 'true'}"
+         data-job-id="${j.job_id}"
+         data-request-id="${j.request_id}"
+         data-printer-id="${pid}"
+         data-job-status="${j.job_status}"
+         ondragstart="homeJobCardDragStart(event, ${j.job_id}, ${j.request_id}, ${pid})"
+         ondragend="homeJobCardDragEnd(event)">
       <div class="job-pos">${pos}</div>
       <div class="job-body">
         <div class="job-title">${attemptBadge}${escHtml(j.project_name)}</div>
@@ -645,6 +657,26 @@ function renderJobCard(j, pos) {
 }
 
 // ── Drag & Drop ───────────────────────────────────────────
+function homeJobCardDragStart(event, jobId, requestId, printerId) {
+  const card = event.currentTarget;
+  if (card.dataset.jobStatus !== 'queued') { event.preventDefault(); return; }
+  event.dataTransfer.effectAllowed = 'move';
+  event.dataTransfer.setData('job_id',      String(jobId));
+  event.dataTransfer.setData('request_id',  String(requestId));
+  event.dataTransfer.setData('from_printer', String(printerId));
+  card.classList.add('dragging');
+  _printers.filter(p => p.status === 'active').forEach(p => {
+    ['', '-ss'].forEach(sfx => {
+      const dz = document.getElementById(`dz${sfx}-${p.printer_id}`);
+      if (dz) dz.classList.add('job-droppable');
+    });
+  });
+}
+function homeJobCardDragEnd(event) {
+  event.currentTarget.classList.remove('dragging');
+  document.querySelectorAll('.queue-drop-zone').forEach(dz =>
+    dz.classList.remove('drag-over', 'rts-droppable', 'job-droppable'));
+}
 function rtsCardDragStart(event, requestId) {
   event.dataTransfer.setData('rts_id', String(requestId));
   event.dataTransfer.effectAllowed = 'move';
@@ -658,12 +690,12 @@ function rtsCardDragStart(event, requestId) {
 }
 function rtsCardDragEnd(event) {
   event.currentTarget.classList.remove('dragging');
-  document.querySelectorAll('.queue-drop-zone').forEach(dz => dz.classList.remove('drag-over','rts-droppable'));
+  document.querySelectorAll('.queue-drop-zone').forEach(dz => dz.classList.remove('drag-over','rts-droppable','job-droppable'));
 }
 async function handleDrop(event, targetPrinterId, sfx) {
   event.preventDefault();
   const dzId = `dz${sfx || ''}-${targetPrinterId}`;
-  document.getElementById(dzId)?.classList.remove('drag-over','rts-droppable');
+  document.getElementById(dzId)?.classList.remove('drag-over','rts-droppable','job-droppable');
   const rtsId = event.dataTransfer.getData('rts_id');
   if (rtsId) {
     const req     = _rts.find(r => r.id === parseInt(rtsId));
@@ -683,6 +715,20 @@ async function handleDrop(event, targetPrinterId, sfx) {
       const data = await res.json();
       if (data.success) { pbAlert(`✅ "${escHtml(req.project_name)}" → ${escHtml(printer.printer_name)} #${data.queue_position}`, 'success'); loadBoard(); }
       else pbAlert(data.message || 'Failed to assign.');
+    } catch(e) { pbAlert('Network error.'); }
+    return;
+  }
+  // ── Job card move between printers ──
+  const jobId      = event.dataTransfer.getData('job_id');
+  const fromPrinter = event.dataTransfer.getData('from_printer');
+  if (jobId && String(fromPrinter) !== String(targetPrinterId)) {
+    const printer = _printers.find(p => String(p.printer_id) === String(targetPrinterId));
+    if (!printer || printer.status !== 'active') { pbAlert('Cannot move to a non-active printer.'); return; }
+    try {
+      const res  = await apiFetch(`/api/admin/jobs/${jobId}/move`, { method: 'PATCH', body: JSON.stringify({ printer_id: targetPrinterId }) });
+      const data = await res.json();
+      if (data.success) { pbAlert(`✅ Job moved to ${escHtml(printer.printer_name)} #${data.queue_position}`, 'success'); loadBoard(); }
+      else pbAlert(data.message || 'Failed to move job.');
     } catch(e) { pbAlert('Network error.'); }
     return;
   }
