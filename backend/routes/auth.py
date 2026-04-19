@@ -20,6 +20,9 @@ def register_student():
     if not all(field in data for field in required_fields):
         return jsonify({'success': False, 'message': 'Missing required fields'}), 400
 
+    if not data['email'].lower().endswith('@sandiego.edu'):
+        return jsonify({'success': False, 'message': 'Only @sandiego.edu email addresses are allowed to register.'}), 400
+
     result = AuthService.register_student(
         email=data['email'],
         password=data['password'],
@@ -72,6 +75,9 @@ def login_student():
 
     if not all(field in data for field in ['email', 'password']):
         return jsonify({'success': False, 'message': 'Missing required fields'}), 400
+
+    if not data['email'].lower().endswith('@sandiego.edu'):
+        return jsonify({'success': False, 'message': 'Only @sandiego.edu email addresses are allowed to log in.'}), 400
 
     result = AuthService.login(data['email'], data['password'], 'student')
 
