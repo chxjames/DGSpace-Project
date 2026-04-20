@@ -150,6 +150,7 @@ async function loadPrinters() {
     if (!list.length) { document.getElementById('no-data').style.display = 'block'; return; }
 
     document.getElementById('no-data').style.display = 'none';
+    const tbody = document.getElementById('printers-body');
     tbody.innerHTML = list.map((p, idx) => {
       const fmts = (p.accepted_file_formats || 'ufp').split(',').map(f =>
         `<code style="background:#e8f0fe;color:#1a73e8;padding:1px 6px;border-radius:4px;font-size:0.75rem">.${f.trim()}</code>`
