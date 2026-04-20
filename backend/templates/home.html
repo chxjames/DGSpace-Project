@@ -126,6 +126,7 @@
   }
   .queue-drop-zone.drag-over     { background: #e8f4ff; border-color: #007bff; }
   .queue-drop-zone.has-jobs      { border-style: solid; border-color: #dee2e6; }
+  .queue-drop-zone.rts-incompatible { border-color: #e74c3c; border-style: dashed; background: #fff5f5; opacity: 0.55; pointer-events: none; }
   .job-card.movable { cursor: grab; -webkit-user-drag: element; }
   .job-card.movable:active { cursor: grabbing; }
   .job-card.locked  { cursor: default; }
@@ -329,7 +330,14 @@
         </div>
       </div>
       <div>
-        <div class="pb-section-title" style="margin-bottom:14px">🖨 Printer Queues</div>
+        <div class="pb-section-title" style="margin-bottom:14px">🖨 Printer Queues
+          <select id="printer-fmt-filter" onchange="renderPrinters()"
+            style="margin-left:12px;font-size:0.78rem;padding:3px 8px;border-radius:8px;border:1px solid #ccc;font-weight:400;color:#333;cursor:pointer">
+            <option value="all">All formats</option>
+            <option value="ufp">.ufp only</option>
+            <option value="3mf">.3mf only</option>
+          </select>
+        </div>
         <div id="printers-loading" style="text-align:center;padding:20px;color:#888">Loading…</div>
         <div id="printers-list"></div>
       </div>
@@ -377,7 +385,14 @@
         </div>
       </div>
       <div>
-        <div class="pb-section-title" style="margin-bottom:14px">🖨 Printer Queues</div>
+        <div class="pb-section-title" style="margin-bottom:14px">🖨 Printer Queues
+          <select id="printer-fmt-filter-ss" onchange="renderPrinters()"
+            style="margin-left:12px;font-size:0.78rem;padding:3px 8px;border-radius:8px;border:1px solid #ccc;font-weight:400;color:#333;cursor:pointer">
+            <option value="all">All formats</option>
+            <option value="ufp">.ufp only</option>
+            <option value="3mf">.3mf only</option>
+          </select>
+        </div>
         <div id="printers-loading-ss" style="text-align:center;padding:20px;color:#888">Loading…</div>
         <div id="printers-list-ss"></div>
       </div>
@@ -560,11 +575,16 @@ function selectRts(id) {
 function renderPrinters() {
   const el = pbEl('printers-list');
   if (!el) return;
-  if (!_printers.length) {
+  const sfxId  = pbId('printers-list') === 'printers-list-ss' ? 'printer-fmt-filter-ss' : 'printer-fmt-filter';
+  const filter = (document.getElementById(sfxId)?.value) || 'all';
+  const visible = filter === 'all'
+    ? _printers
+    : _printers.filter(p => (p.accepted_file_formats || 'ufp').split(',').map(s=>s.trim()).includes(filter));
+  if (!visible.length) {
     el.innerHTML = '<div class="pb-empty">No printers configured. <a href="/admin/printers/">Add printers →</a></div>';
     return;
   }
-  el.innerHTML = _printers.map(p => renderPrinterCol(p)).join('');
+  el.innerHTML = visible.map(p => renderPrinterCol(p)).join('');
 }
 
 function renderPrinterCol(p) {
@@ -723,16 +743,22 @@ function rtsCardDragStart(event, requestId) {
   event.dataTransfer.setData('rts_id', String(requestId));
   event.dataTransfer.effectAllowed = 'move';
   event.currentTarget.classList.add('dragging');
+  const req    = _rts.find(r => r.id === requestId);
+  const reqFmt = req && req.ufp_original_name
+    ? (req.ufp_original_name.toLowerCase().endsWith('.3mf') ? '3mf' : 'ufp')
+    : null;
   _printers.filter(p => p.status === 'active').forEach(p => {
+    const pFmts = (p.accepted_file_formats || 'ufp').split(',').map(s => s.trim());
+    const compatible = !reqFmt || pFmts.includes(reqFmt);
     ['', '-ss'].forEach(sfx => {
       const dz = document.getElementById(`dz${sfx}-${p.printer_id}`);
-      if (dz) dz.classList.add('rts-droppable');
+      if (dz) dz.classList.add(compatible ? 'rts-droppable' : 'rts-incompatible');
     });
   });
 }
 function rtsCardDragEnd(event) {
   event.currentTarget.classList.remove('dragging');
-  document.querySelectorAll('.queue-drop-zone').forEach(dz => dz.classList.remove('drag-over','rts-droppable','job-droppable'));
+  document.querySelectorAll('.queue-drop-zone').forEach(dz => dz.classList.remove('drag-over','rts-droppable','rts-incompatible','job-droppable'));
 }
 async function handleDrop(event, targetPrinterId, sfx) {
   event.preventDefault();
@@ -744,6 +770,17 @@ async function handleDrop(event, targetPrinterId, sfx) {
     if (!req) return;
     const printer = _printers.find(p => p.printer_id === targetPrinterId);
     if (!printer || printer.status !== 'active') { pbAlert('Cannot assign to a non-active printer.'); return; }
+    // Format compatibility check
+    const reqFmt  = req.ufp_original_name
+      ? (req.ufp_original_name.toLowerCase().endsWith('.3mf') ? '3mf' : 'ufp')
+      : null;
+    if (reqFmt) {
+      const pFmts = (printer.accepted_file_formats || 'ufp').split(',').map(s => s.trim());
+      if (!pFmts.includes(reqFmt)) {
+        pbAlert(`❌ "${escHtml(printer.printer_name)}" does not accept .${reqFmt} files. It accepts: ${pFmts.map(f=>'.'+f).join(', ')}`);
+        return;
+      }
+    }
     const body = {
       printer_id:      targetPrinterId,
       estimated_start: null,
