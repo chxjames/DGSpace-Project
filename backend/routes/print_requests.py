@@ -5,6 +5,7 @@ from database import db
 from auth_service import AuthService
 from print_service import PrintService
 from ufp_analysis import analyze_ufp
+from threemf_analysis import analyze_3mf
 
 print_bp = Blueprint('print_requests', __name__)
 
@@ -177,8 +178,101 @@ def delete_uploaded_ufp(filename: str):
 
 @print_bp.route('/api/uploads/<filename>', methods=['GET'])
 def serve_upload(filename: str):
-    """Serve uploaded STL / UFP files"""
+    """Serve uploaded STL / UFP / 3MF files"""
     return send_from_directory(current_app.config['UPLOAD_FOLDER'], filename)
+
+
+# ==================== 3MF UPLOAD ====================
+
+@print_bp.route('/api/print-requests/upload-3mf', methods=['POST'])
+def upload_3mf():
+    """Upload a .3mf (sliced) file and return slicer estimates.
+
+    Supports Bambu Studio, OrcaSlicer, PrusaSlicer, SuperSlicer, and Cura 3MF exports.
+    """
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({'success': False, 'message': 'No token provided'}), 401
+
+    token = auth_header.split(' ')[1]
+    payload = AuthService.verify_jwt_token(token)
+    if not payload or payload.get('user_type') not in ('student', 'admin', 'student_staff'):
+        return jsonify({'success': False, 'message': 'Invalid token'}), 401
+
+    if 'file' not in request.files:
+        return jsonify({'success': False, 'message': 'No file provided'}), 400
+
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'success': False, 'message': 'No file selected'}), 400
+
+    original_name = file.filename
+    if not original_name.lower().endswith('.3mf'):
+        return jsonify({'success': False, 'message': 'Only .3mf files are allowed'}), 400
+
+    # Size limit: 200 MB (Bambu 3MF files include G-code and can be large)
+    file.seek(0, 2)
+    size = file.tell()
+    file.seek(0)
+    if size > 200 * 1024 * 1024:
+        return jsonify({'success': False, 'message': 'File exceeds 200 MB limit'}), 400
+
+    saved_name = f"{uuid.uuid4().hex}.3mf"
+    save_path  = os.path.join(current_app.config['UPLOAD_FOLDER'], saved_name)
+    file.save(save_path)
+
+    result = analyze_3mf(save_path)
+
+    if not result.get('success'):
+        try:
+            os.remove(save_path)
+        except OSError:
+            pass
+        return jsonify(result), 400
+
+    return jsonify({
+        'success':       True,
+        'filename':      saved_name,
+        'original_name': original_name,
+        'analysis': {
+            'slicer':                result['slicer'],
+            'print_time':            result['print_time'],
+            'material_weight_g':     result['material_weight_g'],
+            'material_length_mm':    result['material_length_mm'],
+            'layer_height':          result['layer_height'],
+            'infill_sparse_density': result['infill_sparse_density'],
+            'material_type':         result['material_type'],
+            'printer_name':          result['printer_name'],
+        }
+    }), 201
+
+
+@print_bp.route('/api/print-requests/upload-3mf/<filename>', methods=['DELETE'])
+def delete_uploaded_3mf(filename: str):
+    """Delete a previously uploaded 3MF file."""
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({'success': False, 'message': 'No token provided'}), 401
+
+    token = auth_header.split(' ')[1]
+    payload = AuthService.verify_jwt_token(token)
+    if not payload or payload.get('user_type') not in ('student', 'admin', 'student_staff'):
+        return jsonify({'success': False, 'message': 'Invalid token'}), 401
+
+    safe_name      = os.path.basename(filename)
+    abs_upload_dir = os.path.abspath(current_app.config['UPLOAD_FOLDER'])
+    abs_file_path  = os.path.abspath(os.path.join(abs_upload_dir, safe_name))
+    if not abs_file_path.startswith(abs_upload_dir + os.sep):
+        return jsonify({'success': False, 'message': 'Invalid filename'}), 400
+
+    if not os.path.exists(abs_file_path):
+        return jsonify({'success': True, 'message': 'File already deleted'}), 200
+
+    try:
+        os.remove(abs_file_path)
+        return jsonify({'success': True, 'message': 'File deleted'}), 200
+    except OSError:
+        return jsonify({'success': False, 'message': 'Failed to delete file'}), 500
 
 
 @print_bp.route('/api/print-requests', methods=['POST'])
