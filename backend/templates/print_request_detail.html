@@ -111,7 +111,7 @@
             <div style="min-width:26px;height:26px;background:#007bff;color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.85rem;flex-shrink:0">1</div>
             <div>
               <div style="font-weight:600;font-size:0.9rem;color:#333;margin-bottom:4px">Download &amp; slice the STL file</div>
-              <div style="font-size:0.85rem;color:#666;margin-bottom:6px">Open in Cura, slice it, then save as <code>.ufp</code> via <em>File → Save to Disk</em>.</div>
+              <div style="font-size:0.85rem;color:#666;margin-bottom:6px">Open in your slicer, then save/export the sliced file as <code>.ufp</code> (Cura) or <code>.3mf</code> (Bambu Studio / PrusaSlicer).</div>
               <a id="ufp-stl-link" href="#" download
                  style="display:inline-flex;align-items:center;gap:6px;font-size:0.85rem;color:#007bff;text-decoration:none;border:1px solid #007bff;padding:5px 12px;border-radius:6px">
                 ⬇ Download STL
@@ -120,11 +120,11 @@
             </div>
           </div>
 
-          <!-- Step 2: Upload UFP -->
+          <!-- Step 2: Upload sliced file (UFP or 3MF) -->
           <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:16px">
             <div style="min-width:26px;height:26px;background:#007bff;color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.85rem;flex-shrink:0">2</div>
             <div style="flex:1">
-              <div style="font-weight:600;font-size:0.9rem;color:#333;margin-bottom:4px">Upload the sliced <code>.ufp</code> file</div>
+              <div style="font-weight:600;font-size:0.9rem;color:#333;margin-bottom:4px">Upload the sliced file <span style="font-weight:400;color:#888;font-size:0.82rem">(.ufp or .3mf)</span></div>
               <div style="font-size:0.85rem;color:#666;margin-bottom:8px">If the model looks good, upload the sliced file to approve. Otherwise skip this step and send feedback below.</div>
 
               <!-- Drop zone -->
@@ -135,10 +135,10 @@
                    ondrop="event.preventDefault();this.style.borderColor='#adb5bd';this.style.background='#fafafa';handleUfpUpload(event.dataTransfer.files[0])"
                    onclick="document.getElementById('ufp-file-input').click()">
                 <div style="font-size:1.5rem;margin-bottom:6px">📦</div>
-                <div style="font-size:0.9rem;color:#555">Drop <strong>.ufp</strong> here or click to browse</div>
-                <div style="font-size:0.78rem;color:#999;margin-top:4px">Max 100 MB</div>
+                <div style="font-size:0.9rem;color:#555">Drop <strong>.ufp</strong> or <strong>.3mf</strong> here or click to browse</div>
+                <div style="font-size:0.78rem;color:#999;margin-top:4px">Max 200 MB</div>
               </div>
-              <input id="ufp-file-input" type="file" accept=".ufp" style="display:none"
+              <input id="ufp-file-input" type="file" accept=".ufp,.3mf" style="display:none"
                      onchange="handleUfpUpload(this.files[0])">
 
               <!-- Upload progress -->
@@ -153,7 +153,7 @@
             <div style="display:flex;align-items:flex-start;gap:12px">
               <div style="min-width:26px;height:26px;background:#28a745;color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.85rem;flex-shrink:0">✓</div>
               <div style="flex:1;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:14px">
-                <div style="font-weight:600;font-size:0.9rem;color:#166534;margin-bottom:10px">✅ Slice data loaded from Cura</div>
+                <div style="font-weight:600;font-size:0.9rem;color:#166534;margin-bottom:10px">✅ Slice data loaded</div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:0.88rem">
                   <div>
                     <div style="color:#888;margin-bottom:2px">Print Time</div>
@@ -844,12 +844,16 @@ async function cancelUfpUpload() {
   if (_ufpUploadResult && _ufpUploadResult.filename) {
     try {
       const token = window.getToken ? window.getToken() : localStorage.getItem('dg_token');
-      await fetch(`/api/print-requests/upload-ufp/${_ufpUploadResult.filename}`, {
+      const fn    = _ufpUploadResult.filename;
+      const deleteEndpoint = fn.endsWith('.3mf')
+        ? `/api/print-requests/upload-3mf/${fn}`
+        : `/api/print-requests/upload-ufp/${fn}`;
+      await fetch(deleteEndpoint, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
     } catch(e) {
-      console.warn('Could not delete UFP from server:', e);
+      console.warn('Could not delete slicer file from server:', e);
     }
   }
 
@@ -865,10 +869,14 @@ async function cancelUfpUpload() {
 
 async function handleUfpUpload(file) {
   if (!file) return;
-  if (!file.name.toLowerCase().endsWith('.ufp')) {
-    adminShowAlert('Please upload a <strong>.ufp</strong> file (generated by Cura).');
+  const nameLow = file.name.toLowerCase();
+  const isUfp   = nameLow.endsWith('.ufp');
+  const is3mf   = nameLow.endsWith('.3mf');
+  if (!isUfp && !is3mf) {
+    adminShowAlert('Please upload a <strong>.ufp</strong> or <strong>.3mf</strong> slicer file.');
     return;
   }
+  const uploadEndpoint = is3mf ? '/api/print-requests/upload-3mf' : '/api/print-requests/upload-ufp';
 
   document.getElementById('ufp-uploading').style.display = 'block';
   document.getElementById('ufp-dropzone').style.display  = 'none';
@@ -883,7 +891,7 @@ async function handleUfpUpload(file) {
     formData.append('file', file);
 
     const token = window.getToken ? window.getToken() : localStorage.getItem('dg_token');
-    const res = await fetch('/api/print-requests/upload-ufp', {
+    const res = await fetch(uploadEndpoint, {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${token}` },
       body: formData
@@ -896,7 +904,7 @@ async function handleUfpUpload(file) {
       document.getElementById('ufp-dropzone').style.display = 'block';
       document.getElementById('sendback-section').style.display    = 'block';
       document.getElementById('approve-notes-section').style.display = 'none';
-      adminShowAlert(data.message || 'Failed to upload UFP file.');
+      adminShowAlert(data.message || 'Failed to upload slicer file.');
       return;
     }
 

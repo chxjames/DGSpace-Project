@@ -156,7 +156,7 @@ def get_production_board():
     """) or []
 
     printers = db.fetch_all(
-        "SELECT printer_id, printer_name, model, location, status, notes FROM printers ORDER BY printer_name"
+        "SELECT printer_id, printer_name, model, location, status, notes, accepted_file_formats FROM printers ORDER BY printer_name"
     ) or []
 
     for p in printers:
@@ -227,7 +227,7 @@ def get_printer_status():
     now = datetime.datetime.utcnow()
 
     printers = db.fetch_all(
-        "SELECT printer_id, printer_name, model, location, status FROM printers ORDER BY printer_name"
+        "SELECT printer_id, printer_name, model, location, status, accepted_file_formats FROM printers ORDER BY printer_name"
     ) or []
 
     result = []
@@ -760,7 +760,7 @@ def admin_list_printers():
         return jsonify({'success': False, 'message': 'Admin access required'}), 403
 
     printers = db.fetch_all(
-        "SELECT printer_id, printer_name, model, location, status, notes, created_at FROM printers ORDER BY printer_name"
+        "SELECT printer_id, printer_name, model, location, status, notes, accepted_file_formats, created_at FROM printers ORDER BY printer_name"
     ) or []
     return jsonify({'success': True, 'printers': printers}), 200
 
@@ -781,16 +781,25 @@ def admin_add_printer():
     if not name:
         return jsonify({'success': False, 'message': 'Printer name is required'}), 400
 
+    # Validate accepted_file_formats (at least one of: ufp, 3mf)
+    raw_formats = data.get('accepted_file_formats') or 'ufp'
+    valid_formats = {'ufp', '3mf'}
+    formats = [f.strip().lower() for f in str(raw_formats).split(',') if f.strip().lower() in valid_formats]
+    if not formats:
+        return jsonify({'success': False, 'message': 'At least one file format (ufp or 3mf) must be selected'}), 400
+    accepted_file_formats = ','.join(formats)
+
     existing = db.fetch_one("SELECT printer_id FROM printers WHERE printer_name = %s", (name,))
     if existing:
         return jsonify({'success': False, 'message': 'A printer with that name already exists'}), 409
 
     result = db.execute_query(
-        "INSERT INTO printers (printer_name, model, location, status, notes) VALUES (%s, %s, %s, %s, %s)",
+        "INSERT INTO printers (printer_name, model, location, status, notes, accepted_file_formats) VALUES (%s, %s, %s, %s, %s, %s)",
         (name, (data.get('model') or '').strip() or None,
          (data.get('location') or '').strip() or None,
          data.get('status', 'active'),
-         (data.get('notes') or '').strip() or None)
+         (data.get('notes') or '').strip() or None,
+         accepted_file_formats)
     )
     if result is not None:
         return jsonify({'success': True, 'message': 'Printer added', 'printer_id': result}), 201
@@ -818,6 +827,15 @@ def admin_update_printer(printer_id):
         if field in data:
             sets.append(f"{field} = %s")
             vals.append((data[field] or '').strip() or None)
+    # Handle accepted_file_formats separately (needs validation)
+    if 'accepted_file_formats' in data:
+        valid_formats = {'ufp', '3mf'}
+        raw_formats = data.get('accepted_file_formats') or 'ufp'
+        formats = [f.strip().lower() for f in str(raw_formats).split(',') if f.strip().lower() in valid_formats]
+        if not formats:
+            return jsonify({'success': False, 'message': 'At least one file format (ufp or 3mf) must be selected'}), 400
+        sets.append("accepted_file_formats = %s")
+        vals.append(','.join(formats))
     if not sets:
         return jsonify({'success': False, 'message': 'Nothing to update'}), 400
 

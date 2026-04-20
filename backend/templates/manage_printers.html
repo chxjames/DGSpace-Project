@@ -33,6 +33,17 @@
         <option value="retired">Retired</option>
       </select>
     </div>
+    <div class="form-group" style="min-width:160px;margin-bottom:0">
+      <label>Accepted File Formats <span style="color:#dc3545">*</span></label>
+      <div style="display:flex;gap:12px;align-items:center;padding-top:6px">
+        <label style="display:flex;align-items:center;gap:5px;font-weight:normal;cursor:pointer;font-size:0.9rem">
+          <input type="checkbox" id="p-fmt-ufp" value="ufp" checked> <code>.ufp</code>
+        </label>
+        <label style="display:flex;align-items:center;gap:5px;font-weight:normal;cursor:pointer;font-size:0.9rem">
+          <input type="checkbox" id="p-fmt-3mf" value="3mf"> <code>.3mf</code>
+        </label>
+      </div>
+    </div>
     <button type="submit" class="btn" style="width:auto;padding:10px 24px;height:fit-content">Add Printer</button>
   </form>
 </div>
@@ -49,6 +60,7 @@
         <th>Printer Name</th>
         <th>Model</th>
         <th>Location</th>
+        <th>File Formats</th>
         <th>Status</th>
         <th>Created</th>
         <th>Action</th>
@@ -138,13 +150,17 @@ async function loadPrinters() {
     if (!list.length) { document.getElementById('no-data').style.display = 'block'; return; }
 
     document.getElementById('no-data').style.display = 'none';
-    const tbody = document.getElementById('printers-body');
-    tbody.innerHTML = list.map((p, idx) => `
+    tbody.innerHTML = list.map((p, idx) => {
+      const fmts = (p.accepted_file_formats || 'ufp').split(',').map(f =>
+        `<code style="background:#e8f0fe;color:#1a73e8;padding:1px 6px;border-radius:4px;font-size:0.75rem">.${f.trim()}</code>`
+      ).join(' ');
+      return `
       <tr>
         <td>${idx + 1}</td>
         <td>${esc(p.printer_name)}</td>
         <td>${esc(p.model)}</td>
         <td>${esc(p.location)}</td>
+        <td style="white-space:nowrap">${fmts}</td>
         <td style="text-align:center">
           <select class="status-sel" data-id="${p.printer_id}" onchange="updateStatus(${p.printer_id}, this)"
             style="padding:3px 8px;border-radius:8px;border:1px solid #ccc;font-size:0.8rem;font-weight:600;cursor:pointer;${statusSelStyle(p.status)}">
@@ -157,7 +173,7 @@ async function loadPrinters() {
         <td style="white-space:nowrap">
           <button class="btn-delete" onclick="deletePrinter(${p.printer_id}, '${esc(p.printer_name).replace(/'/g,"&#39;")}')">🗑 Delete</button>
         </td>
-      </tr>`).join('');
+      </tr>`}).join('');
 
     document.getElementById('printers-table').style.display = 'table';
   } catch(e) {
@@ -168,23 +184,26 @@ async function loadPrinters() {
 
 async function addPrinter(e) {
   e.preventDefault();
-  const name     = document.getElementById('p-name').value.trim();
-  const model    = document.getElementById('p-model').value.trim();
-  const loc      = document.getElementById('p-location').value.trim();
-  const status   = document.getElementById('p-status').value;
+  const name   = document.getElementById('p-name').value.trim();
+  const model  = document.getElementById('p-model').value.trim();
+  const loc    = document.getElementById('p-location').value.trim();
+  const status = document.getElementById('p-status').value;
 
+  const fmts = ['ufp','3mf'].filter(f => document.getElementById(`p-fmt-${f}`).checked);
   if (!name) { showAlert('Printer name is required.'); return; }
+  if (!fmts.length) { showAlert('Please select at least one accepted file format (.ufp or .3mf).'); return; }
 
   try {
     const res = await apiFetch('/api/admin/printers', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ printer_name: name, model: model || null, location: loc || null, status })
+      body: JSON.stringify({ printer_name: name, model: model || null, location: loc || null, status, accepted_file_formats: fmts.join(',') })
     });
     const data = await res.json();
     if (data.success) {
       showAlert('Printer added successfully!', 'success');
       document.getElementById('add-printer-form').reset();
+      document.getElementById('p-fmt-ufp').checked = true; // reset to default
       loadPrinters();
     } else {
       showAlert(data.message || 'Failed to add printer.');

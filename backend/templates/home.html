@@ -520,6 +520,11 @@ function renderRts() {
     const dl       = r.deadline_date ? deadlineBadge(r.deadline_date) : '';
     const sel      = _selectedRts && _selectedRts.id === r.id ? 'selected' : '';
     const dotClass = r.priority === 'urgent' ? 'dot-urgent' : r.priority === 'high' ? 'dot-high' : 'dot-normal';
+    const fileFmt  = r.ufp_original_name
+      ? (r.ufp_original_name.toLowerCase().endsWith('.3mf')
+          ? `<code style="background:#e8f5e9;color:#2e7d32;border-radius:4px;padding:1px 5px;font-size:0.72rem">.3mf</code>`
+          : `<code style="background:#e8f0fe;color:#1a73e8;border-radius:4px;padding:1px 5px;font-size:0.72rem">.ufp</code>`)
+      : '';
     return `
       <div class="rts-card ${sel}" data-id="${r.id}"
            draggable="true"
@@ -533,6 +538,7 @@ function renderRts() {
           <span>👤 ${escHtml(r.student_name || r.student_email)}</span>
           <span>⏱ ${timeStr}</span>
           ${matStr ? `<span>🎨 ${escHtml(matStr)}</span>` : ''}
+          ${fileFmt}
           ${dl}
         </div>
         <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
@@ -586,6 +592,13 @@ function renderPrinterCol(p) {
         <div>
           <div class="printer-name">🖨 ${escHtml(p.printer_name)}</div>
           <div class="printer-meta">${escHtml(p.model || '')}${p.location ? ' · ' + escHtml(p.location) : ''}</div>
+          ${(() => {
+            const fmts = (p.accepted_file_formats || 'ufp').split(',').map(s => s.trim()).filter(Boolean);
+            return fmts.map(f => f === '3mf'
+              ? `<code style="background:#e8f5e9;color:#2e7d32;border-radius:4px;padding:1px 5px;font-size:0.72rem">.3mf</code>`
+              : `<code style="background:#e8f0fe;color:#1a73e8;border-radius:4px;padding:1px 5px;font-size:0.72rem">.ufp</code>`
+            ).join(' ');
+          })()}
         </div>
         <span class="printer-status-badge ${sbClass}">${sbLabel}</span>
       </div>

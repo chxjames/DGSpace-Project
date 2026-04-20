@@ -309,6 +309,11 @@ function renderRts() {
     const dl       = r.deadline_date ? deadlineBadge(r.deadline_date) : '';
     const sel      = _selectedRts && _selectedRts.id === r.id ? 'selected' : '';
     const dotClass = r.priority === 'urgent' ? 'dot-urgent' : r.priority === 'high' ? 'dot-high' : 'dot-normal';
+    const origName = (r.ufp_original_name || '').toLowerCase();
+    const fileFmt  = origName.endsWith('.3mf') ? '3mf' : origName.endsWith('.ufp') ? 'ufp' : null;
+    const fmtBadge = fileFmt
+      ? `<span style="font-size:0.7rem;font-weight:600;padding:1px 6px;border-radius:4px;white-space:nowrap;${fileFmt==='3mf'?'background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7':'background:#e8f0fe;color:#1a73e8;border:1px solid #90caf9'}">.${fileFmt}</span>`
+      : '';
     return `
       <div class="rts-card ${sel}" data-id="${r.id}"
            draggable="true"
@@ -323,6 +328,7 @@ function renderRts() {
           <span>👤 ${escHtml(r.student_name || r.student_email)}</span>
           <span>⏱ ${timeStr}</span>
           ${matStr ? `<span>🎨 ${escHtml(matStr)}</span>` : ''}
+          ${fmtBadge}
           ${dl}
         </div>
         <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
@@ -357,6 +363,15 @@ function renderPrinterCol(p) {
   const queue    = p.queue || [];
   const hasJobs  = queue.length > 0;
 
+  const fmts = (p.accepted_file_formats || 'ufp').split(',');
+  const fmtBadges = fmts.map(f => {
+    const s = f.trim();
+    const style = s === '3mf'
+      ? 'background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7'
+      : 'background:#e8f0fe;color:#1a73e8;border:1px solid #90caf9';
+    return `<span style="${style};font-size:0.68rem;font-weight:600;padding:1px 6px;border-radius:4px">.${s}</span>`;
+  }).join(' ');
+
   const jobsHtml = hasJobs
     ? queue.map((j, idx) => renderJobCard(Object.assign({}, j, { printer_id: p.printer_id }), idx + 1)).join('')
     : '<div class="pb-empty" style="padding:14px 0">— Queue empty —</div>';
@@ -380,6 +395,7 @@ function renderPrinterCol(p) {
         <div>
           <div class="printer-name">🖨 ${escHtml(p.printer_name)}</div>
           <div class="printer-meta">${escHtml(p.model || '')}${p.location ? ' · ' + escHtml(p.location) : ''}</div>
+          <div style="margin-top:4px;display:flex;gap:4px;flex-wrap:wrap">${fmtBadges}</div>
         </div>
         <span class="printer-status-badge ${sbClass}">${sbLabel}</span>
       </div>
