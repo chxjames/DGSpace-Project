@@ -9,7 +9,36 @@
 
 <div id="alert-box"></div>
 
-<div class="card">
+<!-- Add Student Form -->
+<div class="card" style="margin-bottom:24px">
+  <h3 style="margin-bottom:16px;color:#1a1a2e">➕ Add New Student</h3>
+  <form id="add-student-form" onsubmit="addStudent(event)" style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end">
+    <div class="form-group" style="flex:1;min-width:200px;margin-bottom:0">
+      <label>Email *</label>
+      <input type="email" id="s-email" required placeholder="e.g. jdoe@sandiego.edu">
+    </div>
+    <div class="form-group" style="flex:1;min-width:160px;margin-bottom:0">
+      <label>Full Name *</label>
+      <input type="text" id="s-fullname" required placeholder="e.g. Jane Doe">
+    </div>
+    <div class="form-group" style="flex:1;min-width:140px;margin-bottom:0">
+      <label>Department</label>
+      <input type="text" id="s-dept" placeholder="e.g. Engineering">
+    </div>
+    <div class="form-group" style="min-width:140px;margin-bottom:0">
+      <label>Role</label>
+      <select id="s-role">
+        <option value="student">Student</option>
+        <option value="student_staff">Student Staff</option>
+      </select>
+    </div>
+    <div class="form-group" style="min-width:160px;margin-bottom:0">
+      <label>Password *</label>
+      <input type="password" id="s-password" required placeholder="Min 8 characters" minlength="8">
+    </div>
+    <button type="submit" class="btn" style="width:auto;padding:10px 24px;height:fit-content">Add Student</button>
+  </form>
+</div>
   <!-- Search bar -->
   <div style="margin-bottom:16px;display:flex;gap:10px;flex-wrap:wrap;align-items:center">
     <input id="search-input" type="text" placeholder="🔍  Search by email, name or department…"

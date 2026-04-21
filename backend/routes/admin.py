@@ -53,6 +53,45 @@ def admin_list_students():
     return jsonify({'success': True, 'students': students}), 200
 
 
+@admin_bp.route('/api/admin/students', methods=['POST'])
+def admin_create_student():
+    """Manually create a student account (Admin only). Sets email_verified = TRUE immediately."""
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({'success': False, 'message': 'No token provided'}), 401
+    token = auth_header.split(' ')[1]
+    payload = AuthService.verify_jwt_token(token)
+    if not payload or payload.get('user_type') != 'admin':
+        return jsonify({'success': False, 'message': 'Admin access required'}), 403
+
+    data = request.json or {}
+    email      = (data.get('email') or '').strip().lower()
+    password   = (data.get('password') or '').strip()
+    full_name  = (data.get('full_name') or '').strip()
+    department = (data.get('department') or '').strip() or None
+    role       = data.get('role', 'student')
+
+    if not email or not password or not full_name:
+        return jsonify({'success': False, 'message': 'email, password, and full_name are required'}), 400
+    if role not in ('student', 'student_staff'):
+        return jsonify({'success': False, 'message': 'Invalid role. Must be student or student_staff'}), 400
+    if len(password) < 8:
+        return jsonify({'success': False, 'message': 'Password must be at least 8 characters'}), 400
+
+    existing = db.fetch_one("SELECT email FROM students WHERE email = %s", (email,))
+    if existing:
+        return jsonify({'success': False, 'message': 'Email already registered'}), 409
+
+    password_hash = AuthService.hash_password(password)
+    result = db.execute_query(
+        "INSERT INTO students (email, password_hash, full_name, department, role, email_verified) VALUES (%s, %s, %s, %s, %s, TRUE)",
+        (email, password_hash, full_name, department, role)
+    )
+    if result is not None:
+        return jsonify({'success': True, 'message': 'Student account created successfully'}), 201
+    return jsonify({'success': False, 'message': 'Failed to create student'}), 500
+
+
 @admin_bp.route('/api/admin/students/<email>', methods=['DELETE'])
 def admin_delete_student(email: str):
     """Delete a student account (Admin only)."""

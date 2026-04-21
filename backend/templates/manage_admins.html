@@ -38,6 +38,40 @@
   </div>
 </div>
 
+<!-- Add Student Form -->
+<div class="card" style="margin-bottom:24px">
+  <h3 style="margin-bottom:16px;color:#1a1a2e">🎓 Add New Student</h3>
+  <form id="add-student-form" onsubmit="addStudent(event)" style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end">
+    <div class="form-group" style="flex:1;min-width:200px;margin-bottom:0">
+      <label>Email *</label>
+      <input type="email" id="s-email" required placeholder="jdoe@sandiego.edu">
+    </div>
+    <div class="form-group" style="flex:1;min-width:160px;margin-bottom:0">
+      <label>Full Name *</label>
+      <input type="text" id="s-fullname" required placeholder="Jane Doe">
+    </div>
+    <div class="form-group" style="flex:1;min-width:130px;margin-bottom:0">
+      <label>Department</label>
+      <input type="text" id="s-dept" placeholder="e.g. Engineering">
+    </div>
+    <div class="form-group" style="min-width:140px;margin-bottom:0">
+      <label>Role</label>
+      <select id="s-role">
+        <option value="student">Student</option>
+        <option value="student_staff">Student Staff</option>
+      </select>
+    </div>
+    <div class="form-group" style="min-width:150px;margin-bottom:0">
+      <label>Password *</label>
+      <input type="password" id="s-password" required placeholder="Min 8 characters" minlength="8">
+    </div>
+    <button type="submit" class="btn" style="width:auto;padding:10px 24px;height:fit-content;background:#28a745">Add Student</button>
+  </form>
+  <div style="margin-top:10px;color:#999;font-size:0.82rem">
+    Student accounts are created with email already verified. They can log in immediately.
+  </div>
+</div>
+
 <!-- Admin List -->
 <div class="card">
   <div id="loading" style="text-align:center;padding:32px;color:#888">Loading…</div>
@@ -242,6 +276,33 @@ async function submitResetPassword() {
     }
   } catch(err) {
     errEl.textContent = 'Network error. Check backend.';
+  }
+}
+
+async function addStudent(e) {
+  e.preventDefault();
+  const email    = document.getElementById('s-email').value.trim();
+  const fullName = document.getElementById('s-fullname').value.trim();
+  const dept     = document.getElementById('s-dept').value.trim();
+  const role     = document.getElementById('s-role').value;
+  const password = document.getElementById('s-password').value;
+  if (!email || !fullName || !password) { showAlert('Email, full name, and password are required.'); return; }
+  if (password.length < 8) { showAlert('Password must be at least 8 characters.'); return; }
+  try {
+    const res  = await apiFetch('/api/admin/students', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, full_name: fullName, department: dept || null, role, password })
+    });
+    const data = await res.json();
+    if (data.success) {
+      showAlert(`Student account created for ${email}.`, 'success');
+      document.getElementById('add-student-form').reset();
+    } else {
+      showAlert(data.message || 'Failed to create student.');
+    }
+  } catch(err) {
+    showAlert('Network error. Check backend.');
   }
 }
 </script>
