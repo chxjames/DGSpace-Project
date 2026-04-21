@@ -2,6 +2,19 @@
 {% block title %}Printers — DGSpace{% endblock %}
 
 {% block content %}
+<style>
+  .btn-edit {
+    background: none;
+    border: 1px solid #1a73e8;
+    color: #1a73e8;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .btn-edit:hover { background: #e8f0fe; }
+</style>
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
   <h2 style="color:#1a1a2e">🖨️ Printers</h2>
   <a href="/" style="color:#888;text-decoration:none;font-size:0.9rem">← Home</a>
@@ -156,12 +169,12 @@ async function loadPrinters() {
         `<code style="background:#e8f0fe;color:#1a73e8;padding:1px 6px;border-radius:4px;font-size:0.75rem">.${f.trim()}</code>`
       ).join(' ');
       return `
-      <tr>
+      <tr id="row-${p.printer_id}">
         <td>${idx + 1}</td>
-        <td>${esc(p.printer_name)}</td>
-        <td>${esc(p.model)}</td>
-        <td>${esc(p.location)}</td>
-        <td style="white-space:nowrap">${fmts}</td>
+        <td class="view-name">${esc(p.printer_name)}</td>
+        <td class="view-model">${esc(p.model)}</td>
+        <td class="view-location">${esc(p.location)}</td>
+        <td class="view-fmts" style="white-space:nowrap">${fmts}</td>
         <td style="text-align:center">
           <select class="status-sel" data-id="${p.printer_id}" onchange="updateStatus(${p.printer_id}, this)"
             style="padding:3px 8px;border-radius:8px;border:1px solid #ccc;font-size:0.8rem;font-weight:600;cursor:pointer;${statusSelStyle(p.status)}">
@@ -171,7 +184,8 @@ async function loadPrinters() {
           </select>
         </td>
         <td>${fmtDate(p.created_at)}</td>
-        <td style="white-space:nowrap">
+        <td style="white-space:nowrap;display:flex;gap:6px;flex-wrap:wrap">
+          <button class="btn-edit" onclick="startEdit(${p.printer_id}, ${JSON.stringify(p).replace(/"/g,'&quot;')})">✏️ Edit</button>
           <button class="btn-delete" onclick="deletePrinter(${p.printer_id}, '${esc(p.printer_name).replace(/'/g,"&#39;")}')">🗑 Delete</button>
         </td>
       </tr>`}).join('');
@@ -228,6 +242,50 @@ async function deletePrinter(id, name) {
   } catch(err) {
     showAlert('Failed to delete. Check backend.');
   }
+}
+
+function startEdit(id, p) {
+  const row = document.getElementById(`row-${id}`);
+  const curFmts = (p.accepted_file_formats || 'ufp').split(',').map(s => s.trim());
+  row.querySelector('.view-name').innerHTML =
+    `<input id="edit-name-${id}" value="${esc(p.printer_name)}" style="width:100%;padding:4px 6px;border:1px solid #ccc;border-radius:6px;font-size:0.85rem">`;
+  row.querySelector('.view-model').innerHTML =
+    `<input id="edit-model-${id}" value="${esc(p.model === null || p.model === undefined ? '' : p.model)}" style="width:100%;padding:4px 6px;border:1px solid #ccc;border-radius:6px;font-size:0.85rem">`;
+  row.querySelector('.view-location').innerHTML =
+    `<input id="edit-location-${id}" value="${esc(p.location === null || p.location === undefined ? '' : p.location)}" style="width:100%;padding:4px 6px;border:1px solid #ccc;border-radius:6px;font-size:0.85rem">`;
+  row.querySelector('.view-fmts').innerHTML = `
+    <label style="display:flex;align-items:center;gap:4px;font-size:0.85rem;cursor:pointer;white-space:nowrap">
+      <input type="checkbox" id="edit-fmt-ufp-${id}" ${curFmts.includes('ufp') ? 'checked' : ''}> <code>.ufp</code>
+    </label>
+    <label style="display:flex;align-items:center;gap:4px;font-size:0.85rem;cursor:pointer;white-space:nowrap;margin-top:4px">
+      <input type="checkbox" id="edit-fmt-3mf-${id}" ${curFmts.includes('3mf') ? 'checked' : ''}> <code>.3mf</code>
+    </label>`;
+  // swap action buttons
+  const actionTd = row.querySelector('td:last-child');
+  actionTd.innerHTML = `
+    <button class="btn" style="width:auto;padding:4px 12px;font-size:0.8rem" onclick="saveEdit(${id})">💾 Save</button>
+    <button class="btn-delete" style="background:none;border:1px solid #ccc;color:#555" onclick="cancelEdit()">✕ Cancel</button>`;
+}
+
+function cancelEdit() { loadPrinters(); }
+
+async function saveEdit(id) {
+  const name  = document.getElementById(`edit-name-${id}`)?.value.trim();
+  const model = document.getElementById(`edit-model-${id}`)?.value.trim();
+  const loc   = document.getElementById(`edit-location-${id}`)?.value.trim();
+  const fmts  = ['ufp','3mf'].filter(f => document.getElementById(`edit-fmt-${f}-${id}`)?.checked);
+  if (!name) { showAlert('Printer name is required.'); return; }
+  if (!fmts.length) { showAlert('Please select at least one file format.'); return; }
+  try {
+    const res  = await apiFetch(`/api/admin/printers/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ printer_name: name, model: model || null, location: loc || null, accepted_file_formats: fmts.join(',') })
+    });
+    const data = await res.json();
+    if (data.success) { showAlert('Printer updated.', 'success'); loadPrinters(); }
+    else showAlert(data.message || 'Failed to save.');
+  } catch(e) { showAlert('Network error.'); }
 }
 </script>
 {% endblock %}
