@@ -23,7 +23,7 @@ block content %}
     margin-bottom: 20px;
   "
 >
-  <h2 style="color: #1a1a2e">� Equipment</h2>
+  <h2 style="color: #1a1a2e">🔧 Equipment</h2>
   <a href="/" style="color: #888; text-decoration: none; font-size: 0.9rem"
     >← Home</a
   >
@@ -219,41 +219,67 @@ block content %}
 </div>
 
 <script>
-  let _equipTab = '3d';
+  let _equipTab = "3d";
   let _allPrinters = [];
 
   (function () {
     const user = getUser();
-    if (!user) { location.href = "/login"; return; }
-    if (user.user_type !== "admin") { location.href = "/"; return; }
+    if (!user) {
+      location.href = "/login";
+      return;
+    }
+    if (user.user_type !== "admin") {
+      location.href = "/";
+      return;
+    }
     loadPrinters();
   })();
 
   function switchEquipTab(tab) {
     _equipTab = tab;
-    const is3d = tab === '3d';
-    document.getElementById('tab-3d').style.cssText    = `padding:7px 20px;border-radius:20px;border:1px solid ${is3d?'#007bff':'#ccc'};background:${is3d?'#007bff':'#fff'};color:${is3d?'#fff':'#555'};font-size:0.85rem;cursor:pointer;font-weight:600`;
-    document.getElementById('tab-laser').style.cssText = `padding:7px 20px;border-radius:20px;border:1px solid ${!is3d?'#e94560':'#ccc'};background:${!is3d?'#e94560':'#fff'};color:${!is3d?'#fff':'#555'};font-size:0.85rem;cursor:pointer;font-weight:600`;
-    document.getElementById('add-form-heading').textContent = is3d ? '➕ Add New 3D Printer' : '➕ Add New Laser Cutter';
-    document.getElementById('p-name-label').textContent = is3d ? 'Printer Name *' : 'Cutter Name *';
-    document.getElementById('p-name').placeholder = is3d ? 'e.g. Ultimaker S5 #1' : 'e.g. Laser Cutter #1';
-    document.getElementById('p-model').placeholder = is3d ? 'e.g. Ultimaker S5' : 'e.g. xTool P2';
-    document.getElementById('p-device-type').value = is3d ? '3dprint' : 'laser';
-    document.getElementById('p-fmt-group').style.display       = is3d ? '' : 'none';
-    document.getElementById('p-laser-fmt-group').style.display = is3d ? 'none' : '';
-    document.getElementById('add-btn').textContent = is3d ? 'Add 3D Printer' : 'Add Laser Cutter';
+    const is3d = tab === "3d";
+    document.getElementById("tab-3d").style.cssText =
+      `padding:7px 20px;border-radius:20px;border:1px solid ${is3d ? "#007bff" : "#ccc"};background:${is3d ? "#007bff" : "#fff"};color:${is3d ? "#fff" : "#555"};font-size:0.85rem;cursor:pointer;font-weight:600`;
+    document.getElementById("tab-laser").style.cssText =
+      `padding:7px 20px;border-radius:20px;border:1px solid ${!is3d ? "#e94560" : "#ccc"};background:${!is3d ? "#e94560" : "#fff"};color:${!is3d ? "#fff" : "#555"};font-size:0.85rem;cursor:pointer;font-weight:600`;
+    document.getElementById("add-form-heading").textContent = is3d
+      ? "➕ Add New 3D Printer"
+      : "➕ Add New Laser Cutter";
+    document.getElementById("p-name-label").textContent = is3d
+      ? "Printer Name *"
+      : "Cutter Name *";
+    document.getElementById("p-name").placeholder = is3d
+      ? "e.g. Ultimaker S5 #1"
+      : "e.g. Laser Cutter #1";
+    document.getElementById("p-model").placeholder = is3d
+      ? "e.g. Ultimaker S5"
+      : "e.g. xTool P2";
+    document.getElementById("p-device-type").value = is3d ? "3dprint" : "laser";
+    document.getElementById("p-fmt-group").style.display = is3d ? "" : "none";
+    document.getElementById("p-laser-fmt-group").style.display = is3d
+      ? "none"
+      : "";
+    document.getElementById("add-btn").textContent = is3d
+      ? "Add 3D Printer"
+      : "Add Laser Cutter";
     renderPrinterTable(_allPrinters);
   }
 
   function showAlert(msg, type = "error") {
     document.getElementById("alert-box").innerHTML =
       `<div class="alert alert-${type}">${msg}</div>`;
-    setTimeout(() => { document.getElementById("alert-box").innerHTML = ""; }, 4000);
+    setTimeout(() => {
+      document.getElementById("alert-box").innerHTML = "";
+    }, 4000);
   }
 
   function fmtDate(s) {
     if (!s) return "—";
-    try { return new Date(s).toLocaleDateString("en-US"); } catch { return "—"; }
+    try {
+      return new Date(s).toLocaleDateString("en-US");
+    } catch {
+      return "—";
+    }
   }
 
   function statusSelStyle(status) {
@@ -290,14 +316,19 @@ block content %}
   }
 
   function esc(s) {
-    return s == null ? "—" : String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+    return s == null
+      ? "—"
+      : String(s)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;");
   }
 
   function renderPrinterTable(list) {
-    const isLaserTab = _equipTab === 'laser';
-    const filtered = list.filter(p => {
-      const dt = p.device_type || '3dprint';
-      return isLaserTab ? dt === 'laser' : dt !== 'laser';
+    const isLaserTab = _equipTab === "laser";
+    const filtered = list.filter((p) => {
+      const dt = p.device_type || "3dprint";
+      return isLaserTab ? dt === "laser" : dt !== "laser";
     });
     document.getElementById("loading").style.display = "none";
     if (!filtered.length) {
@@ -307,16 +338,24 @@ block content %}
     }
     document.getElementById("no-data").style.display = "none";
     const tbody = document.getElementById("printers-body");
-    tbody.innerHTML = filtered.map((p, idx) => {
-      const isLaser = (p.device_type || '3dprint') === 'laser';
-      const fmtsHtml = isLaser
-        ? ['svg','dxf','pdf'].map(f =>
-            `<code style="background:#fce4ec;color:#c62828;padding:1px 6px;border-radius:4px;font-size:0.75rem">.${f}</code>`
-          ).join(' ')
-        : (p.accepted_file_formats || 'ufp').split(',').map(f =>
-            `<code style="background:#e8f0fe;color:#1a73e8;padding:1px 6px;border-radius:4px;font-size:0.75rem">.${f.trim()}</code>`
-          ).join(' ');
-      return `
+    tbody.innerHTML = filtered
+      .map((p, idx) => {
+        const isLaser = (p.device_type || "3dprint") === "laser";
+        const fmtsHtml = isLaser
+          ? ["svg", "dxf", "pdf"]
+              .map(
+                (f) =>
+                  `<code style="background:#fce4ec;color:#c62828;padding:1px 6px;border-radius:4px;font-size:0.75rem">.${f}</code>`,
+              )
+              .join(" ")
+          : (p.accepted_file_formats || "ufp")
+              .split(",")
+              .map(
+                (f) =>
+                  `<code style="background:#e8f0fe;color:#1a73e8;padding:1px 6px;border-radius:4px;font-size:0.75rem">.${f.trim()}</code>`,
+              )
+              .join(" ");
+        return `
       <tr id="row-${p.printer_id}">
         <td>${idx + 1}</td>
         <td class="view-name">${esc(p.printer_name)}</td>
@@ -326,27 +365,35 @@ block content %}
         <td style="text-align:center">
           <select class="status-sel" data-id="${p.printer_id}" onchange="updateStatus(${p.printer_id}, this)"
             style="padding:3px 8px;border-radius:8px;border:1px solid #ccc;font-size:0.8rem;font-weight:600;cursor:pointer;${statusSelStyle(p.status)}">
-            <option value="active"      ${p.status==="active"      ?"selected":""}>Active</option>
-            <option value="maintenance" ${p.status==="maintenance" ?"selected":""}>Maintenance</option>
-            <option value="retired"     ${p.status==="retired"     ?"selected":""}>Retired</option>
+            <option value="active"      ${p.status === "active" ? "selected" : ""}>Active</option>
+            <option value="maintenance" ${p.status === "maintenance" ? "selected" : ""}>Maintenance</option>
+            <option value="retired"     ${p.status === "retired" ? "selected" : ""}>Retired</option>
           </select>
         </td>
         <td>${fmtDate(p.created_at)}</td>
         <td style="white-space:nowrap;display:flex;gap:6px;flex-wrap:wrap">
-          <button class="btn-edit" onclick="startEdit(${p.printer_id}, ${JSON.stringify(p).replace(/"/g,'&quot;')})">✏️ Edit</button>
-          <button class="btn-delete" onclick="deletePrinter(${p.printer_id}, '${esc(p.printer_name).replace(/'/g,"&#39;")}')">🗑 Delete</button>
+          <button class="btn-edit" onclick="startEdit(${p.printer_id}, ${JSON.stringify(p).replace(/"/g, "&quot;")})">✏️ Edit</button>
+          <button class="btn-delete" onclick="deletePrinter(${p.printer_id}, '${esc(p.printer_name).replace(/'/g, "&#39;")}')">🗑 Delete</button>
         </td>
       </tr>`;
-    }).join("");
+      })
+      .join("");
     document.getElementById("printers-table").style.display = "table";
   }
 
   async function loadPrinters() {
     try {
       const res = await apiFetch("/api/admin/printers");
-      if (res.status === 401 || res.status === 403) { clearAuth(); location.href = "/login"; return; }
+      if (res.status === 401 || res.status === 403) {
+        clearAuth();
+        location.href = "/login";
+        return;
+      }
       const data = await res.json();
-      if (!data.success) { showAlert(data.message || "Failed to load printers."); return; }
+      if (!data.success) {
+        showAlert(data.message || "Failed to load printers.");
+        return;
+      }
       _allPrinters = data.printers || [];
       renderPrinterTable(_allPrinters);
     } catch (e) {
@@ -357,30 +404,50 @@ block content %}
 
   async function addPrinter(e) {
     e.preventDefault();
-    const name    = document.getElementById("p-name").value.trim();
-    const model   = document.getElementById("p-model").value.trim();
-    const loc     = document.getElementById("p-location").value.trim();
-    const status  = document.getElementById("p-status").value;
+    const name = document.getElementById("p-name").value.trim();
+    const model = document.getElementById("p-model").value.trim();
+    const loc = document.getElementById("p-location").value.trim();
+    const status = document.getElementById("p-status").value;
     const devType = document.getElementById("p-device-type").value;
-    const isLaser = devType === 'laser';
+    const isLaser = devType === "laser";
     let fmtsStr;
     if (isLaser) {
-      fmtsStr = 'svg,dxf,pdf';
+      fmtsStr = "svg,dxf,pdf";
     } else {
-      const fmts = ["ufp", "3mf"].filter(f => document.getElementById(`p-fmt-${f}`).checked);
-      if (!fmts.length) { showAlert("Please select at least one accepted file format (.ufp or .3mf)."); return; }
+      const fmts = ["ufp", "3mf"].filter(
+        (f) => document.getElementById(`p-fmt-${f}`).checked,
+      );
+      if (!fmts.length) {
+        showAlert(
+          "Please select at least one accepted file format (.ufp or .3mf).",
+        );
+        return;
+      }
       fmtsStr = fmts.join(",");
     }
-    if (!name) { showAlert("Name is required."); return; }
+    if (!name) {
+      showAlert("Name is required.");
+      return;
+    }
     try {
       const res = await apiFetch("/api/admin/printers", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ printer_name: name, model: model || null, location: loc || null, status, accepted_file_formats: fmtsStr, device_type: devType }),
+        body: JSON.stringify({
+          printer_name: name,
+          model: model || null,
+          location: loc || null,
+          status,
+          accepted_file_formats: fmtsStr,
+          device_type: devType,
+        }),
       });
       const data = await res.json();
       if (data.success) {
-        showAlert(`${isLaser ? 'Laser cutter' : 'Printer'} added successfully!`, "success");
+        showAlert(
+          `${isLaser ? "Laser cutter" : "Printer"} added successfully!`,
+          "success",
+        );
         document.getElementById("add-printer-form").reset();
         document.getElementById("p-device-type").value = devType;
         if (!isLaser) document.getElementById("p-fmt-ufp").checked = true;
@@ -396,10 +463,14 @@ block content %}
   async function deletePrinter(id, name) {
     if (!confirm(`Delete "${name}"?`)) return;
     try {
-      const res = await apiFetch(`/api/admin/printers/${id}`, { method: "DELETE" });
+      const res = await apiFetch(`/api/admin/printers/${id}`, {
+        method: "DELETE",
+      });
       const data = await res.json();
-      if (data.success) { showAlert("Deleted.", "success"); loadPrinters(); }
-      else showAlert(data.message || "Failed to delete.");
+      if (data.success) {
+        showAlert("Deleted.", "success");
+        loadPrinters();
+      } else showAlert(data.message || "Failed to delete.");
     } catch (err) {
       showAlert("Failed to delete. Check backend.");
     }
@@ -407,53 +478,74 @@ block content %}
 
   function startEdit(id, p) {
     const row = document.getElementById(`row-${id}`);
-    const isLaser = (p.device_type || '3dprint') === 'laser';
-    const curFmts = (p.accepted_file_formats || "ufp").split(",").map(s => s.trim());
+    const isLaser = (p.device_type || "3dprint") === "laser";
+    const curFmts = (p.accepted_file_formats || "ufp")
+      .split(",")
+      .map((s) => s.trim());
     row.querySelector(".view-name").innerHTML =
       `<input id="edit-name-${id}" value="${esc(p.printer_name)}" style="width:100%;padding:4px 6px;border:1px solid #ccc;border-radius:6px;font-size:0.85rem">`;
     row.querySelector(".view-model").innerHTML =
-      `<input id="edit-model-${id}" value="${esc(p.model??'')}" style="width:100%;padding:4px 6px;border:1px solid #ccc;border-radius:6px;font-size:0.85rem">`;
+      `<input id="edit-model-${id}" value="${esc(p.model ?? "")}" style="width:100%;padding:4px 6px;border:1px solid #ccc;border-radius:6px;font-size:0.85rem">`;
     row.querySelector(".view-location").innerHTML =
-      `<input id="edit-location-${id}" value="${esc(p.location??'')}" style="width:100%;padding:4px 6px;border:1px solid #ccc;border-radius:6px;font-size:0.85rem">`;
+      `<input id="edit-location-${id}" value="${esc(p.location ?? "")}" style="width:100%;padding:4px 6px;border:1px solid #ccc;border-radius:6px;font-size:0.85rem">`;
     row.querySelector(".view-fmts").innerHTML = isLaser
       ? `<span style="color:#888;font-size:0.82rem">svg, dxf, pdf</span>`
       : `
       <label style="display:flex;align-items:center;gap:4px;font-size:0.85rem;cursor:pointer;white-space:nowrap">
-        <input type="checkbox" id="edit-fmt-ufp-${id}" ${curFmts.includes("ufp")?"checked":""}> <code>.ufp</code>
+        <input type="checkbox" id="edit-fmt-ufp-${id}" ${curFmts.includes("ufp") ? "checked" : ""}> <code>.ufp</code>
       </label>
       <label style="display:flex;align-items:center;gap:4px;font-size:0.85rem;cursor:pointer;white-space:nowrap;margin-top:4px">
-        <input type="checkbox" id="edit-fmt-3mf-${id}" ${curFmts.includes("3mf")?"checked":""}> <code>.3mf</code>
+        <input type="checkbox" id="edit-fmt-3mf-${id}" ${curFmts.includes("3mf") ? "checked" : ""}> <code>.3mf</code>
       </label>`;
     row.querySelector("td:last-child").innerHTML = `
       <button class="btn" style="width:auto;padding:4px 12px;font-size:0.8rem" onclick="saveEdit(${id},${isLaser})">💾 Save</button>
       <button class="btn-delete" style="background:none;border:1px solid #ccc;color:#555" onclick="cancelEdit()">✕ Cancel</button>`;
   }
 
-  function cancelEdit() { loadPrinters(); }
+  function cancelEdit() {
+    loadPrinters();
+  }
 
   async function saveEdit(id, isLaser) {
-    const name  = document.getElementById(`edit-name-${id}`)?.value.trim();
+    const name = document.getElementById(`edit-name-${id}`)?.value.trim();
     const model = document.getElementById(`edit-model-${id}`)?.value.trim();
-    const loc   = document.getElementById(`edit-location-${id}`)?.value.trim();
+    const loc = document.getElementById(`edit-location-${id}`)?.value.trim();
     let fmtsStr;
     if (isLaser) {
-      fmtsStr = 'svg,dxf,pdf';
+      fmtsStr = "svg,dxf,pdf";
     } else {
-      const fmts = ["ufp","3mf"].filter(f => document.getElementById(`edit-fmt-${f}-${id}`)?.checked);
-      if (!fmts.length) { showAlert("Please select at least one file format."); return; }
+      const fmts = ["ufp", "3mf"].filter(
+        (f) => document.getElementById(`edit-fmt-${f}-${id}`)?.checked,
+      );
+      if (!fmts.length) {
+        showAlert("Please select at least one file format.");
+        return;
+      }
       fmtsStr = fmts.join(",");
     }
-    if (!name) { showAlert("Name is required."); return; }
+    if (!name) {
+      showAlert("Name is required.");
+      return;
+    }
     try {
       const res = await apiFetch(`/api/admin/printers/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ printer_name: name, model: model||null, location: loc||null, accepted_file_formats: fmtsStr }),
+        body: JSON.stringify({
+          printer_name: name,
+          model: model || null,
+          location: loc || null,
+          accepted_file_formats: fmtsStr,
+        }),
       });
       const data = await res.json();
-      if (data.success) { showAlert("Updated.", "success"); loadPrinters(); }
-      else showAlert(data.message || "Failed to save.");
-    } catch (e) { showAlert("Network error."); }
+      if (data.success) {
+        showAlert("Updated.", "success");
+        loadPrinters();
+      } else showAlert(data.message || "Failed to save.");
+    } catch (e) {
+      showAlert("Network error.");
+    }
   }
 </script>
 {% endblock %}
