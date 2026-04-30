@@ -186,7 +186,7 @@ def get_profile():
         return jsonify({'success': False, 'message': 'Invalid or expired token'}), 401
 
     table = 'students' if payload['user_type'] in ('student', 'student_staff') else 'admins'
-    query = f"SELECT email, full_name FROM {table} WHERE email = %s"
+    query = f"SELECT email, full_name, ui_layout_preference FROM {table} WHERE email = %s"
     user = db.fetch_one(query, (payload['email'],))
 
     if user:
@@ -195,11 +195,36 @@ def get_profile():
             'user': {
                 'email': user['email'],
                 'full_name': user['full_name'],
-                'user_type': payload['user_type']
+                'user_type': payload['user_type'],
+                'ui_layout_preference': user.get('ui_layout_preference', 'dragdrop') or 'dragdrop',
             }
         }), 200
     else:
         return jsonify({'success': False, 'message': 'User not found'}), 404
+
+
+@auth_bp.route('/api/profile/layout-preference', methods=['PATCH'])
+def update_layout_preference():
+    """Save the user's preferred upload layout ('dragdrop' or 'dropdown')."""
+    auth_header = request.headers.get('Authorization', '')
+    if not auth_header.startswith('Bearer '):
+        return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+    token = auth_header.split(' ')[1]
+    payload = AuthService.verify_jwt_token(token)
+    if not payload:
+        return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+
+    data = request.json or {}
+    pref = (data.get('ui_layout_preference') or '').strip()
+    if pref not in ('dragdrop', 'dropdown'):
+        return jsonify({'success': False, 'message': "Invalid value — must be 'dragdrop' or 'dropdown'"}), 400
+
+    table = 'students' if payload['user_type'] in ('student', 'student_staff') else 'admins'
+    db.execute_query(
+        f"UPDATE {table} SET ui_layout_preference = %s WHERE email = %s",
+        (pref, payload['email'])
+    )
+    return jsonify({'success': True, 'ui_layout_preference': pref}), 200
 
 
 @auth_bp.route('/api/profile/change-password', methods=['POST'])

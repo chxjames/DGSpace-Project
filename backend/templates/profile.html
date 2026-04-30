@@ -89,6 +89,32 @@
       <div style="font-size:0.8rem;color:#aaa;text-align:center" id="profile-joined"></div>
     </div>
 
+    <!-- ── Layout Preference card ── -->
+    <div class="card" style="margin-bottom:20px" id="layout-pref-card">
+      <div class="section-title">🖥️ Upload Layout Preference</div>
+      <p style="font-size:0.85rem;color:#666;margin:0 0 14px">
+        Choose how the file upload area looks when you create a new print request.
+      </p>
+      <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;margin-bottom:10px;font-weight:400">
+        <input type="radio" name="ui_pref" id="pref-dragdrop" value="dragdrop"
+               style="accent-color:#e94560;width:16px;height:16px;margin-top:2px">
+        <span>
+          <strong>🖱️ Drag &amp; Drop</strong><br>
+          <span style="font-size:0.82rem;color:#888">Drag your file into a drop zone (default)</span>
+        </span>
+      </label>
+      <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;margin-bottom:14px;font-weight:400">
+        <input type="radio" name="ui_pref" id="pref-dropdown" value="dropdown"
+               style="accent-color:#e94560;width:16px;height:16px;margin-top:2px">
+        <span>
+          <strong>📂 File Picker</strong><br>
+          <span style="font-size:0.82rem;color:#888">Click a button to browse and select your file</span>
+        </span>
+      </label>
+      <div id="pref-alert" style="margin-bottom:8px"></div>
+      <button class="btn btn-sm" onclick="saveLayoutPref()" id="btn-save-pref">Save Preference</button>
+    </div>
+
     <!-- Change password / change name card (only shown when 2FA is active) -->
     <div class="card" id="change-pw-card" style="margin-bottom:20px;display:none">
 
@@ -256,6 +282,11 @@
       const roleMap = { student:'Student', student_staff:'Student Staff', admin:'Admin', professor:'Professor', manager:'Manager' };
       badge.textContent = roleMap[u.user_type] || u.user_type;
       badge.className = 'badge ' + (u.user_type === 'student' || u.user_type === 'student_staff' ? 'badge-approved' : 'badge-in_progress');
+
+      // Restore layout preference radio
+      const pref = u.ui_layout_preference || 'dragdrop';
+      const prefRadio = document.getElementById('pref-' + pref);
+      if (prefRadio) prefRadio.checked = true;
     } catch(e) {}
   }
 
@@ -351,6 +382,33 @@
       document.getElementById('twofa-loading').textContent = 'Could not load 2FA status.';
     }
   }
+
+  /* ── Layout preference ── */
+  window.saveLayoutPref = async function() {
+    const selected = document.querySelector('input[name="ui_pref"]:checked');
+    const alertEl  = document.getElementById('pref-alert');
+    alertEl.innerHTML = '';
+    if (!selected) { alertEl.innerHTML = '<div class="alert alert-error">Please select a preference.</div>'; return; }
+    const btn = document.getElementById('btn-save-pref');
+    btn.disabled = true; btn.textContent = 'Saving…';
+    try {
+      const r = await apiFetch('/api/profile/layout-preference', {
+        method: 'PATCH',
+        body: JSON.stringify({ ui_layout_preference: selected.value })
+      });
+      const d = await r.json();
+      if (d.success) {
+        alertEl.innerHTML = '<div class="alert alert-success">✅ Preference saved!</div>';
+        setTimeout(() => { alertEl.innerHTML = ''; }, 3000);
+      } else {
+        alertEl.innerHTML = `<div class="alert alert-error">${d.message}</div>`;
+      }
+    } catch(e) {
+      alertEl.innerHTML = '<div class="alert alert-error">Network error.</div>';
+    } finally {
+      btn.disabled = false; btn.textContent = 'Save Preference';
+    }
+  };
 
   window.startSetup2FA = async function() {
     // If QR is already showing, don't regenerate — that would invalidate the scanned code

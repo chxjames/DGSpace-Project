@@ -16,23 +16,62 @@
     <label>Upload File *</label>
 
       <p style="font-size:0.82rem;color:#888;margin:0 0 8px">Upload your raw <strong>.stl</strong> model.</p>
-      <div id="stl-drop-zone" style="border:2px dashed #ccc;border-radius:8px;padding:24px;text-align:center;cursor:pointer;transition:border-color 0.2s,background 0.2s"
-        onclick="document.getElementById('stl-file-input').click()"
-        ondragover="event.preventDefault();this.style.borderColor='#007bff';this.style.background='#f0f7ff';"
-        ondragleave="this.style.borderColor='#ccc';this.style.background='';"
-        ondrop="handleDrop(event)">
-        <div id="stl-drop-label">
-          <svg width="32" height="32" fill="none" stroke="#aaa" stroke-width="1.5" viewBox="0 0 24 24" style="margin-bottom:8px">
-            <path d="M12 16V8m0 0-3 3m3-3 3 3M6 20h12a2 2 0 0 0 2-2V8l-6-6H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2z"/>
-          </svg>
-          <p style="margin:0;color:#888;font-size:0.9rem">Drag &amp; drop your <strong>.stl</strong> file here, or <span style="color:#007bff">click to browse</span></p>
-          <p style="margin:4px 0 0;color:#bbb;font-size:0.8rem">Max 50 MB</p>
-        </div>
-        <div id="stl-file-selected" style="display:none">
-          <p style="margin:0;font-size:0.9rem;color:#333">📎 <span id="stl-filename-display"></span></p>
-          <button type="button" onclick="clearStlFile(event)" style="margin-top:6px;font-size:0.8rem;color:#dc3545;background:none;border:none;cursor:pointer">✕ Remove</button>
+
+      <!-- Layout toggle pill -->
+      <div style="display:flex;gap:8px;margin-bottom:10px">
+        <button type="button" id="toggle-dragdrop"
+          onclick="switchUploadLayout('dragdrop')"
+          style="padding:4px 12px;font-size:0.78rem;border-radius:20px;border:1px solid #007bff;background:#007bff;color:#fff;cursor:pointer">
+          🖱️ Drag &amp; Drop
+        </button>
+        <button type="button" id="toggle-dropdown"
+          onclick="switchUploadLayout('dropdown')"
+          style="padding:4px 12px;font-size:0.78rem;border-radius:20px;border:1px solid #ccc;background:#fff;color:#555;cursor:pointer">
+          📂 File Picker
+        </button>
+      </div>
+
+      <!-- Drag-drop layout -->
+      <div id="upload-layout-dragdrop">
+        <div id="stl-drop-zone" style="border:2px dashed #ccc;border-radius:8px;padding:24px;text-align:center;cursor:pointer;transition:border-color 0.2s,background 0.2s"
+          onclick="document.getElementById('stl-file-input').click()"
+          ondragover="event.preventDefault();this.style.borderColor='#007bff';this.style.background='#f0f7ff';"
+          ondragleave="this.style.borderColor='#ccc';this.style.background='';"
+          ondrop="handleDrop(event)">
+          <div id="stl-drop-label">
+            <svg width="32" height="32" fill="none" stroke="#aaa" stroke-width="1.5" viewBox="0 0 24 24" style="margin-bottom:8px">
+              <path d="M12 16V8m0 0-3 3m3-3 3 3M6 20h12a2 2 0 0 0 2-2V8l-6-6H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2z"/>
+            </svg>
+            <p style="margin:0;color:#888;font-size:0.9rem">Drag &amp; drop your <strong>.stl</strong> file here, or <span style="color:#007bff">click to browse</span></p>
+            <p style="margin:4px 0 0;color:#bbb;font-size:0.8rem">Max 50 MB</p>
+          </div>
+          <div id="stl-file-selected" style="display:none">
+            <p style="margin:0;font-size:0.9rem;color:#333">📎 <span id="stl-filename-display"></span></p>
+            <button type="button" onclick="clearStlFile(event)" style="margin-top:6px;font-size:0.8rem;color:#dc3545;background:none;border:none;cursor:pointer">✕ Remove</button>
+          </div>
         </div>
       </div>
+
+      <!-- File-picker (dropdown) layout -->
+      <div id="upload-layout-dropdown" style="display:none">
+        <div style="border:1px solid #ddd;border-radius:8px;padding:18px;background:#fafafa">
+          <div id="picker-idle">
+            <label for="stl-picker-input"
+              style="display:inline-block;padding:8px 18px;background:#007bff;color:#fff;border-radius:4px;cursor:pointer;font-size:0.9rem;font-weight:600">
+              📂 Choose .stl file…
+            </label>
+            <input type="file" id="stl-picker-input" accept=".stl" style="display:none"
+              onchange="handleFileSelect(this.files[0])">
+            <p style="margin:8px 0 0;font-size:0.8rem;color:#aaa">Max 50 MB &nbsp;·&nbsp; .stl only</p>
+          </div>
+          <div id="picker-selected" style="display:none">
+            <p style="margin:0;font-size:0.9rem;color:#333">📎 <span id="picker-filename-display"></span></p>
+            <button type="button" onclick="clearStlFile(event)"
+              style="margin-top:6px;font-size:0.8rem;color:#dc3545;background:none;border:none;cursor:pointer">✕ Remove</button>
+          </div>
+        </div>
+      </div>
+
       <input type="file" id="stl-file-input" accept=".stl" style="display:none" onchange="handleFileSelect(this.files[0])">
       <div id="stl-upload-status" style="margin-top:6px;font-size:0.85rem"></div>
 
@@ -123,6 +162,26 @@
   }
 })();
 
+// ── Upload layout preference ──────────────────────────────
+let _currentLayout = 'dragdrop'; // will be overwritten on load
+
+function switchUploadLayout(layout) {
+  _currentLayout = layout;
+  const isDrag = layout === 'dragdrop';
+  document.getElementById('upload-layout-dragdrop').style.display = isDrag ? '' : 'none';
+  document.getElementById('upload-layout-dropdown').style.display = isDrag ? 'none' : '';
+  // Toggle pill styles
+  const btnDrag = document.getElementById('toggle-dragdrop');
+  const btnPick = document.getElementById('toggle-dropdown');
+  if (isDrag) {
+    btnDrag.style.background = '#007bff'; btnDrag.style.color = '#fff'; btnDrag.style.borderColor = '#007bff';
+    btnPick.style.background = '#fff';    btnPick.style.color = '#555'; btnPick.style.borderColor = '#ccc';
+  } else {
+    btnPick.style.background = '#007bff'; btnPick.style.color = '#fff'; btnPick.style.borderColor = '#007bff';
+    btnDrag.style.background = '#fff';    btnDrag.style.color = '#555'; btnDrag.style.borderColor = '#ccc';
+  }
+}
+
 // ── STL upload state ──────────────────────────────────────
 let uploadedStlFilename = null;   // saved name on server (uuid.stl)
 let uploadedStlOriginalName = null;
@@ -152,7 +211,7 @@ function maybeAutoFillProjectNameFromStl(originalName) {
 }
 
 // If the user types, stop auto-overwriting.
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   // Set deadline min to today
   const deadlineInput = document.getElementById('deadline_date');
   if (deadlineInput) {
@@ -171,6 +230,16 @@ document.addEventListener('DOMContentLoaded', () => {
   input.addEventListener('input', () => {
     autoFilledProjectNameFromStl = false;
   });
+
+  // Load user layout preference and apply
+  try {
+    const r = await apiFetch('/api/profile');
+    const d = await r.json();
+    const pref = (d.user && d.user.ui_layout_preference) || 'dragdrop';
+    switchUploadLayout(pref);
+  } catch(e) {
+    switchUploadLayout('dragdrop'); // fallback
+  }
 });
 
 function setStlStatus(msg, color) {
@@ -221,9 +290,15 @@ async function uploadStlFile(file) {
 
       maybeAutoFillProjectNameFromStl(uploadedStlOriginalName);
 
+      // Update drag-drop UI
       document.getElementById('stl-drop-label').style.display   = 'none';
       document.getElementById('stl-file-selected').style.display = 'block';
       document.getElementById('stl-filename-display').textContent = data.original_name;
+      // Update file-picker UI
+      document.getElementById('picker-idle').style.display     = 'none';
+      document.getElementById('picker-selected').style.display = 'block';
+      document.getElementById('picker-filename-display').textContent = data.original_name;
+
       setStlStatus('File uploaded successfully.', '#28a745');
     } else {
       setStlStatus(data.message || 'Upload failed.', '#dc3545');
@@ -243,8 +318,14 @@ async function clearStlFile(event) {
   uploadedStlOriginalName = null;
   autoFilledProjectNameFromStl = false;
   document.getElementById('stl-file-input').value = '';
+  // Reset drag-drop UI
   document.getElementById('stl-drop-label').style.display   = 'block';
   document.getElementById('stl-file-selected').style.display = 'none';
+  // Reset file-picker UI
+  const pickerInput = document.getElementById('stl-picker-input');
+  if (pickerInput) pickerInput.value = '';
+  document.getElementById('picker-idle').style.display     = 'block';
+  document.getElementById('picker-selected').style.display = 'none';
   setStlStatus('');
 
   // Clear auto-filled project name
