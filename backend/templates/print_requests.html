@@ -151,9 +151,13 @@ function renderTable(list, userType, user) {
         card.className = 'req-card';
         card.style.borderColor = g.border;
         card.style.background  = g.color;
+        const isLaserCard = (r.service_type || '3dprint') === 'laser';
+        const svcBadgeCard = isLaserCard
+          ? `<span style="background:#fce4ec;color:#c62828;border-radius:10px;padding:1px 7px;font-size:0.72rem;font-weight:600;white-space:nowrap">✂️ Laser</span>`
+          : `<span style="background:#e8f0fe;color:#1a73e8;border-radius:10px;padding:1px 7px;font-size:0.72rem;font-weight:600;white-space:nowrap">🖨️ 3D</span>`;
         card.innerHTML = `
           <div class="req-card-top">
-            <div class="req-card-name">${globalIdx}. ${r.project_name}</div>
+            <div class="req-card-name">${globalIdx}. ${r.project_name} ${svcBadgeCard}</div>
             ${statusBadge(r.status)}
           </div>
           <div class="req-card-meta">
@@ -206,9 +210,13 @@ function renderTable(list, userType, user) {
         const tr = document.createElement('tr');
         tr.style.cursor = 'pointer';
         tr.onclick = () => { location.href = `/print-requests/${r.id}/`; };
+        const isLaserRow = (r.service_type || '3dprint') === 'laser';
+        const svcBadgeRow = isLaserRow
+          ? `<span style="background:#fce4ec;color:#c62828;border-radius:10px;padding:1px 7px;font-size:0.7rem;font-weight:600;margin-left:5px;white-space:nowrap">✂️ Laser</span>`
+          : `<span style="background:#e8f0fe;color:#1a73e8;border-radius:10px;padding:1px 7px;font-size:0.7rem;font-weight:600;margin-left:5px;white-space:nowrap">🖨️ 3D</span>`;
         tr.innerHTML = `
           <td>${globalIdx}</td>
-          <td><a href="/print-requests/${r.id}/" style="color:#e94560;font-weight:500" onclick="event.stopPropagation()">${r.project_name}</a></td>
+          <td><a href="/print-requests/${r.id}/" style="color:#e94560;font-weight:500" onclick="event.stopPropagation()">${r.project_name}</a>${svcBadgeRow}</td>
           ${showStudent  ? `<td style="font-size:0.82rem;color:#555">${r.student_name || r.student_email || '—'}</td>` : ''}
           <td>${statusBadge(r.status)}</td>
           <td>${deadlineHtml}</td>

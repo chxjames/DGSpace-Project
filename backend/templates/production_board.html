@@ -947,6 +947,7 @@
         <div class="job-title">${attemptBadge}${escHtml(j.project_name)}</div>
         <div class="job-meta">
           <span><span class="job-status-badge jsb-${jsCls}">${jsLabel}</span></span>
+          ${(j.service_type || '3dprint') === 'laser' ? `<span style="background:#fce4ec;color:#c62828;border-radius:10px;padding:1px 7px;font-size:0.68rem;font-weight:700">✂️ Laser</span>` : ''}
           <span>⏱ ${timeStr}</span>
           <span>👤 ${escHtml(j.student_name || j.student_email)}</span>
           ${dl}
