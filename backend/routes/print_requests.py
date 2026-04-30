@@ -85,6 +85,77 @@ def delete_uploaded_stl(filename: str):
         return jsonify({'success': False, 'message': 'Failed to delete file'}), 500
 
 
+# ── Laser file upload ─────────────────────────────────────────────────────────
+
+LASER_ALLOWED_EXTENSIONS = {'.svg', '.dxf', '.pdf'}
+
+@print_bp.route('/api/print-requests/upload-laser', methods=['POST'])
+def upload_laser():
+    """Upload a laser cut design file (.svg / .dxf / .pdf) before submitting a request."""
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({'success': False, 'message': 'No token provided'}), 401
+
+    token = auth_header.split(' ')[1]
+    payload = AuthService.verify_jwt_token(token)
+    if not payload or payload.get('user_type') not in ('student', 'student_staff', 'admin'):
+        return jsonify({'success': False, 'message': 'Invalid token or not a student'}), 401
+
+    if 'file' not in request.files:
+        return jsonify({'success': False, 'message': 'No file provided'}), 400
+
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'success': False, 'message': 'No file selected'}), 400
+
+    original_name = file.filename
+    ext = os.path.splitext(original_name.lower())[1]
+    if ext not in LASER_ALLOWED_EXTENSIONS:
+        return jsonify({'success': False, 'message': 'Only .svg, .dxf, or .pdf files are allowed'}), 400
+
+    saved_name = f"{uuid.uuid4().hex}{ext}"
+    save_path = os.path.join(current_app.config['UPLOAD_FOLDER'], saved_name)
+    file.save(save_path)
+
+    return jsonify({
+        'success': True,
+        'filename': saved_name,
+        'original_name': original_name
+    }), 201
+
+
+@print_bp.route('/api/print-requests/upload-laser/<filename>', methods=['DELETE'])
+def delete_uploaded_laser(filename: str):
+    """Delete a previously uploaded laser design file."""
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({'success': False, 'message': 'No token provided'}), 401
+
+    token = auth_header.split(' ')[1]
+    payload = AuthService.verify_jwt_token(token)
+    if not payload or payload.get('user_type') not in ('student', 'student_staff', 'admin'):
+        return jsonify({'success': False, 'message': 'Invalid token or not a student'}), 401
+
+    safe_name = os.path.basename(filename)
+    if safe_name != filename:
+        return jsonify({'success': False, 'message': 'Invalid filename'}), 400
+
+    upload_dir = current_app.config['UPLOAD_FOLDER']
+    abs_upload_dir = os.path.abspath(upload_dir)
+    abs_file_path  = os.path.abspath(os.path.join(upload_dir, safe_name))
+    if not abs_file_path.startswith(abs_upload_dir + os.sep):
+        return jsonify({'success': False, 'message': 'Invalid filename'}), 400
+
+    if not os.path.exists(abs_file_path):
+        return jsonify({'success': True, 'message': 'File already deleted'}), 200
+
+    try:
+        os.remove(abs_file_path)
+        return jsonify({'success': True, 'message': 'File deleted'}), 200
+    except OSError:
+        return jsonify({'success': False, 'message': 'Failed to delete file'}), 500
+
+
 @print_bp.route('/api/print-requests/upload-ufp', methods=['POST'])
 def upload_ufp():
     """Upload a .ufp (Ultimaker Format Package) file and return slicer estimates.
@@ -311,6 +382,8 @@ def create_print_request():
         slicer_material_g=float(data['slicer_material_g']) if data.get('slicer_material_g') else None,
         deadline_date=data.get('deadline_date') or None,
         submitter_is_admin=payload.get('user_type') == 'admin',
+        service_type=data.get('service_type', '3dprint'),
+        laser_options=data.get('laser_options') or None,
     )
 
     if result['success']:

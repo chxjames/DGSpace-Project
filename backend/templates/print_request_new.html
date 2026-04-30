@@ -1,31 +1,41 @@
 {% extends "base.html" %}
-{% block title %}New Print Request — DGSpace{% endblock %}
+{% block title %}New Request — DGSpace{% endblock %}
 
 {% block content %}
 <div style="max-width:560px;margin:0 auto 12px;display:flex;justify-content:flex-end">
   <a href="/" style="color:#888;text-decoration:none;font-size:0.9rem">← Home</a>
 </div>
 <div class="card" style="max-width:560px;margin:0 auto">
-  <h2>➕ Submit a 3D Print Request</h2>
-  <p style="color:#666;margin-bottom:20px;font-size:0.9rem">Fill in the details below. An admin will review and follow up on your request.</p>
+  <h2 id="page-title">➕ Submit a 3D Print Request</h2>
+  <p style="color:#666;margin-bottom:12px;font-size:0.9rem">Fill in the details below. An admin will review and follow up on your request.</p>
+
+  <!-- ── Service Type Toggle ──────────────────────────────────── -->
+  <div style="display:flex;gap:8px;margin-bottom:20px">
+    <button type="button" id="svc-3d" onclick="switchServiceType('3dprint')"
+      style="padding:7px 18px;font-size:0.9rem;border-radius:20px;border:2px solid #007bff;background:#007bff;color:#fff;cursor:pointer;font-weight:600">
+      🖨️ 3D Print
+    </button>
+    <button type="button" id="svc-laser" onclick="switchServiceType('laser')"
+      style="padding:7px 18px;font-size:0.9rem;border-radius:20px;border:2px solid #ccc;background:#fff;color:#555;cursor:pointer;font-weight:600">
+      ✂️ Laser Cut
+    </button>
+  </div>
 
   <div id="alert-box"></div>
 
-  <!-- ── File Upload: STL ─────────────────────────────────────────── -->
-  <div class="form-group">
-    <label>Upload File *</label>
-
+  <!-- ═══════════════════ 3D PRINT SECTION ═══════════════════ -->
+  <div id="section-3d">
+    <div class="form-group">
+      <label>Upload File *</label>
       <p style="font-size:0.82rem;color:#888;margin:0 0 8px">Upload your raw <strong>.stl</strong> model.</p>
 
-      <!-- Layout toggle pill -->
+      <!-- Layout toggle pills -->
       <div style="display:flex;gap:8px;margin-bottom:10px">
-        <button type="button" id="toggle-dragdrop"
-          onclick="switchUploadLayout('dragdrop')"
+        <button type="button" id="toggle-dragdrop" onclick="switchUploadLayout('dragdrop')"
           style="padding:4px 12px;font-size:0.78rem;border-radius:20px;border:1px solid #007bff;background:#007bff;color:#fff;cursor:pointer">
           🖱️ Drag &amp; Drop
         </button>
-        <button type="button" id="toggle-dropdown"
-          onclick="switchUploadLayout('dropdown')"
+        <button type="button" id="toggle-dropdown" onclick="switchUploadLayout('dropdown')"
           style="padding:4px 12px;font-size:0.78rem;border-radius:20px;border:1px solid #ccc;background:#fff;color:#555;cursor:pointer">
           📂 File Picker
         </button>
@@ -47,12 +57,12 @@
           </div>
           <div id="stl-file-selected" style="display:none">
             <p style="margin:0;font-size:0.9rem;color:#333">📎 <span id="stl-filename-display"></span></p>
-            <button type="button" onclick="clearStlFile(event)" style="margin-top:6px;font-size:0.8rem;color:#dc3545;background:none;border:none;cursor:pointer">✕ Remove</button>
+            <button type="button" onclick="clearFile(event)" style="margin-top:6px;font-size:0.8rem;color:#dc3545;background:none;border:none;cursor:pointer">✕ Remove</button>
           </div>
         </div>
       </div>
 
-      <!-- File-picker (dropdown) layout -->
+      <!-- File-picker layout -->
       <div id="upload-layout-dropdown" style="display:none">
         <div style="border:1px solid #ddd;border-radius:8px;padding:18px;background:#fafafa">
           <div id="picker-idle">
@@ -66,7 +76,7 @@
           </div>
           <div id="picker-selected" style="display:none">
             <p style="margin:0;font-size:0.9rem;color:#333">📎 <span id="picker-filename-display"></span></p>
-            <button type="button" onclick="clearStlFile(event)"
+            <button type="button" onclick="clearFile(event)"
               style="margin-top:6px;font-size:0.8rem;color:#dc3545;background:none;border:none;cursor:pointer">✕ Remove</button>
           </div>
         </div>
@@ -74,9 +84,87 @@
 
       <input type="file" id="stl-file-input" accept=".stl" style="display:none" onchange="handleFileSelect(this.files[0])">
       <div id="stl-upload-status" style="margin-top:6px;font-size:0.85rem"></div>
+    </div>
 
-  </div>
+    <div class="form-group">
+      <label>Material</label>
+      <select id="material_type">
+        <option value="PLA">PLA (Recommended, easy to print)</option>
+        <option value="ABS">ABS (Stronger, requires ventilation)</option>
+        <option value="PETG">PETG (Flexible and heat-resistant)</option>
+        <option value="TPU">TPU (Flexible material)</option>
+        <option value="Resin">Resin (High precision)</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Color Preference</label>
+      <select id="color_preference">
+        <option value="Any">🎨 Any (let staff decide)</option>
+        <option value="White">⬜ White</option>
+        <option value="Black">⬛ Black</option>
+        <option value="Red">🟥 Red</option>
+        <option value="Blue">🟦 Blue</option>
+        <option value="Green">🟩 Green</option>
+        <option value="Yellow">🟨 Yellow</option>
+        <option value="Orange">🟧 Orange</option>
+        <option value="I do not care">🤔 I do not care</option>
+      </select>
+    </div>
+  </div><!-- /#section-3d -->
 
+  <!-- ═══════════════════ LASER CUT SECTION ═══════════════════ -->
+  <div id="section-laser" style="display:none">
+    <div class="form-group">
+      <label>Upload File *</label>
+      <p style="font-size:0.82rem;color:#888;margin:0 0 8px">Upload your design file (<strong>.svg</strong>, <strong>.dxf</strong>, or <strong>.pdf</strong>).</p>
+      <div id="laser-drop-zone" style="border:2px dashed #ccc;border-radius:8px;padding:24px;text-align:center;cursor:pointer;transition:border-color 0.2s,background 0.2s"
+        onclick="document.getElementById('laser-file-input').click()"
+        ondragover="event.preventDefault();this.style.borderColor='#e94560';this.style.background='#fff5f7';"
+        ondragleave="this.style.borderColor='#ccc';this.style.background='';"
+        ondrop="handleDrop(event)">
+        <div id="laser-drop-label">
+          <svg width="32" height="32" fill="none" stroke="#aaa" stroke-width="1.5" viewBox="0 0 24 24" style="margin-bottom:8px">
+            <path d="M12 16V8m0 0-3 3m3-3 3 3M6 20h12a2 2 0 0 0 2-2V8l-6-6H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2z"/>
+          </svg>
+          <p style="margin:0;color:#888;font-size:0.9rem">Drag &amp; drop your file here, or <span style="color:#e94560">click to browse</span></p>
+          <p style="margin:4px 0 0;color:#bbb;font-size:0.8rem">Max 20 MB &nbsp;·&nbsp; .svg / .dxf / .pdf</p>
+        </div>
+        <div id="laser-file-selected" style="display:none">
+          <p style="margin:0;font-size:0.9rem;color:#333">📎 <span id="laser-filename-display"></span></p>
+          <button type="button" onclick="clearFile(event)" style="margin-top:6px;font-size:0.8rem;color:#dc3545;background:none;border:none;cursor:pointer">✕ Remove</button>
+        </div>
+      </div>
+      <input type="file" id="laser-file-input" accept=".svg,.dxf,.pdf" style="display:none" onchange="handleFileSelect(this.files[0])">
+      <div id="laser-upload-status" style="margin-top:6px;font-size:0.85rem"></div>
+    </div>
+
+    <div class="form-group">
+      <label>Material *</label>
+      <select id="laser_material">
+        <option value="Wood">🪵 Wood</option>
+        <option value="Acrylic">🔲 Acrylic</option>
+        <option value="Cardboard">📦 Cardboard</option>
+        <option value="Leather">🟤 Leather</option>
+        <option value="Other">❓ Other</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>Job Type *</label>
+      <select id="laser_job_type">
+        <option value="Cut">✂️ Cut</option>
+        <option value="Engrave">✏️ Engrave</option>
+        <option value="Both">✂️✏️ Cut &amp; Engrave</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>Dimensions &amp; Notes</label>
+      <textarea id="laser_dimensions" placeholder="Material thickness, sheet size, special instructions…" style="min-height:80px"></textarea>
+    </div>
+  </div><!-- /#section-laser -->
+
+  <!-- ═══════════════════ SHARED FIELDS ═══════════════════════ -->
   <div class="form-group">
     <label>Project Name * <span style="color:#888;font-weight:400">(auto-filled from filename)</span></label>
     <input type="text" id="project_name" placeholder="e.g. Graduation project base">
@@ -85,32 +173,7 @@
     <label>Description</label>
     <textarea id="description" placeholder="Dimensions, purpose, special notes…"></textarea>
   </div>
-  <div class="form-group">
-    <label>Material</label>
-    <select id="material_type">
-      <option value="PLA">PLA (Recommended, easy to print)</option>
-      <option value="ABS">ABS (Stronger, requires ventilation)</option>
-      <option value="PETG">PETG (Flexible and heat-resistant)</option>
-      <option value="TPU">TPU (Flexible material)</option>
-      <option value="Resin">Resin (High precision)</option>
-    </select>
-  </div>
-  <div class="form-group">
-    <label>Color Preference</label>
-    <select id="color_preference">
-      <option value="Any">🎨 Any (let staff decide)</option>
-      <option value="White">⬜ White</option>
-      <option value="Black">⬛ Black</option>
-      <option value="Red">🟥 Red</option>
-      <option value="Blue">🟦 Blue</option>
-      <option value="Green">🟩 Green</option>
-      <option value="Yellow">🟨 Yellow</option>
-      <option value="Orange">🟧 Orange</option>
-      <option value="I do not care">🤔 I do not care</option>
-    </select>
-  </div>
 
-  <!-- ── Project Classification ────────────────────────────────── -->
   <div style="display:flex;gap:12px;flex-wrap:wrap">
     <div class="form-group" style="flex:1;min-width:200px">
       <label>Is this a Senior Design Project?</label>
@@ -136,19 +199,17 @@
     </div>
   </div>
 
-  <!-- ── Deadline ──────────────────────────────────────────────── -->
+  <!-- Deadline -->
   <div class="form-group">
     <label>Project Deadline <span style="color:#e94560">*</span></label>
     <p style="font-size:0.82rem;color:#888;margin:2px 0 8px">
       Please enter your project deadline so staff can schedule accordingly.
     </p>
-    <input type="date" id="deadline_date"
-           style="max-width:220px"
-           min="" required>
-    </div>
+    <input type="date" id="deadline_date" style="max-width:220px" min="" required>
+    <p id="deadline-warn" style="display:none;font-size:0.82rem;color:#e94560;margin:4px 0 0">⚠️ Less than a week away — staff will do their best!</p>
   </div>
 
-</div>
+</div><!-- /.card -->
 
 <div style="max-width:560px;margin:16px auto 0">
   <button class="btn" onclick="doSubmit()">Submit Request</button>
@@ -162,15 +223,41 @@
   }
 })();
 
-// ── Upload layout preference ──────────────────────────────
-let _currentLayout = 'dragdrop'; // will be overwritten on load
+// ── Service type ──────────────────────────────────────────
+let _currentServiceType = '3dprint';
+
+function switchServiceType(type) {
+  _currentServiceType = type;
+  const is3d = type === '3dprint';
+
+  document.getElementById('section-3d').style.display    = is3d ? '' : 'none';
+  document.getElementById('section-laser').style.display = is3d ? 'none' : '';
+
+  // Clear any pending upload when switching
+  if (uploadedFilename) clearFile(new Event('clear'));
+
+  document.getElementById('page-title').textContent =
+    is3d ? '➕ Submit a 3D Print Request' : '✂️ Submit a Laser Cut Request';
+
+  const btn3d    = document.getElementById('svc-3d');
+  const btnLaser = document.getElementById('svc-laser');
+  if (is3d) {
+    btn3d.style.background    = '#007bff'; btn3d.style.color    = '#fff'; btn3d.style.borderColor    = '#007bff';
+    btnLaser.style.background = '#fff';    btnLaser.style.color = '#555'; btnLaser.style.borderColor = '#ccc';
+  } else {
+    btnLaser.style.background = '#e94560'; btnLaser.style.color = '#fff'; btnLaser.style.borderColor = '#e94560';
+    btn3d.style.background    = '#fff';    btn3d.style.color    = '#555'; btn3d.style.borderColor    = '#ccc';
+  }
+}
+
+// ── Upload layout preference (3D section) ────────────────
+let _currentLayout = 'dragdrop';
 
 function switchUploadLayout(layout) {
   _currentLayout = layout;
   const isDrag = layout === 'dragdrop';
   document.getElementById('upload-layout-dragdrop').style.display = isDrag ? '' : 'none';
   document.getElementById('upload-layout-dropdown').style.display = isDrag ? 'none' : '';
-  // Toggle pill styles
   const btnDrag = document.getElementById('toggle-dragdrop');
   const btnPick = document.getElementById('toggle-dropdown');
   if (isDrag) {
@@ -182,37 +269,35 @@ function switchUploadLayout(layout) {
   }
 }
 
-// ── STL upload state ──────────────────────────────────────
-let uploadedStlFilename = null;   // saved name on server (uuid.stl)
-let uploadedStlOriginalName = null;
-let autoFilledProjectNameFromStl = false;
+// ── Upload state ──────────────────────────────────────────
+let uploadedFilename      = null;
+let uploadedOriginalName  = null;
+let autoFilledProjectName = false;
 let submittedSuccessfully = false;
+
+function setUploadStatus(msg, color) {
+  const id = _currentServiceType === 'laser' ? 'laser-upload-status' : 'stl-upload-status';
+  const el = document.getElementById(id);
+  if (el) { el.textContent = msg; el.style.color = color || '#555'; }
+}
 
 function deriveProjectNameFromFilename(filename) {
   if (!filename) return '';
-  // Strip path if any (some browsers may include fakepath)
   const base = filename.split('\\').pop().split('/').pop();
-  // Remove .stl extension
-  return base.replace(/\.stl$/i, '').trim();
+  return base.replace(/\.(stl|svg|dxf|pdf)$/i, '').trim();
 }
 
-function maybeAutoFillProjectNameFromStl(originalName) {
+function maybeAutoFillProjectName(originalName) {
   const input = document.getElementById('project_name');
   if (!input) return;
-
-  // Only auto-fill when empty or when we previously auto-filled it.
-  if (input.value.trim() && !autoFilledProjectNameFromStl) return;
-
+  if (input.value.trim() && !autoFilledProjectName) return;
   const derived = deriveProjectNameFromFilename(originalName);
   if (!derived) return;
-
   input.value = derived;
-  autoFilledProjectNameFromStl = true;
+  autoFilledProjectName = true;
 }
 
-// If the user types, stop auto-overwriting.
 document.addEventListener('DOMContentLoaded', async () => {
-  // Set deadline min to today
   const deadlineInput = document.getElementById('deadline_date');
   if (deadlineInput) {
     const today = new Date().toISOString().split('T')[0];
@@ -226,58 +311,52 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   const input = document.getElementById('project_name');
-  if (!input) return;
-  input.addEventListener('input', () => {
-    autoFilledProjectNameFromStl = false;
-  });
+  if (input) input.addEventListener('input', () => { autoFilledProjectName = false; });
 
-  // Load user layout preference and apply
+  // Load user layout preference
   try {
     const r = await apiFetch('/api/profile');
     const d = await r.json();
     const pref = (d.user && d.user.ui_layout_preference) || 'dragdrop';
     switchUploadLayout(pref);
   } catch(e) {
-    switchUploadLayout('dragdrop'); // fallback
+    switchUploadLayout('dragdrop');
   }
 });
 
-function setStlStatus(msg, color) {
-  const el = document.getElementById('stl-upload-status');
-  el.textContent = msg;
-  el.style.color = color || '#555';
-}
-
+// ── Drop / select handlers ────────────────────────────────
 function handleDrop(event) {
   event.preventDefault();
-  const zone = document.getElementById('stl-drop-zone');
-  zone.style.borderColor = '#ccc';
-  zone.style.background = '';
+  const zoneId = _currentServiceType === 'laser' ? 'laser-drop-zone' : 'stl-drop-zone';
+  const zone = document.getElementById(zoneId);
+  zone.style.borderColor = '#ccc'; zone.style.background = '';
   const file = event.dataTransfer.files[0];
   if (file) handleFileSelect(file);
 }
 
 function handleFileSelect(file) {
   if (!file) return;
-  if (!file.name.toLowerCase().endsWith('.stl')) {
-    setStlStatus('Only .stl files are allowed.', '#dc3545');
-    return;
+  const name = file.name.toLowerCase();
+  if (_currentServiceType === '3dprint') {
+    if (!name.endsWith('.stl'))                                          { setUploadStatus('Only .stl files are allowed.', '#dc3545'); return; }
+    if (file.size > 50 * 1024 * 1024)                                   { setUploadStatus('File exceeds 50 MB limit.', '#dc3545'); return; }
+    uploadFile(file, '/api/print-requests/upload-stl');
+  } else {
+    if (!name.endsWith('.svg') && !name.endsWith('.dxf') && !name.endsWith('.pdf')) {
+      setUploadStatus('Only .svg, .dxf, or .pdf files are allowed.', '#dc3545'); return;
+    }
+    if (file.size > 20 * 1024 * 1024)                                   { setUploadStatus('File exceeds 20 MB limit.', '#dc3545'); return; }
+    uploadFile(file, '/api/print-requests/upload-laser');
   }
-  if (file.size > 50 * 1024 * 1024) {
-    setStlStatus('File exceeds 50 MB limit.', '#dc3545');
-    return;
-  }
-  uploadStlFile(file);
 }
 
-async function uploadStlFile(file) {
-  setStlStatus('Uploading & analyzing…', '#888');
-
+async function uploadFile(file, endpoint) {
+  setUploadStatus('Uploading…', '#888');
   const formData = new FormData();
   formData.append('file', file);
 
   try {
-    const res = await fetch('/api/print-requests/upload-stl', {
+    const res  = await fetch(endpoint, {
       method: 'POST',
       headers: { 'Authorization': 'Bearer ' + getToken() },
       body: formData
@@ -285,75 +364,77 @@ async function uploadStlFile(file) {
     const data = await res.json();
 
     if (data.success) {
-      uploadedStlFilename     = data.filename;
-      uploadedStlOriginalName = data.original_name;
-
-      maybeAutoFillProjectNameFromStl(uploadedStlOriginalName);
-
-      // Update drag-drop UI
-      document.getElementById('stl-drop-label').style.display   = 'none';
-      document.getElementById('stl-file-selected').style.display = 'block';
-      document.getElementById('stl-filename-display').textContent = data.original_name;
-      // Update file-picker UI
-      document.getElementById('picker-idle').style.display     = 'none';
-      document.getElementById('picker-selected').style.display = 'block';
-      document.getElementById('picker-filename-display').textContent = data.original_name;
-
-      setStlStatus('File uploaded successfully.', '#28a745');
+      uploadedFilename    = data.filename;
+      uploadedOriginalName = data.original_name;
+      maybeAutoFillProjectName(uploadedOriginalName);
+      showFileSelected(data.original_name);
+      setUploadStatus('File uploaded successfully.', '#28a745');
     } else {
-      setStlStatus(data.message || 'Upload failed.', '#dc3545');
+      setUploadStatus(data.message || 'Upload failed.', '#dc3545');
     }
   } catch(e) {
-    setStlStatus('Upload failed — cannot reach server.', '#dc3545');
+    setUploadStatus('Upload failed — cannot reach server.', '#dc3545');
   }
 }
 
-async function clearStlFile(event) {
-  event.stopPropagation();
+function showFileSelected(name) {
+  if (_currentServiceType === '3dprint') {
+    document.getElementById('stl-drop-label').style.display       = 'none';
+    document.getElementById('stl-file-selected').style.display    = 'block';
+    document.getElementById('stl-filename-display').textContent   = name;
+    document.getElementById('picker-idle').style.display          = 'none';
+    document.getElementById('picker-selected').style.display      = 'block';
+    document.getElementById('picker-filename-display').textContent = name;
+  } else {
+    document.getElementById('laser-drop-label').style.display     = 'none';
+    document.getElementById('laser-file-selected').style.display  = 'block';
+    document.getElementById('laser-filename-display').textContent = name;
+  }
+}
 
-  const filenameToDelete = uploadedStlFilename;
+async function clearFile(event) {
+  if (event && event.stopPropagation) event.stopPropagation();
+  const filenameToDelete = uploadedFilename;
 
-  // Clear UI state immediately for a snappy UX.
-  uploadedStlFilename     = null;
-  uploadedStlOriginalName = null;
-  autoFilledProjectNameFromStl = false;
-  document.getElementById('stl-file-input').value = '';
-  // Reset drag-drop UI
-  document.getElementById('stl-drop-label').style.display   = 'block';
+  uploadedFilename = null; uploadedOriginalName = null; autoFilledProjectName = false;
+
+  // Reset 3D UI
+  document.getElementById('stl-file-input').value            = '';
+  document.getElementById('stl-drop-label').style.display    = 'block';
   document.getElementById('stl-file-selected').style.display = 'none';
-  // Reset file-picker UI
   const pickerInput = document.getElementById('stl-picker-input');
   if (pickerInput) pickerInput.value = '';
   document.getElementById('picker-idle').style.display     = 'block';
   document.getElementById('picker-selected').style.display = 'none';
-  setStlStatus('');
+  // Reset laser UI
+  document.getElementById('laser-file-input').value              = '';
+  document.getElementById('laser-drop-label').style.display      = 'block';
+  document.getElementById('laser-file-selected').style.display   = 'none';
 
-  // Clear auto-filled project name
-  const projectInput = document.getElementById('project_name');
-  if (projectInput && autoFilledProjectNameFromStl) {
-    projectInput.value = '';
-  }
+  document.getElementById('stl-upload-status').textContent   = '';
+  document.getElementById('laser-upload-status').textContent = '';
 
-  // Best-effort cleanup on the server.
   if (!filenameToDelete) return;
+  const endpoint = _currentServiceType === 'laser'
+    ? `/api/print-requests/upload-laser/${encodeURIComponent(filenameToDelete)}`
+    : `/api/print-requests/upload-stl/${encodeURIComponent(filenameToDelete)}`;
   try {
-    await fetch(`/api/print-requests/upload-stl/${encodeURIComponent(filenameToDelete)}`, {
-      method: 'DELETE',
-      headers: { 'Authorization': 'Bearer ' + getToken() }
-    });
-  } catch (e) {
-    // If server is unreachable, we still let the user proceed.
-  }
+    await fetch(endpoint, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + getToken() } });
+  } catch(e) { /* ignore */ }
 }
 
-// ── Form submit ───────────────────────────────────────────
+// ── Alert helper ──────────────────────────────────────────
 function showAlert(msg, type='error') {
   document.getElementById('alert-box').innerHTML =
     `<div class="alert alert-${type}">${msg}</div>`;
 }
 
+// ── Form submit ───────────────────────────────────────────
 async function doSubmit() {
-  if (!uploadedStlFilename) { showAlert('Please upload an STL file.'); return; }
+  if (!uploadedFilename) {
+    showAlert(_currentServiceType === 'laser' ? 'Please upload a laser design file.' : 'Please upload an STL file.');
+    return;
+  }
 
   const project_name = document.getElementById('project_name').value.trim();
   if (!project_name) { showAlert('Project name is required.'); return; }
@@ -363,20 +444,29 @@ async function doSubmit() {
 
   const body = {
     project_name,
-    description:      document.getElementById('description').value.trim(),
-    material_type:    document.getElementById('material_type').value,
-    color_preference: document.getElementById('color_preference').value,
-    is_senior_design: document.getElementById('sd-yes').checked,
-    project_context:  document.getElementById('project_context').value,
+    description:       document.getElementById('description').value.trim(),
+    is_senior_design:  document.getElementById('sd-yes').checked,
+    project_context:   document.getElementById('project_context').value,
     deadline_date,
-    stl_file_path:    uploadedStlFilename     || null,
-    stl_original_name: uploadedStlOriginalName || null,
+    stl_file_path:     uploadedFilename    || null,
+    stl_original_name: uploadedOriginalName || null,
+    service_type:      _currentServiceType,
   };
+
+  if (_currentServiceType === '3dprint') {
+    body.material_type    = document.getElementById('material_type').value;
+    body.color_preference = document.getElementById('color_preference').value;
+  } else {
+    body.laser_options = JSON.stringify({
+      material:         document.getElementById('laser_material').value,
+      job_type:         document.getElementById('laser_job_type').value,
+      dimensions_notes: document.getElementById('laser_dimensions').value.trim(),
+    });
+  }
 
   try {
     const res  = await apiFetch('/api/print-requests', { method: 'POST', body: JSON.stringify(body) });
     const data = await res.json();
-
     if (data.success) {
       submittedSuccessfully = true;
       showAlert('Request submitted successfully!', 'success');
@@ -389,35 +479,15 @@ async function doSubmit() {
   }
 }
 
-// ── Best-effort cleanup: if user leaves after uploading but before submitting ──
+// ── Best-effort cleanup on page leave ────────────────────
 window.addEventListener('beforeunload', () => {
-  if (submittedSuccessfully) return;
-  if (!uploadedStlFilename) return;
-
-  const url = `/api/print-requests/upload-stl/${encodeURIComponent(uploadedStlFilename)}`;
-
-  // Note: Browsers restrict what you can do during unload.
-  // We try sendBeacon first; if not supported, fall back to fetch keepalive.
+  if (submittedSuccessfully || !uploadedFilename) return;
+  const endpoint = _currentServiceType === 'laser'
+    ? `/api/print-requests/upload-laser/${encodeURIComponent(uploadedFilename)}`
+    : `/api/print-requests/upload-stl/${encodeURIComponent(uploadedFilename)}`;
   try {
-    if (navigator.sendBeacon) {
-      // sendBeacon supports simple payloads; use JSON and backend ignores body.
-      // We can't reliably set custom headers in sendBeacon, so this may be a no-op
-      // depending on browser. keepalive fetch below often works better.
-      navigator.sendBeacon(url, JSON.stringify({}));
-    }
-  } catch (e) {
-    // ignore
-  }
-
-  try {
-    fetch(url, {
-      method: 'DELETE',
-      headers: { 'Authorization': 'Bearer ' + getToken() },
-      keepalive: true
-    });
-  } catch (e) {
-    // ignore
-  }
+    fetch(endpoint, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + getToken() }, keepalive: true });
+  } catch(e) { /* ignore */ }
 });
 </script>
 {% endblock %}

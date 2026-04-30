@@ -30,6 +30,8 @@ class PrintService:
         slicer_material_g: Optional[float] = None,
         deadline_date: Optional[str] = None,
         submitter_is_admin: bool = False,
+        service_type: str = '3dprint',
+        laser_options: Optional[str] = None,
     ) -> Dict:
         """
         Create a new 3D print request
@@ -68,15 +70,15 @@ class PrintService:
                 color_preference, is_senior_design, project_context,
                 estimated_weight_grams, estimated_print_time_hours, priority,
                 stl_file_path, stl_original_name, slicer_time_minutes, slicer_material_g,
-                deadline_date)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                deadline_date, service_type, laser_options)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """
             values = (
                 student_email, project_name, description, material_type,
                 color_preference, is_senior_design, project_context,
                 estimated_weight_grams, estimated_print_time_hours, priority,
                 stl_file_path, stl_original_name, slicer_time_minutes, slicer_material_g,
-                deadline_date or None
+                deadline_date or None, service_type, laser_options
             )
             
             request_id = db.execute_query(query, values)
@@ -421,7 +423,7 @@ class PrintService:
                 'count': len(requests)
             }
             
-        except Exception as e:
+        except Exception as e:56yj
             print(f"Error getting all requests: {e}")
             return {
                 'success': False,
