@@ -8,16 +8,16 @@ A full-stack web application for **Donald's Garage** at the University of San Di
 
 ## Tech Stack
 
-| Layer | Technology |
-|---|---|
-| Server | Python Flask 3.0 (pages + REST API, single service) |
-| Templates | Jinja2 (served directly by Flask) |
-| Database | MySQL 8.0 (AWS RDS) |
-| Auth | JWT tokens + bcrypt + Email verification + TOTP 2FA |
-| Email | Gmail API (OAuth2) |
-| 3D Viewer | Three.js (STL preview in browser) |
+| Layer        | Technology                                                        |
+| ------------ | ----------------------------------------------------------------- |
+| Server       | Python Flask 3.0 (pages + REST API, single service)               |
+| Templates    | Jinja2 (served directly by Flask)                                 |
+| Database     | MySQL 8.0 (AWS RDS)                                               |
+| Auth         | JWT tokens + bcrypt + Email verification + TOTP 2FA               |
+| Email        | Gmail API (OAuth2)                                                |
+| 3D Viewer    | Three.js (STL preview in browser)                                 |
 | File Parsing | Custom parsers for Cura `.ufp` and multi-slicer `.3mf` slice data |
-| Hosting | Railway (single service, auto-deploy on push to `main`) |
+| Hosting      | Railway (single service, auto-deploy on push to `main`)           |
 
 ---
 
@@ -99,38 +99,38 @@ All pages and API endpoints are served from the same Flask process on the same d
 
 ## URL Routes
 
-| URL | Description |
-|-----|-------------|
-| `/` | Home / dashboard (includes embedded production board for admin/staff) |
-| `/login` | Log in |
-| `/signup` | Student registration |
-| `/reset-password` | Password reset (token from email) |
-| `/print-requests/` | Print request list |
-| `/print-requests/new/` | Submit new request (3D print or laser cut) |
-| `/print-requests/<id>/` | Request detail |
-| `/print-requests/<id>/head/` | HEAD staff view |
-| `/print-requests/<id>/return/` | Send-back feedback |
-| `/admin/students/` | Student management |
-| `/admin/printers/` | Equipment management (3D printers & laser cutters) |
-| `/admin/admins/` | Admin account management |
-| `/production/` | Standalone live production board |
-| `/printers/` | Public printer status board |
-| `/reports/weekly/` | Weekly report |
-| `/profile/` | User profile |
-| `/api/*` | REST API endpoints |
+| URL                            | Description                                                           |
+| ------------------------------ | --------------------------------------------------------------------- |
+| `/`                            | Home / dashboard (includes embedded production board for admin/staff) |
+| `/login`                       | Log in                                                                |
+| `/signup`                      | Student registration                                                  |
+| `/reset-password`              | Password reset (token from email)                                     |
+| `/print-requests/`             | Print request list                                                    |
+| `/print-requests/new/`         | Submit new request (3D print or laser cut)                            |
+| `/print-requests/<id>/`        | Request detail                                                        |
+| `/print-requests/<id>/head/`   | HEAD staff view                                                       |
+| `/print-requests/<id>/return/` | Send-back feedback                                                    |
+| `/admin/students/`             | Student management                                                    |
+| `/admin/printers/`             | Equipment management (3D printers & laser cutters)                    |
+| `/admin/admins/`               | Admin account management                                              |
+| `/production/`                 | Standalone live production board                                      |
+| `/printers/`                   | Public printer status board                                           |
+| `/reports/weekly/`             | Weekly report                                                         |
+| `/profile/`                    | User profile                                                          |
+| `/api/*`                       | REST API endpoints                                                    |
 
 ---
 
 ## User Roles
 
-| Role | Description |
-|------|-------------|
-| `student` | Submit print/laser requests, track status |
-| `student_staff` | Student with lab staff access (can manage production board) |
-| `admin` | Review, approve, schedule, manage requests; full production board access |
-| `professor` | View weekly reports |
-| `manager` | View weekly reports + broader access |
-| `super_admin` | Full access, can manage other admins |
+| Role            | Description                                                              |
+| --------------- | ------------------------------------------------------------------------ |
+| `student`       | Submit print/laser requests, track status                                |
+| `student_staff` | Student with lab staff access (can manage production board)              |
+| `admin`         | Review, approve, schedule, manage requests; full production board access |
+| `professor`     | View weekly reports                                                      |
+| `manager`       | View weekly reports + broader access                                     |
+| `super_admin`   | Full access, can manage other admins                                     |
 
 ---
 
@@ -209,28 +209,29 @@ Set the same variables as in `.env` above via Railway → Variables.
 
 Migrations are in `database/migration_*.sql` and must be run manually against the RDS instance when deploying schema changes.
 
-| Migration | Description |
-|-----------|-------------|
-| 001 | Initial print_requests table |
-| 002 | STL upload support |
-| 003 | Revision requested status |
-| 004 | Professor/manager roles, senior design fields |
-| 005 | UFP fields |
-| 006 | Print logs, deadline field |
-| 007 | Slicer fields |
-| 008 | `student_staff` role |
-| 009 | Printers table |
-| 010 | Revision fields, TOTP + user type |
-| 011 | Print jobs table |
-| 012 | File deleted flag |
-| 013 | Attempt number tracking |
-| 014 | Print countdown support |
-| 015 | Drop student email foreign key |
-| 016 | `accepted_file_formats` column on `printers` table |
-| 017 | *(reserved)* |
-| 018 | `service_type` (`3dprint`/`laser`) and `laser_options` (JSON) on `print_requests` table |
+| Migration | Description                                                                             |
+| --------- | --------------------------------------------------------------------------------------- |
+| 001       | Initial print_requests table                                                            |
+| 002       | STL upload support                                                                      |
+| 003       | Revision requested status                                                               |
+| 004       | Professor/manager roles, senior design fields                                           |
+| 005       | UFP fields                                                                              |
+| 006       | Print logs, deadline field                                                              |
+| 007       | Slicer fields                                                                           |
+| 008       | `student_staff` role                                                                    |
+| 009       | Printers table                                                                          |
+| 010       | Revision fields, TOTP + user type                                                       |
+| 011       | Print jobs table                                                                        |
+| 012       | File deleted flag                                                                       |
+| 013       | Attempt number tracking                                                                 |
+| 014       | Print countdown support                                                                 |
+| 015       | Drop student email foreign key                                                          |
+| 016       | `accepted_file_formats` column on `printers` table                                      |
+| 017       | _(reserved)_                                                                            |
+| 018       | `service_type` (`3dprint`/`laser`) and `laser_options` (JSON) on `print_requests` table |
 
 > **Pending (run on production):**
+>
 > ```sql
 > -- Migration 018
 > ALTER TABLE print_requests
@@ -247,22 +248,27 @@ Migrations are in `database/migration_*.sql` and must be run manually against th
 ## Key Features
 
 ### Print Request Workflow
+
 - **Status flow**: `pending` → `approved` → `queued` → `file_copied` → `printing` → `completed` / `failed`
 - Students can delete their own pending/revision requests
 - Retry logic: up to 3 attempts per request; auto-queues retry job on failure
 
 ### Service Types
+
 - **3D Print** — STL file upload with Three.js in-browser 3D preview; UFP/3MF slice file upload
 - **Laser Cut** — Design file upload (`.svg`, `.dxf`, `.pdf`, max 20 MB); material, job type (cut/engrave/both), and dimensions notes
 - Service type badge (`🖨️ 3D` / `✂️ Laser`) shown on request list, production board RTS cards, and printer queue job cards
 
 ### File Parsing
+
 - `.ufp` (Cura) — extracts print time, material weight, filament cost
 - `.3mf` (Bambu Lab, OrcaSlicer, PrusaSlicer, Cura) — multi-slicer parser with G-code fallback
 - File format badge shown on every RTS card in the production board
 
 ### Production Board
+
 Standalone at `/production/` and embedded in the home page for admin/staff:
+
 - **Service type filter** (All / 🖨️ 3D Print / ✂️ Laser Cut) on the Ready-to-Schedule list
 - Equipment queue section automatically filters to show only 3D printers or laser cutters based on the active filter
 - Drag-and-drop: assign RTS requests to equipment, move queued jobs between equipment
@@ -272,37 +278,39 @@ Standalone at `/production/` and embedded in the home page for admin/staff:
 - Per-job assigner and approver name display
 
 ### Equipment Management (`/admin/printers/`)
+
 - **Tab switcher**: 🖨️ 3D Printers / ✂️ Laser Cutters
 - Per-printer accepted file formats (`.ufp`, `.3mf` for 3D; `.svg`, `.dxf`, `.pdf` for laser)
 - Status management: Active / Maintenance / Retired
 - Inline edit with format checkboxes
 
 ### Auth & Security
+
 - TOTP 2FA — mandatory before accessing print requests
 - Email verification on signup + password reset via Gmail API
 - `@sandiego.edu` restriction — student registration and login restricted to university email
 
 ### Other
+
 - **Weekly report** — per-student stats, CSV export
 - **Admin invite email** — newly created admins receive credentials by email
 - **Background cleanup** — auto-purges uploaded files for completed/cancelled requests after 2 weeks
 - **Mobile responsive** layout
 
-
 ---
 
 ## Tech Stack
 
-| Layer | Technology |
-|---|---|
-| Server | Python Flask 3.0 (pages + REST API, single service) |
-| Templates | Jinja2 (served directly by Flask) |
-| Database | MySQL 8.0 (AWS RDS) |
-| Auth | JWT tokens + bcrypt + Email verification + TOTP 2FA |
-| Email | Gmail API (OAuth2) |
-| 3D Viewer | Three.js (STL preview in browser) |
+| Layer        | Technology                                                        |
+| ------------ | ----------------------------------------------------------------- |
+| Server       | Python Flask 3.0 (pages + REST API, single service)               |
+| Templates    | Jinja2 (served directly by Flask)                                 |
+| Database     | MySQL 8.0 (AWS RDS)                                               |
+| Auth         | JWT tokens + bcrypt + Email verification + TOTP 2FA               |
+| Email        | Gmail API (OAuth2)                                                |
+| 3D Viewer    | Three.js (STL preview in browser)                                 |
 | File Parsing | Custom parsers for Cura `.ufp` and multi-slicer `.3mf` slice data |
-| Hosting | Railway (single service, auto-deploy on push to `main`) |
+| Hosting      | Railway (single service, auto-deploy on push to `main`)           |
 
 ---
 
@@ -384,38 +392,35 @@ All pages and API endpoints are served from the same Flask process on the same d
 
 ## URL Routes
 
-| URL | Description |
-|-----|-------------|
-| `/` | Home / dashboard (includes embedded production board for admin/staff) |
-| `/login` | Log in |
-| `/signup` | Student registration |
-| `/reset-password` | Password reset (token from email) |
-| `/print-requests/` | Print request list |
-| `/print-requests/new/` | Submit new request |
-| `/print-requests/<id>/` | Request detail |
-| `/print-requests/<id>/head/` | HEAD staff view |
-| `/print-requests/<id>/return/` | Send-back feedback |
-| `/admin/students/` | Student management |
-| `/admin/printers/` | Printer management |
-| `/admin/admins/` | Admin account management |
-| `/production/` | Standalone live production board |
-| `/printers/` | Public printer status board |
-| `/reports/weekly/` | Weekly report |
-| `/profile/` | User profile |
-| `/api/*` | REST API endpoints |
+| URL                            | Description                                                           |
+| ------------------------------ | --------------------------------------------------------------------- |
+| `/`                            | Home / dashboard (includes embedded production board for admin/staff) |
+| `/login`                       | Log in                                                                |
+| `/signup`                      | Student registration                                                  |
+| `/reset-password`              | Password reset (token from email)                                     |
+| `/print-requests/`             | Print request list                                                    |
+| `/print-requests/new/`         | Submit new request                                                    |
+| `/print-requests/<id>/`        | Request detail                                                        |
+| `/print-requests/<id>/head/`   | HEAD staff view                                                       |
+| `/print-requests/<id>/return/` | Send-back feedback                                                    |
+| `/admin/students/`             | Student management                                                    |
+| `/admin/printers/`             | Printer management                                                    |
+| `/admin/admins/`               | Admin account management                                              |
+| `/production/`                 | Standalone live production board                                      |
+| `/printers/`                   | Public printer status board                                           |
+| `/reports/weekly/`             | Weekly report                                                         |
+| `/profile/`                    | User profile                                                          |
+| `/api/*`                       | REST API endpoints                                                    |
 
 ---
 
 ## User Roles
 
-| Role | Description |
-|------|-------------|
-| `student` | Submit print requests, track status |
-| `student_staff` | Student with lab staff access (can manage production board) |
-| `admin` | Review, approve, slice, manage prints; full production board access |
-| `professor` | View weekly reports |
-| `manager` | View weekly reports + broader access |
-| `super_admin` | Full access, can manage other admins |
+| Role            | Description                                                         |
+| --------------- | ------------------------------------------------------------------- |
+| `student`       | Submit print requests, track status                                 |
+| `student_staff` | Student with lab staff access (can manage production board)         |
+| `admin`         | Review, approve, slice, manage prints; full production board access |
 
 ---
 
@@ -494,24 +499,24 @@ Set the same variables as in `.env` above via Railway -> Variables.
 
 Migrations are in `database/migration_*.sql` and must be run manually against the RDS instance when deploying schema changes.
 
-| Migration | Description |
-|-----------|-------------|
-| 001 | Initial print_requests table |
-| 002 | STL upload support |
-| 003 | Revision requested status |
-| 004 | Professor/manager roles, senior design fields |
-| 005 | UFP fields |
-| 006 | Print logs, deadline field |
-| 007 | Slicer fields |
-| 008 | student_staff role |
-| 009 | Printers table |
-| 010 | Revision fields, TOTP + user type |
-| 011 | Print jobs table |
-| 012 | File deleted flag |
-| 013 | Attempt number tracking |
-| 014 | Print countdown support |
-| 015 | Drop student email foreign key |
-| 016 | `accepted_file_formats` column on `printers` table |
+| Migration | Description                                        |
+| --------- | -------------------------------------------------- |
+| 001       | Initial print_requests table                       |
+| 002       | STL upload support                                 |
+| 003       | Revision requested status                          |
+| 004       | Professor/manager roles, senior design fields      |
+| 005       | UFP fields                                         |
+| 006       | Print logs, deadline field                         |
+| 007       | Slicer fields                                      |
+| 008       | student_staff role                                 |
+| 009       | Printers table                                     |
+| 010       | Revision fields, TOTP + user type                  |
+| 011       | Print jobs table                                   |
+| 012       | File deleted flag                                  |
+| 013       | Attempt number tracking                            |
+| 014       | Print countdown support                            |
+| 015       | Drop student email foreign key                     |
+| 016       | `accepted_file_formats` column on `printers` table |
 
 ---
 
