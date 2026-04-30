@@ -777,7 +777,7 @@ content %}
       </div>
       <div>
         <div class="pb-section-title" style="margin-bottom: 14px">
-          🖨 Printer Queues
+          <span id="equipment-title">🖨️ Printer Queues</span>
           <select
             id="printer-fmt-filter"
             onchange="renderPrinters()"
@@ -918,7 +918,7 @@ content %}
       </div>
       <div>
         <div class="pb-section-title" style="margin-bottom: 14px">
-          🖨 Printer Queues
+          <span id="equipment-title-ss">🖨️ Printer Queues</span>
           <select
             id="printer-fmt-filter-ss"
             onchange="renderPrinters()"
@@ -1035,6 +1035,7 @@ content %}
           : "#ccc";
       });
       renderRts();
+      renderPrinters();
     }
     const _firedTimesUp = new Set();
     const _notifiedJobs = new Set();
@@ -1239,23 +1240,38 @@ content %}
     function renderPrinters() {
       const el = pbEl("printers-list");
       if (!el) return;
-      const sfxId =
-        pbId("printers-list") === "printers-list-ss"
-          ? "printer-fmt-filter-ss"
-          : "printer-fmt-filter";
-      const filter = document.getElementById(sfxId)?.value || "all";
-      const visible =
-        filter === "all"
-          ? _printers
-          : _printers.filter((p) =>
-              (p.accepted_file_formats || "ufp")
-                .split(",")
-                .map((s) => s.trim())
-                .includes(filter),
-            );
+      const isSs = pbId("printers-list") === "printers-list-ss";
+      const sfxId = isSs ? "printer-fmt-filter-ss" : "printer-fmt-filter";
+      const titleId = isSs ? "equipment-title-ss" : "equipment-title";
+      const fmtFilter = document.getElementById(sfxId)?.value || "all";
+
+      // Update section heading based on service type filter
+      const titleEl = document.getElementById(titleId);
+      if (titleEl) {
+        if (_homeRtsFilter === "laser") titleEl.textContent = "✂️ Laser Cutter Queues";
+        else if (_homeRtsFilter === "3dprint") titleEl.textContent = "🖨️ Printer Queues";
+        else titleEl.textContent = "🖨️ Equipment Queues";
+      }
+
+      // Filter by service type first, then by file format
+      let visible = _homeRtsFilter === "all"
+        ? _printers
+        : _homeRtsFilter === "laser"
+          ? _printers.filter(p => (p.device_type || "3dprint") === "laser")
+          : _printers.filter(p => (p.device_type || "3dprint") !== "laser");
+
+      if (fmtFilter !== "all") {
+        visible = visible.filter((p) =>
+          (p.accepted_file_formats || "ufp")
+            .split(",")
+            .map((s) => s.trim())
+            .includes(fmtFilter),
+        );
+      }
+
       if (!visible.length) {
-        el.innerHTML =
-          '<div class="pb-empty">No printers configured. <a href="/admin/printers/">Add printers →</a></div>';
+        const label = _homeRtsFilter === "laser" ? "laser cutters" : "printers";
+        el.innerHTML = `<div class="pb-empty">No ${label} configured. <a href="/admin/printers/">Add equipment →</a></div>`;
         return;
       }
       el.innerHTML = visible.map((p) => renderPrinterCol(p)).join("");
