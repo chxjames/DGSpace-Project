@@ -518,8 +518,12 @@
 
   <!-- ══ RIGHT: Printer Queues ══ -->
   <div>
-    <div class="pb-section-title" style="margin-bottom: 14px">
-      🖨 Printer Queues
+    <div
+      class="pb-section-title"
+      style="margin-bottom: 14px"
+      id="equipment-section-title"
+    >
+      🖨️ Printer Queues
     </div>
     <div
       id="printers-loading"
@@ -658,16 +662,28 @@
       btn.style.background = active
         ? id === "laser"
           ? "#e94560"
-          : "#007bff"
+          : id === "3dprint" ? "#007bff" : "#555"
         : "#fff";
       btn.style.color = active ? "#fff" : "#555";
       btn.style.borderColor = active
         ? id === "laser"
           ? "#e94560"
-          : "#007bff"
+          : id === "3dprint" ? "#007bff" : "#555"
         : "#ccc";
     });
+    // Update equipment section heading
+    const titleEl = document.getElementById("equipment-section-title");
+    if (titleEl) {
+      if (f === "laser") {
+        titleEl.textContent = "✂️ Laser Cutter Queues";
+      } else if (f === "3dprint") {
+        titleEl.textContent = "🖨️ Printer Queues";
+      } else {
+        titleEl.textContent = "🖨️ Equipment Queues";
+      }
+    }
     renderRts();
+    renderPrinters();
   }
 
   function renderRts() {
@@ -769,10 +785,21 @@
     const el = document.getElementById("printers-list");
     if (!_printers.length) {
       el.innerHTML =
-        '<div class="pb-empty">No printers configured. <a href="/admin/printers/">Add printers →</a></div>';
+        '<div class="pb-empty">No equipment configured. <a href="/admin/printers/">Add equipment →</a></div>';
       return;
     }
-    el.innerHTML = _printers.map((p) => renderPrinterCol(p)).join("");
+    // Filter equipment by service type selection
+    const visible = _rtsFilter === "all"
+      ? _printers
+      : _rtsFilter === "laser"
+        ? _printers.filter(p => (p.device_type || "3dprint") === "laser")
+        : _printers.filter(p => (p.device_type || "3dprint") !== "laser");
+    if (!visible.length) {
+      const label = _rtsFilter === "laser" ? "laser cutters" : "3D printers";
+      el.innerHTML = `<div class="pb-empty">No ${label} configured. <a href="/admin/printers/">Add equipment →</a></div>`;
+      return;
+    }
+    el.innerHTML = visible.map((p) => renderPrinterCol(p)).join("");
   }
 
   function renderPrinterCol(p) {
@@ -947,7 +974,7 @@
         <div class="job-title">${attemptBadge}${escHtml(j.project_name)}</div>
         <div class="job-meta">
           <span><span class="job-status-badge jsb-${jsCls}">${jsLabel}</span></span>
-          ${(j.service_type || '3dprint') === 'laser' ? `<span style="background:#fce4ec;color:#c62828;border-radius:10px;padding:1px 7px;font-size:0.68rem;font-weight:700">✂️ Laser</span>` : ''}
+          ${(j.service_type || "3dprint") === "laser" ? `<span style="background:#fce4ec;color:#c62828;border-radius:10px;padding:1px 7px;font-size:0.68rem;font-weight:700">✂️ Laser</span>` : ""}
           <span>⏱ ${timeStr}</span>
           <span>👤 ${escHtml(j.student_name || j.student_email)}</span>
           ${dl}

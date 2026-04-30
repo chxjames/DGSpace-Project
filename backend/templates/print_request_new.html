@@ -630,15 +630,8 @@
         autoFilledProjectName = false;
       });
 
-    // Load user layout preference
-    try {
-      const r = await apiFetch("/api/profile");
-      const d = await r.json();
-      const pref = (d.user && d.user.ui_layout_preference) || "dragdrop";
-      switchUploadLayout(pref);
-    } catch (e) {
-      switchUploadLayout("dragdrop");
-    }
+    // Always use drag-drop layout
+    switchUploadLayout("dragdrop");
   });
 
   // ── Drop / select handlers ────────────────────────────────
