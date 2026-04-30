@@ -170,6 +170,16 @@
   0%,100% { opacity: 1; }
   50%      { opacity: 0.6; }
 }
+/* ── Incompatible printer drop zone ─────────────────────── */
+.queue-drop-zone.rts-incompatible {
+  border-color: #dc3545; border-style: dashed;
+  background: #fff5f5; cursor: not-allowed;
+}
+.queue-drop-zone.rts-incompatible::after {
+  content: '⛔ Incompatible format';
+  display: block; text-align: center;
+  font-size: 0.75rem; color: #dc3545; padding: 4px 0;
+}
 </style>
 
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
@@ -516,17 +526,25 @@ function rtsCardDragStart(event, requestId) {
   event.dataTransfer.setData('rts_id', String(requestId));
   event.dataTransfer.effectAllowed = 'move';
   event.currentTarget.classList.add('dragging');
-  // Highlight only active printer drop zones
+  // Determine file format of this request
+  const req = _rts.find(r => r.id === requestId);
+  const fmt = req ? getReqFileFmt(req) : null;
+  // Highlight compatible active printers; mark incompatible ones red
   _printers.filter(p => p.status === 'active').forEach(p => {
     const dz = document.getElementById(`dz-${p.printer_id}`);
-    if (dz) dz.classList.add('rts-droppable');
+    if (!dz) return;
+    if (printerAcceptsFmt(p, fmt)) {
+      dz.classList.add('rts-droppable');
+    } else {
+      dz.classList.add('rts-incompatible');
+    }
   });
 }
 
 function rtsCardDragEnd(event) {
   event.currentTarget.classList.remove('dragging');
   document.querySelectorAll('.queue-drop-zone').forEach(dz => {
-    dz.classList.remove('drag-over', 'rts-droppable', 'job-droppable');
+    dz.classList.remove('drag-over', 'rts-droppable', 'job-droppable', 'rts-incompatible');
   });
 }
 
@@ -555,7 +573,8 @@ function jobCardDragEnd(event) {
 // ── Drop handler: handles BOTH rts→printer and job move ──
 async function handleDrop(event, targetPrinterId) {
   event.preventDefault();
-  document.getElementById(`dz-${targetPrinterId}`).classList.remove('drag-over', 'rts-droppable', 'job-droppable');
+  const dz = document.getElementById(`dz-${targetPrinterId}`);
+  if (dz) dz.classList.remove('drag-over', 'rts-droppable', 'job-droppable', 'rts-incompatible');
 
   const rtsId = event.dataTransfer.getData('rts_id');
   if (rtsId) {
@@ -570,13 +589,20 @@ async function handleDrop(event, targetPrinterId) {
       return;
     }
 
+    // Check file format compatibility
+    const fmt = getReqFileFmt(req);
+    if (!printerAcceptsFmt(printer, fmt)) {
+      const fmtLabel = fmt ? `".${fmt}"` : 'this file type';
+      showAlert(`❌ ${escHtml(printer.printer_name)} does not support ${fmtLabel} files. Please choose a compatible printer.`);
+      return;
+    }
+
     const body = {
       printer_id:      targetPrinterId,
       estimated_start: null,
       estimated_end:   (() => {
         if (!req.ufp_print_time_minutes) return null;
-        const now = new Date();
-        return new Date(now.getTime() + req.ufp_print_time_minutes * 60000).toISOString();
+        return new Date(Date.now() + req.ufp_print_time_minutes * 60000).toISOString();
       })(),
       notes: null,
     };
@@ -632,22 +658,28 @@ async function handleDrop(event, targetPrinterId) {
 function openModal() {
   if (!_selectedRts) return;
   const r = _selectedRts;
+  const reqFmt = getReqFileFmt(r);
+  const fmtLabel = reqFmt ? `<span style="font-size:0.75rem;font-weight:700;padding:1px 7px;border-radius:4px;${
+    reqFmt==='3mf' ? 'background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7'
+    : reqFmt==='ufp' ? 'background:#e8f0fe;color:#1a73e8;border:1px solid #90caf9'
+    : 'background:#f0f0f0;color:#555;border:1px solid #ccc'
+  }">.${reqFmt}</span>` : '';
 
   document.getElementById('assign-req-info').innerHTML = `
-    <strong>${escHtml(r.project_name)}</strong><br>
+    <strong>${escHtml(r.project_name)}</strong> ${fmtLabel}<br>
     <span style="color:#888">${escHtml(r.student_name || r.student_email)}</span>
     &nbsp;·&nbsp; ⏱ ${r.ufp_print_time_minutes ? formatMinutes(r.ufp_print_time_minutes) : '—'}
     &nbsp;·&nbsp; 🎨 ${escHtml(r.material_type || '—')}`;
 
-  // Populate printer dropdown (active only)
+  // Populate printer dropdown — only active printers that accept this file format
+  const compatPrinters = _printers.filter(p => p.status === 'active' && printerAcceptsFmt(p, reqFmt));
   const sel = document.getElementById('modal-printer-select');
-  sel.innerHTML = _printers
-    .filter(p => p.status === 'active')
+  sel.innerHTML = compatPrinters
     .map(p => `<option value="${p.printer_id}">${escHtml(p.printer_name)}${p.location ? ' (' + escHtml(p.location) + ')' : ''}</option>`)
     .join('');
 
   if (!sel.options.length) {
-    sel.innerHTML = '<option value="">— No active printers —</option>';
+    sel.innerHTML = `<option value="">— No compatible active printers${reqFmt ? ' for .' + reqFmt : ''} —</option>`;
   }
 
   // Pre-fill estimated times if UFP time is known
@@ -682,8 +714,8 @@ async function confirmAssign() {
 
   const body = {
     printer_id:      printerId,
-    estimated_start: document.getElementById('modal-est-start').value || null,
-    estimated_end:   document.getElementById('modal-est-end').value   || null,
+    estimated_start: dtLocalToUtcISO(document.getElementById('modal-est-start').value),
+    estimated_end:   dtLocalToUtcISO(document.getElementById('modal-est-end').value),
     notes:           document.getElementById('modal-notes').value.trim() || null,
   };
 
@@ -766,6 +798,37 @@ async function removeJob(jobId) {
 function formatMinutes(m) {
   const h = Math.floor(m / 60), min = Math.round(m % 60);
   return h > 0 ? `${h}h ${min}m` : `${min}m`;
+}
+
+/** Return the file format string from an RTS request object.
+ *  Checks ufp_original_name first; falls back to stl_file_path.
+ *  Returns: '3mf' | 'ufp' | 'stl' | null
+ */
+function getReqFileFmt(r) {
+  const orig = (r.ufp_original_name || '').toLowerCase();
+  if (orig.endsWith('.3mf')) return '3mf';
+  if (orig.endsWith('.ufp')) return 'ufp';
+  if (r.stl_file_path || orig.endsWith('.stl')) return 'stl';
+  return null;
+}
+
+/** Return true if this printer's accepted_file_formats includes the given fmt.
+ *  STL / null are accepted by all printers (any printer can be assigned an STL request).
+ */
+function printerAcceptsFmt(printer, fmt) {
+  if (!fmt || fmt === 'stl') return true;
+  const fmts = (printer.accepted_file_formats || 'ufp')
+    .split(',').map(s => s.trim().toLowerCase());
+  return fmts.includes(fmt.toLowerCase());
+}
+
+/** Convert a datetime-local string (local time, no timezone) to a UTC ISO string.
+ *  new Date(dtLocal) treats the string as local time, then .toISOString() gives UTC.
+ */
+function dtLocalToUtcISO(val) {
+  if (!val) return null;
+  const d = new Date(val);
+  return isNaN(d.getTime()) ? null : d.toISOString();
 }
 
 function deadlineBadge(dateStr) {
