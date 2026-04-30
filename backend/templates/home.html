@@ -661,9 +661,9 @@ content %}
         <div class="desc">Submit a new 3D print job</div>
       </a>
       <a href="/admin/printers/" class="action-card">
-        <div class="icon">🖨️</div>
-        <div class="label">Manage Printers</div>
-        <div class="desc">Manage printer inventory</div>
+        <div class="icon">�</div>
+        <div class="label">Manage Equipment</div>
+        <div class="desc">3D printers &amp; laser cutters</div>
       </a>
       <a href="/admin/students/" class="action-card">
         <div class="icon">🎓</div>
@@ -710,6 +710,58 @@ content %}
           <div class="pb-section-title">
             📋 Ready to Schedule
             <span id="rts-count" class="pb-count-badge">0</span>
+          </div>
+          <!-- Service type filter -->
+          <div style="display: flex; gap: 6px; margin-bottom: 12px">
+            <button
+              type="button"
+              id="home-rts-filter-all"
+              onclick="setHomeRtsFilter('all')"
+              style="
+                padding: 3px 12px;
+                font-size: 0.78rem;
+                border-radius: 20px;
+                border: 1px solid #007bff;
+                background: #007bff;
+                color: #fff;
+                cursor: pointer;
+                font-weight: 600;
+              "
+            >
+              All
+            </button>
+            <button
+              type="button"
+              id="home-rts-filter-3dprint"
+              onclick="setHomeRtsFilter('3dprint')"
+              style="
+                padding: 3px 12px;
+                font-size: 0.78rem;
+                border-radius: 20px;
+                border: 1px solid #ccc;
+                background: #fff;
+                color: #555;
+                cursor: pointer;
+              "
+            >
+              🖨️ 3D Print
+            </button>
+            <button
+              type="button"
+              id="home-rts-filter-laser"
+              onclick="setHomeRtsFilter('laser')"
+              style="
+                padding: 3px 12px;
+                font-size: 0.78rem;
+                border-radius: 20px;
+                border: 1px solid #ccc;
+                background: #fff;
+                color: #555;
+                cursor: pointer;
+              "
+            >
+              ✂️ Laser Cut
+            </button>
           </div>
           <p style="font-size: 0.8rem; color: #888; margin: 0 0 14px">
             Click a request or drag it to a printer queue to assign.
@@ -799,6 +851,58 @@ content %}
           <div class="pb-section-title">
             📋 Ready to Schedule
             <span id="rts-count-ss" class="pb-count-badge">0</span>
+          </div>
+          <!-- Service type filter -->
+          <div style="display: flex; gap: 6px; margin-bottom: 12px">
+            <button
+              type="button"
+              id="ss-rts-filter-all"
+              onclick="setHomeRtsFilter('all')"
+              style="
+                padding: 3px 12px;
+                font-size: 0.78rem;
+                border-radius: 20px;
+                border: 1px solid #007bff;
+                background: #007bff;
+                color: #fff;
+                cursor: pointer;
+                font-weight: 600;
+              "
+            >
+              All
+            </button>
+            <button
+              type="button"
+              id="ss-rts-filter-3dprint"
+              onclick="setHomeRtsFilter('3dprint')"
+              style="
+                padding: 3px 12px;
+                font-size: 0.78rem;
+                border-radius: 20px;
+                border: 1px solid #ccc;
+                background: #fff;
+                color: #555;
+                cursor: pointer;
+              "
+            >
+              🖨️ 3D Print
+            </button>
+            <button
+              type="button"
+              id="ss-rts-filter-laser"
+              onclick="setHomeRtsFilter('laser')"
+              style="
+                padding: 3px 12px;
+                font-size: 0.78rem;
+                border-radius: 20px;
+                border: 1px solid #ccc;
+                background: #fff;
+                color: #555;
+                cursor: pointer;
+              "
+            >
+              ✂️ Laser Cut
+            </button>
           </div>
           <p style="font-size: 0.8rem; color: #888; margin: 0 0 14px">
             Click a request or drag it to a printer queue to assign.
@@ -899,6 +1003,39 @@ content %}
     let _printers = [];
     let _rts = [];
     let _selectedRts = null;
+    let _homeRtsFilter = "all";
+
+    function setHomeRtsFilter(f) {
+      _homeRtsFilter = f;
+      [
+        ["home", "all"],
+        ["home", "3dprint"],
+        ["home", "laser"],
+        ["ss", "all"],
+        ["ss", "3dprint"],
+        ["ss", "laser"],
+      ].forEach(([p, id]) => {
+        const btn = document.getElementById(`${p}-rts-filter-${id}`);
+        if (!btn) return;
+        const active = id === f;
+        btn.style.background = active
+          ? id === "laser"
+            ? "#e94560"
+            : id === "3dprint"
+              ? "#007bff"
+              : "#555"
+          : "#fff";
+        btn.style.color = active ? "#fff" : "#555";
+        btn.style.borderColor = active
+          ? id === "laser"
+            ? "#e94560"
+            : id === "3dprint"
+              ? "#007bff"
+              : "#555"
+          : "#ccc";
+      });
+      renderRts();
+    }
     const _firedTimesUp = new Set();
     const _notifiedJobs = new Set();
 
@@ -1022,20 +1159,34 @@ content %}
       const el = pbEl("rts-list");
       const cnt = pbEl("rts-count");
       if (!el) return;
-      cnt.textContent = _rts.length;
-      if (!_rts.length) {
+      const visible =
+        _homeRtsFilter === "all"
+          ? _rts
+          : _rts.filter(
+              (r) => (r.service_type || "3dprint") === _homeRtsFilter,
+            );
+      cnt.textContent = visible.length;
+      if (!visible.length) {
         el.innerHTML =
           '<div class="pb-empty">✅ No requests waiting to be scheduled.</div>';
         return;
       }
       const sfx = pbId("rts-list") === "rts-list-ss" ? "-ss" : "";
-      el.innerHTML = _rts
+      el.innerHTML = visible
         .map((r) => {
+          const isLaser = (r.service_type || "3dprint") === "laser";
+          const laserOpts = (() => {
+            try {
+              return JSON.parse(r.laser_options || "{}");
+            } catch (e) {
+              return {};
+            }
+          })();
           const mins = r.ufp_print_time_minutes;
           const timeStr = mins ? formatMinutes(mins) : "—";
-          const matStr = [r.material_type, r.color_preference]
-            .filter(Boolean)
-            .join(" / ");
+          const matStr = isLaser
+            ? laserOpts.material || ""
+            : [r.material_type, r.color_preference].filter(Boolean).join(" / ");
           const dl = r.deadline_date ? deadlineBadge(r.deadline_date) : "";
           const sel =
             _selectedRts && _selectedRts.id === r.id ? "selected" : "";
@@ -1045,11 +1196,13 @@ content %}
               : r.priority === "high"
                 ? "dot-high"
                 : "dot-normal";
-          const fileFmt = r.ufp_original_name
-            ? r.ufp_original_name.toLowerCase().endsWith(".3mf")
-              ? `<code style="background:#e8f5e9;color:#2e7d32;border-radius:4px;padding:1px 5px;font-size:0.72rem">.3mf</code>`
-              : `<code style="background:#e8f0fe;color:#1a73e8;border-radius:4px;padding:1px 5px;font-size:0.72rem">.ufp</code>`
-            : "";
+          const fileFmt = isLaser
+            ? `<code style="background:#fce4ec;color:#c62828;border-radius:4px;padding:1px 5px;font-size:0.72rem">✂️ Laser</code>`
+            : r.ufp_original_name
+              ? r.ufp_original_name.toLowerCase().endsWith(".3mf")
+                ? `<code style="background:#e8f5e9;color:#2e7d32;border-radius:4px;padding:1px 5px;font-size:0.72rem">.3mf</code>`
+                : `<code style="background:#e8f0fe;color:#1a73e8;border-radius:4px;padding:1px 5px;font-size:0.72rem">.ufp</code>`
+              : "";
           return `
       <div class="rts-card ${sel}" data-id="${r.id}"
            draggable="true"

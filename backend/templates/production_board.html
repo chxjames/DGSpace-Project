@@ -451,6 +451,58 @@
         📋 Ready to Schedule
         <span id="rts-count" class="pb-count-badge">0</span>
       </div>
+      <!-- Service type filter -->
+      <div style="display: flex; gap: 6px; margin-bottom: 12px">
+        <button
+          type="button"
+          id="rts-filter-all"
+          onclick="setRtsFilter('all')"
+          style="
+            padding: 3px 12px;
+            font-size: 0.78rem;
+            border-radius: 20px;
+            border: 1px solid #007bff;
+            background: #007bff;
+            color: #fff;
+            cursor: pointer;
+            font-weight: 600;
+          "
+        >
+          All
+        </button>
+        <button
+          type="button"
+          id="rts-filter-3dprint"
+          onclick="setRtsFilter('3dprint')"
+          style="
+            padding: 3px 12px;
+            font-size: 0.78rem;
+            border-radius: 20px;
+            border: 1px solid #ccc;
+            background: #fff;
+            color: #555;
+            cursor: pointer;
+          "
+        >
+          🖨️ 3D Print
+        </button>
+        <button
+          type="button"
+          id="rts-filter-laser"
+          onclick="setRtsFilter('laser')"
+          style="
+            padding: 3px 12px;
+            font-size: 0.78rem;
+            border-radius: 20px;
+            border: 1px solid #ccc;
+            background: #fff;
+            color: #555;
+            cursor: pointer;
+          "
+        >
+          ✂️ Laser Cut
+        </button>
+      </div>
       <p style="font-size: 0.8rem; color: #888; margin: 0 0 14px">
         Click a request, then choose a printer to assign it.
       </p>
@@ -594,17 +646,48 @@
   }
 
   // ── Render Ready-to-Schedule list ────────────────────────
+  let _rtsFilter = "all"; // 'all' | '3dprint' | 'laser'
+
+  function setRtsFilter(f) {
+    _rtsFilter = f;
+    const ids = ["all", "3dprint", "laser"];
+    ids.forEach((id) => {
+      const btn = document.getElementById(`rts-filter-${id}`);
+      if (!btn) return;
+      const active = id === f;
+      btn.style.background = active
+        ? id === "laser"
+          ? "#e94560"
+          : "#007bff"
+        : "#fff";
+      btn.style.color = active ? "#fff" : "#555";
+      btn.style.borderColor = active
+        ? id === "laser"
+          ? "#e94560"
+          : "#007bff"
+        : "#ccc";
+    });
+    renderRts();
+  }
+
   function renderRts() {
     const el = document.getElementById("rts-list");
-    document.getElementById("rts-count").textContent = _rts.length;
 
-    if (!_rts.length) {
-      el.innerHTML =
-        '<div class="pb-empty">✅ No requests waiting to be scheduled.</div>';
+    const visible =
+      _rtsFilter === "all"
+        ? _rts
+        : _rts.filter((r) => (r.service_type || "3dprint") === _rtsFilter);
+
+    document.getElementById("rts-count").textContent = visible.length;
+
+    if (!visible.length) {
+      el.innerHTML = _rts.length
+        ? '<div class="pb-empty">No requests for selected filter.</div>'
+        : '<div class="pb-empty">✅ No requests waiting to be scheduled.</div>';
       return;
     }
 
-    el.innerHTML = _rts
+    el.innerHTML = visible
       .map((r) => {
         const mins = r.ufp_print_time_minutes;
         const timeStr = mins ? formatMinutes(mins) : "—";
@@ -619,15 +702,34 @@
             : r.priority === "high"
               ? "dot-high"
               : "dot-normal";
+        const isLaserReq = (r.service_type || "3dprint") === "laser";
+        const svcBadge = isLaserReq
+          ? `<span style="font-size:0.7rem;font-weight:600;padding:1px 6px;border-radius:4px;background:#fff0f3;color:#c0392b;border:1px solid #f5c0cb;white-space:nowrap">✂️ Laser</span>`
+          : "";
         const origName = (r.ufp_original_name || "").toLowerCase();
         const fileFmt = origName.endsWith(".3mf")
           ? "3mf"
           : origName.endsWith(".ufp")
             ? "ufp"
             : null;
-        const fmtBadge = fileFmt
-          ? `<span style="font-size:0.7rem;font-weight:600;padding:1px 6px;border-radius:4px;white-space:nowrap;${fileFmt === "3mf" ? "background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7" : "background:#e8f0fe;color:#1a73e8;border:1px solid #90caf9"}">.${fileFmt}</span>`
-          : "";
+        const fmtBadge =
+          !isLaserReq && fileFmt
+            ? `<span style="font-size:0.7rem;font-weight:600;padding:1px 6px;border-radius:4px;white-space:nowrap;${fileFmt === "3mf" ? "background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7" : "background:#e8f0fe;color:#1a73e8;border:1px solid #90caf9"}">.${fileFmt}</span>`
+            : "";
+        const displayMeta = isLaserReq
+          ? (() => {
+              try {
+                const lo = JSON.parse(r.laser_options || "{}");
+                return lo.material
+                  ? `<span>🪵 ${escHtml(lo.material)}</span>`
+                  : "";
+              } catch (e) {
+                return "";
+              }
+            })()
+          : matStr
+            ? `<span>🎨 ${escHtml(matStr)}</span>`
+            : "";
         return `
       <div class="rts-card ${sel}" data-id="${r.id}"
            draggable="true"
@@ -641,7 +743,8 @@
         <div class="card-meta">
           <span>👤 ${escHtml(r.student_name || r.student_email)}</span>
           <span>⏱ ${timeStr}</span>
-          ${matStr ? `<span>🎨 ${escHtml(matStr)}</span>` : ""}
+          ${displayMeta}
+          ${svcBadge}
           ${fmtBadge}
           ${dl}
         </div>

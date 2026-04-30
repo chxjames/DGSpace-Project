@@ -1,7 +1,5 @@
-{% extends "base.html" %}
-{% block title %}Printers — DGSpace{% endblock %}
-
-{% block content %}
+{% extends "base.html" %} {% block title %}Equipment — DGSpace{% endblock %} {%
+block content %}
 <style>
   .btn-edit {
     background: none;
@@ -13,32 +11,91 @@
     cursor: pointer;
     white-space: nowrap;
   }
-  .btn-edit:hover { background: #e8f0fe; }
+  .btn-edit:hover {
+    background: #e8f0fe;
+  }
 </style>
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
-  <h2 style="color:#1a1a2e">🖨️ Printers</h2>
-  <a href="/" style="color:#888;text-decoration:none;font-size:0.9rem">← Home</a>
+<div
+  style="
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+  "
+>
+  <h2 style="color: #1a1a2e">� Equipment</h2>
+  <a href="/" style="color: #888; text-decoration: none; font-size: 0.9rem"
+    >← Home</a
+  >
+</div>
+
+<!-- Device Type Tabs -->
+<div style="display: flex; gap: 8px; margin-bottom: 20px">
+  <button
+    id="tab-3d"
+    onclick="switchEquipTab('3d')"
+    style="
+      padding: 7px 20px;
+      border-radius: 20px;
+      border: 1px solid #007bff;
+      background: #007bff;
+      color: #fff;
+      font-size: 0.85rem;
+      cursor: pointer;
+      font-weight: 600;
+    "
+  >
+    🖨️ 3D Printers
+  </button>
+  <button
+    id="tab-laser"
+    onclick="switchEquipTab('laser')"
+    style="
+      padding: 7px 20px;
+      border-radius: 20px;
+      border: 1px solid #ccc;
+      background: #fff;
+      color: #555;
+      font-size: 0.85rem;
+      cursor: pointer;
+      font-weight: 600;
+    "
+  >
+    ✂️ Laser Cutters
+  </button>
 </div>
 
 <div id="alert-box"></div>
 
-<!-- Add Printer Form -->
-<div class="card" style="margin-bottom:24px">
-  <h3 style="margin-bottom:16px;color:#1a1a2e">➕ Add New Printer</h3>
-  <form id="add-printer-form" onsubmit="addPrinter(event)" style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end">
-    <div class="form-group" style="flex:1;min-width:180px;margin-bottom:0">
-      <label>Printer Name *</label>
-      <input type="text" id="p-name" required placeholder="e.g. Ultimaker S5 #1">
+<!-- Add Equipment Form -->
+<div class="card" style="margin-bottom: 24px">
+  <h3 id="add-form-heading" style="margin-bottom: 16px; color: #1a1a2e">
+    ➕ Add New 3D Printer
+  </h3>
+  <form
+    id="add-printer-form"
+    onsubmit="addPrinter(event)"
+    style="display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end"
+  >
+    <input type="hidden" id="p-device-type" value="3dprint" />
+    <div class="form-group" style="flex: 1; min-width: 180px; margin-bottom: 0">
+      <label id="p-name-label">Printer Name *</label>
+      <input
+        type="text"
+        id="p-name"
+        required
+        placeholder="e.g. Ultimaker S5 #1"
+      />
     </div>
-    <div class="form-group" style="flex:1;min-width:140px;margin-bottom:0">
+    <div class="form-group" style="flex: 1; min-width: 140px; margin-bottom: 0">
       <label>Model</label>
-      <input type="text" id="p-model" placeholder="e.g. Ultimaker S5">
+      <input type="text" id="p-model" placeholder="e.g. Ultimaker S5" />
     </div>
-    <div class="form-group" style="flex:1;min-width:140px;margin-bottom:0">
+    <div class="form-group" style="flex: 1; min-width: 140px; margin-bottom: 0">
       <label>Location</label>
-      <input type="text" id="p-location" placeholder="e.g. Room 101">
+      <input type="text" id="p-location" placeholder="e.g. Room 101" />
     </div>
-    <div class="form-group" style="min-width:120px;margin-bottom:0">
+    <div class="form-group" style="min-width: 120px; margin-bottom: 0">
       <label>Status</label>
       <select id="p-status">
         <option value="active">Active</option>
@@ -46,141 +103,232 @@
         <option value="retired">Retired</option>
       </select>
     </div>
-    <div class="form-group" style="min-width:160px;margin-bottom:0">
-      <label>Accepted File Formats <span style="color:#dc3545">*</span></label>
-      <div style="display:flex;gap:12px;align-items:center;padding-top:6px">
-        <label style="display:flex;align-items:center;gap:5px;font-weight:normal;cursor:pointer;font-size:0.9rem">
-          <input type="checkbox" id="p-fmt-ufp" value="ufp" checked> <code>.ufp</code>
+    <div
+      class="form-group"
+      id="p-fmt-group"
+      style="min-width: 160px; margin-bottom: 0"
+    >
+      <label>Accepted File Formats <span style="color: #dc3545">*</span></label>
+      <div
+        style="display: flex; gap: 12px; align-items: center; padding-top: 6px"
+      >
+        <label
+          style="
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-weight: normal;
+            cursor: pointer;
+            font-size: 0.9rem;
+          "
+        >
+          <input type="checkbox" id="p-fmt-ufp" value="ufp" checked />
+          <code>.ufp</code>
         </label>
-        <label style="display:flex;align-items:center;gap:5px;font-weight:normal;cursor:pointer;font-size:0.9rem">
-          <input type="checkbox" id="p-fmt-3mf" value="3mf"> <code>.3mf</code>
+        <label
+          style="
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-weight: normal;
+            cursor: pointer;
+            font-size: 0.9rem;
+          "
+        >
+          <input type="checkbox" id="p-fmt-3mf" value="3mf" /> <code>.3mf</code>
         </label>
       </div>
     </div>
-    <button type="submit" class="btn" style="width:auto;padding:10px 24px;height:fit-content">Add Printer</button>
+    <div
+      class="form-group"
+      id="p-laser-fmt-group"
+      style="min-width: 160px; margin-bottom: 0; display: none"
+    >
+      <label>Accepted File Formats</label>
+      <div style="padding-top: 6px; font-size: 0.85rem; color: #555">
+        <code
+          style="
+            background: #fce4ec;
+            color: #c62828;
+            padding: 1px 6px;
+            border-radius: 4px;
+          "
+          >.svg</code
+        >
+        <code
+          style="
+            background: #fce4ec;
+            color: #c62828;
+            padding: 1px 6px;
+            border-radius: 4px;
+          "
+          >.dxf</code
+        >
+        <code
+          style="
+            background: #fce4ec;
+            color: #c62828;
+            padding: 1px 6px;
+            border-radius: 4px;
+          "
+          >.pdf</code
+        >
+      </div>
+    </div>
+    <button
+      type="submit"
+      id="add-btn"
+      class="btn"
+      style="width: auto; padding: 10px 24px; height: fit-content"
+    >
+      Add 3D Printer
+    </button>
   </form>
 </div>
 
 <!-- Printer List -->
 <div class="card">
-  <div id="loading" style="text-align:center;padding:32px;color:#888">Loading…</div>
-
-  <div style="overflow-x:auto">
-  <table id="printers-table" style="display:none;width:100%">
-    <thead>
-      <tr>
-        <th>#</th>
-        <th>Printer Name</th>
-        <th>Model</th>
-        <th>Location</th>
-        <th>File Formats</th>
-        <th>Status</th>
-        <th>Created</th>
-        <th>Action</th>
-      </tr>
-    </thead>
-    <tbody id="printers-body"></tbody>
-  </table>
+  <div id="loading" style="text-align: center; padding: 32px; color: #888">
+    Loading…
   </div>
 
-  <p id="no-data" style="display:none;text-align:center;color:#888;padding:32px">
+  <div style="overflow-x: auto">
+    <table id="printers-table" style="display: none; width: 100%">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Printer Name</th>
+          <th>Model</th>
+          <th>Location</th>
+          <th>File Formats</th>
+          <th>Status</th>
+          <th>Created</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="printers-body"></tbody>
+    </table>
+  </div>
+
+  <p
+    id="no-data"
+    style="display: none; text-align: center; color: #888; padding: 32px"
+  >
     No printers found. Add one above!
   </p>
 </div>
 
 <script>
-(function() {
-  const user = getUser();
-  if (!user) { location.href = '/login'; return; }
-  if (user.user_type !== 'admin') { location.href = '/'; return; }
-  loadPrinters();
-})();
+  let _equipTab = '3d';
+  let _allPrinters = [];
 
-function showAlert(msg, type='error') {
-  document.getElementById('alert-box').innerHTML = `<div class="alert alert-${type}">${msg}</div>`;
-  setTimeout(() => { document.getElementById('alert-box').innerHTML = ''; }, 4000);
-}
-
-function fmtDate(s) {
-  if (!s) return '—';
-  try { return new Date(s).toLocaleDateString('en-US'); } catch { return '—'; }
-}
-
-function statusBadge(status) {
-  const map = {
-    active:      'background:#d1e7dd;color:#0a3622;border:1px solid #a3cfbb',
-    maintenance: 'background:#fff3cd;color:#856404;border:1px solid #ffc107',
-    retired:     'background:#e2e3e5;color:#41464b;border:1px solid #c4c8cb',
-  };
-  const style = map[status] || map.active;
-  return `<span style="${style};padding:2px 10px;border-radius:12px;font-size:0.78rem;font-weight:600;white-space:nowrap;display:inline-block">${status}</span>`;
-}
-
-function statusSelStyle(status) {
-  const map = {
-    active:      'background:#d1e7dd;color:#0a3622;',
-    maintenance: 'background:#fff3cd;color:#856404;',
-    retired:     'background:#e2e3e5;color:#41464b;',
-  };
-  return map[status] || '';
-}
-
-async function updateStatus(id, selectEl) {
-  const newStatus = selectEl.value;
-  selectEl.style.cssText = 'padding:3px 8px;border-radius:8px;border:1px solid #ccc;font-size:0.8rem;font-weight:600;cursor:pointer;' + statusSelStyle(newStatus);
-  try {
-    const res  = await apiFetch(`/api/admin/printers/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: newStatus })
-    });
-    const data = await res.json();
-    if (data.success) {
-      showAlert(`Status updated to "${newStatus}".`, 'success');
-    } else {
-      showAlert(data.message || 'Failed to update status.');
-      loadPrinters(); // revert
-    }
-  } catch(e) {
-    showAlert('Network error.');
+  (function () {
+    const user = getUser();
+    if (!user) { location.href = "/login"; return; }
+    if (user.user_type !== "admin") { location.href = "/"; return; }
     loadPrinters();
+  })();
+
+  function switchEquipTab(tab) {
+    _equipTab = tab;
+    const is3d = tab === '3d';
+    document.getElementById('tab-3d').style.cssText    = `padding:7px 20px;border-radius:20px;border:1px solid ${is3d?'#007bff':'#ccc'};background:${is3d?'#007bff':'#fff'};color:${is3d?'#fff':'#555'};font-size:0.85rem;cursor:pointer;font-weight:600`;
+    document.getElementById('tab-laser').style.cssText = `padding:7px 20px;border-radius:20px;border:1px solid ${!is3d?'#e94560':'#ccc'};background:${!is3d?'#e94560':'#fff'};color:${!is3d?'#fff':'#555'};font-size:0.85rem;cursor:pointer;font-weight:600`;
+    document.getElementById('add-form-heading').textContent = is3d ? '➕ Add New 3D Printer' : '➕ Add New Laser Cutter';
+    document.getElementById('p-name-label').textContent = is3d ? 'Printer Name *' : 'Cutter Name *';
+    document.getElementById('p-name').placeholder = is3d ? 'e.g. Ultimaker S5 #1' : 'e.g. Laser Cutter #1';
+    document.getElementById('p-model').placeholder = is3d ? 'e.g. Ultimaker S5' : 'e.g. xTool P2';
+    document.getElementById('p-device-type').value = is3d ? '3dprint' : 'laser';
+    document.getElementById('p-fmt-group').style.display       = is3d ? '' : 'none';
+    document.getElementById('p-laser-fmt-group').style.display = is3d ? 'none' : '';
+    document.getElementById('add-btn').textContent = is3d ? 'Add 3D Printer' : 'Add Laser Cutter';
+    renderPrinterTable(_allPrinters);
   }
-}
 
-function esc(s) { return s == null ? '—' : String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function showAlert(msg, type = "error") {
+    document.getElementById("alert-box").innerHTML =
+      `<div class="alert alert-${type}">${msg}</div>`;
+    setTimeout(() => { document.getElementById("alert-box").innerHTML = ""; }, 4000);
+  }
 
-async function loadPrinters() {
-  try {
-    const res  = await apiFetch('/api/admin/printers');
-    if (res.status === 401 || res.status === 403) { clearAuth(); location.href = '/login'; return; }
-    const data = await res.json();
+  function fmtDate(s) {
+    if (!s) return "—";
+    try { return new Date(s).toLocaleDateString("en-US"); } catch { return "—"; }
+  }
 
-    document.getElementById('loading').style.display = 'none';
+  function statusSelStyle(status) {
+    const map = {
+      active: "background:#d1e7dd;color:#0a3622;",
+      maintenance: "background:#fff3cd;color:#856404;",
+      retired: "background:#e2e3e5;color:#41464b;",
+    };
+    return map[status] || "";
+  }
 
-    if (!data.success) { showAlert(data.message || 'Failed to load printers.'); return; }
+  async function updateStatus(id, selectEl) {
+    const newStatus = selectEl.value;
+    selectEl.style.cssText =
+      "padding:3px 8px;border-radius:8px;border:1px solid #ccc;font-size:0.8rem;font-weight:600;cursor:pointer;" +
+      statusSelStyle(newStatus);
+    try {
+      const res = await apiFetch(`/api/admin/printers/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        showAlert(`Status updated to "${newStatus}".`, "success");
+      } else {
+        showAlert(data.message || "Failed to update status.");
+        loadPrinters();
+      }
+    } catch (e) {
+      showAlert("Network error.");
+      loadPrinters();
+    }
+  }
 
-    const list = data.printers || [];
-    if (!list.length) { document.getElementById('no-data').style.display = 'block'; return; }
+  function esc(s) {
+    return s == null ? "—" : String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  }
 
-    document.getElementById('no-data').style.display = 'none';
-    const tbody = document.getElementById('printers-body');
-    tbody.innerHTML = list.map((p, idx) => {
-      const fmts = (p.accepted_file_formats || 'ufp').split(',').map(f =>
-        `<code style="background:#e8f0fe;color:#1a73e8;padding:1px 6px;border-radius:4px;font-size:0.75rem">.${f.trim()}</code>`
-      ).join(' ');
+  function renderPrinterTable(list) {
+    const isLaserTab = _equipTab === 'laser';
+    const filtered = list.filter(p => {
+      const dt = p.device_type || '3dprint';
+      return isLaserTab ? dt === 'laser' : dt !== 'laser';
+    });
+    document.getElementById("loading").style.display = "none";
+    if (!filtered.length) {
+      document.getElementById("no-data").style.display = "block";
+      document.getElementById("printers-table").style.display = "none";
+      return;
+    }
+    document.getElementById("no-data").style.display = "none";
+    const tbody = document.getElementById("printers-body");
+    tbody.innerHTML = filtered.map((p, idx) => {
+      const isLaser = (p.device_type || '3dprint') === 'laser';
+      const fmtsHtml = isLaser
+        ? ['svg','dxf','pdf'].map(f =>
+            `<code style="background:#fce4ec;color:#c62828;padding:1px 6px;border-radius:4px;font-size:0.75rem">.${f}</code>`
+          ).join(' ')
+        : (p.accepted_file_formats || 'ufp').split(',').map(f =>
+            `<code style="background:#e8f0fe;color:#1a73e8;padding:1px 6px;border-radius:4px;font-size:0.75rem">.${f.trim()}</code>`
+          ).join(' ');
       return `
       <tr id="row-${p.printer_id}">
         <td>${idx + 1}</td>
         <td class="view-name">${esc(p.printer_name)}</td>
         <td class="view-model">${esc(p.model)}</td>
         <td class="view-location">${esc(p.location)}</td>
-        <td class="view-fmts" style="white-space:nowrap">${fmts}</td>
+        <td class="view-fmts" style="white-space:nowrap">${fmtsHtml}</td>
         <td style="text-align:center">
           <select class="status-sel" data-id="${p.printer_id}" onchange="updateStatus(${p.printer_id}, this)"
             style="padding:3px 8px;border-radius:8px;border:1px solid #ccc;font-size:0.8rem;font-weight:600;cursor:pointer;${statusSelStyle(p.status)}">
-            <option value="active"      ${p.status==='active'      ?'selected':''}>Active</option>
-            <option value="maintenance" ${p.status==='maintenance' ?'selected':''}>Maintenance</option>
-            <option value="retired"     ${p.status==='retired'     ?'selected':''}>Retired</option>
+            <option value="active"      ${p.status==="active"      ?"selected":""}>Active</option>
+            <option value="maintenance" ${p.status==="maintenance" ?"selected":""}>Maintenance</option>
+            <option value="retired"     ${p.status==="retired"     ?"selected":""}>Retired</option>
           </select>
         </td>
         <td>${fmtDate(p.created_at)}</td>
@@ -188,104 +336,124 @@ async function loadPrinters() {
           <button class="btn-edit" onclick="startEdit(${p.printer_id}, ${JSON.stringify(p).replace(/"/g,'&quot;')})">✏️ Edit</button>
           <button class="btn-delete" onclick="deletePrinter(${p.printer_id}, '${esc(p.printer_name).replace(/'/g,"&#39;")}')">🗑 Delete</button>
         </td>
-      </tr>`}).join('');
-
-    document.getElementById('printers-table').style.display = 'table';
-  } catch(e) {
-    document.getElementById('loading').innerHTML =
-      '<span style="color:#c0392b">Failed to load. Make sure the backend is running.</span>';
+      </tr>`;
+    }).join("");
+    document.getElementById("printers-table").style.display = "table";
   }
-}
 
-async function addPrinter(e) {
-  e.preventDefault();
-  const name   = document.getElementById('p-name').value.trim();
-  const model  = document.getElementById('p-model').value.trim();
-  const loc    = document.getElementById('p-location').value.trim();
-  const status = document.getElementById('p-status').value;
-
-  const fmts = ['ufp','3mf'].filter(f => document.getElementById(`p-fmt-${f}`).checked);
-  if (!name) { showAlert('Printer name is required.'); return; }
-  if (!fmts.length) { showAlert('Please select at least one accepted file format (.ufp or .3mf).'); return; }
-
-  try {
-    const res = await apiFetch('/api/admin/printers', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ printer_name: name, model: model || null, location: loc || null, status, accepted_file_formats: fmts.join(',') })
-    });
-    const data = await res.json();
-    if (data.success) {
-      showAlert('Printer added successfully!', 'success');
-      document.getElementById('add-printer-form').reset();
-      document.getElementById('p-fmt-ufp').checked = true; // reset to default
-      loadPrinters();
-    } else {
-      showAlert(data.message || 'Failed to add printer.');
+  async function loadPrinters() {
+    try {
+      const res = await apiFetch("/api/admin/printers");
+      if (res.status === 401 || res.status === 403) { clearAuth(); location.href = "/login"; return; }
+      const data = await res.json();
+      if (!data.success) { showAlert(data.message || "Failed to load printers."); return; }
+      _allPrinters = data.printers || [];
+      renderPrinterTable(_allPrinters);
+    } catch (e) {
+      document.getElementById("loading").innerHTML =
+        '<span style="color:#c0392b">Failed to load. Make sure the backend is running.</span>';
     }
-  } catch(err) {
-    showAlert('Failed to add printer. Check backend.');
   }
-}
 
-async function deletePrinter(id, name) {
-  if (!confirm(`Delete printer "${name}"?`)) return;
-  try {
-    const res  = await apiFetch(`/api/admin/printers/${id}`, { method: 'DELETE' });
-    const data = await res.json();
-    if (data.success) {
-      showAlert('Printer deleted.', 'success');
-      loadPrinters();
+  async function addPrinter(e) {
+    e.preventDefault();
+    const name    = document.getElementById("p-name").value.trim();
+    const model   = document.getElementById("p-model").value.trim();
+    const loc     = document.getElementById("p-location").value.trim();
+    const status  = document.getElementById("p-status").value;
+    const devType = document.getElementById("p-device-type").value;
+    const isLaser = devType === 'laser';
+    let fmtsStr;
+    if (isLaser) {
+      fmtsStr = 'svg,dxf,pdf';
     } else {
-      showAlert(data.message || 'Failed to delete.');
+      const fmts = ["ufp", "3mf"].filter(f => document.getElementById(`p-fmt-${f}`).checked);
+      if (!fmts.length) { showAlert("Please select at least one accepted file format (.ufp or .3mf)."); return; }
+      fmtsStr = fmts.join(",");
     }
-  } catch(err) {
-    showAlert('Failed to delete. Check backend.');
+    if (!name) { showAlert("Name is required."); return; }
+    try {
+      const res = await apiFetch("/api/admin/printers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ printer_name: name, model: model || null, location: loc || null, status, accepted_file_formats: fmtsStr, device_type: devType }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        showAlert(`${isLaser ? 'Laser cutter' : 'Printer'} added successfully!`, "success");
+        document.getElementById("add-printer-form").reset();
+        document.getElementById("p-device-type").value = devType;
+        if (!isLaser) document.getElementById("p-fmt-ufp").checked = true;
+        loadPrinters();
+      } else {
+        showAlert(data.message || "Failed to add.");
+      }
+    } catch (err) {
+      showAlert("Failed to add. Check backend.");
+    }
   }
-}
 
-function startEdit(id, p) {
-  const row = document.getElementById(`row-${id}`);
-  const curFmts = (p.accepted_file_formats || 'ufp').split(',').map(s => s.trim());
-  row.querySelector('.view-name').innerHTML =
-    `<input id="edit-name-${id}" value="${esc(p.printer_name)}" style="width:100%;padding:4px 6px;border:1px solid #ccc;border-radius:6px;font-size:0.85rem">`;
-  row.querySelector('.view-model').innerHTML =
-    `<input id="edit-model-${id}" value="${esc(p.model === null || p.model === undefined ? '' : p.model)}" style="width:100%;padding:4px 6px;border:1px solid #ccc;border-radius:6px;font-size:0.85rem">`;
-  row.querySelector('.view-location').innerHTML =
-    `<input id="edit-location-${id}" value="${esc(p.location === null || p.location === undefined ? '' : p.location)}" style="width:100%;padding:4px 6px;border:1px solid #ccc;border-radius:6px;font-size:0.85rem">`;
-  row.querySelector('.view-fmts').innerHTML = `
-    <label style="display:flex;align-items:center;gap:4px;font-size:0.85rem;cursor:pointer;white-space:nowrap">
-      <input type="checkbox" id="edit-fmt-ufp-${id}" ${curFmts.includes('ufp') ? 'checked' : ''}> <code>.ufp</code>
-    </label>
-    <label style="display:flex;align-items:center;gap:4px;font-size:0.85rem;cursor:pointer;white-space:nowrap;margin-top:4px">
-      <input type="checkbox" id="edit-fmt-3mf-${id}" ${curFmts.includes('3mf') ? 'checked' : ''}> <code>.3mf</code>
-    </label>`;
-  // swap action buttons
-  const actionTd = row.querySelector('td:last-child');
-  actionTd.innerHTML = `
-    <button class="btn" style="width:auto;padding:4px 12px;font-size:0.8rem" onclick="saveEdit(${id})">💾 Save</button>
-    <button class="btn-delete" style="background:none;border:1px solid #ccc;color:#555" onclick="cancelEdit()">✕ Cancel</button>`;
-}
+  async function deletePrinter(id, name) {
+    if (!confirm(`Delete "${name}"?`)) return;
+    try {
+      const res = await apiFetch(`/api/admin/printers/${id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (data.success) { showAlert("Deleted.", "success"); loadPrinters(); }
+      else showAlert(data.message || "Failed to delete.");
+    } catch (err) {
+      showAlert("Failed to delete. Check backend.");
+    }
+  }
 
-function cancelEdit() { loadPrinters(); }
+  function startEdit(id, p) {
+    const row = document.getElementById(`row-${id}`);
+    const isLaser = (p.device_type || '3dprint') === 'laser';
+    const curFmts = (p.accepted_file_formats || "ufp").split(",").map(s => s.trim());
+    row.querySelector(".view-name").innerHTML =
+      `<input id="edit-name-${id}" value="${esc(p.printer_name)}" style="width:100%;padding:4px 6px;border:1px solid #ccc;border-radius:6px;font-size:0.85rem">`;
+    row.querySelector(".view-model").innerHTML =
+      `<input id="edit-model-${id}" value="${esc(p.model??'')}" style="width:100%;padding:4px 6px;border:1px solid #ccc;border-radius:6px;font-size:0.85rem">`;
+    row.querySelector(".view-location").innerHTML =
+      `<input id="edit-location-${id}" value="${esc(p.location??'')}" style="width:100%;padding:4px 6px;border:1px solid #ccc;border-radius:6px;font-size:0.85rem">`;
+    row.querySelector(".view-fmts").innerHTML = isLaser
+      ? `<span style="color:#888;font-size:0.82rem">svg, dxf, pdf</span>`
+      : `
+      <label style="display:flex;align-items:center;gap:4px;font-size:0.85rem;cursor:pointer;white-space:nowrap">
+        <input type="checkbox" id="edit-fmt-ufp-${id}" ${curFmts.includes("ufp")?"checked":""}> <code>.ufp</code>
+      </label>
+      <label style="display:flex;align-items:center;gap:4px;font-size:0.85rem;cursor:pointer;white-space:nowrap;margin-top:4px">
+        <input type="checkbox" id="edit-fmt-3mf-${id}" ${curFmts.includes("3mf")?"checked":""}> <code>.3mf</code>
+      </label>`;
+    row.querySelector("td:last-child").innerHTML = `
+      <button class="btn" style="width:auto;padding:4px 12px;font-size:0.8rem" onclick="saveEdit(${id},${isLaser})">💾 Save</button>
+      <button class="btn-delete" style="background:none;border:1px solid #ccc;color:#555" onclick="cancelEdit()">✕ Cancel</button>`;
+  }
 
-async function saveEdit(id) {
-  const name  = document.getElementById(`edit-name-${id}`)?.value.trim();
-  const model = document.getElementById(`edit-model-${id}`)?.value.trim();
-  const loc   = document.getElementById(`edit-location-${id}`)?.value.trim();
-  const fmts  = ['ufp','3mf'].filter(f => document.getElementById(`edit-fmt-${f}-${id}`)?.checked);
-  if (!name) { showAlert('Printer name is required.'); return; }
-  if (!fmts.length) { showAlert('Please select at least one file format.'); return; }
-  try {
-    const res  = await apiFetch(`/api/admin/printers/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ printer_name: name, model: model || null, location: loc || null, accepted_file_formats: fmts.join(',') })
-    });
-    const data = await res.json();
-    if (data.success) { showAlert('Printer updated.', 'success'); loadPrinters(); }
-    else showAlert(data.message || 'Failed to save.');
-  } catch(e) { showAlert('Network error.'); }
-}
+  function cancelEdit() { loadPrinters(); }
+
+  async function saveEdit(id, isLaser) {
+    const name  = document.getElementById(`edit-name-${id}`)?.value.trim();
+    const model = document.getElementById(`edit-model-${id}`)?.value.trim();
+    const loc   = document.getElementById(`edit-location-${id}`)?.value.trim();
+    let fmtsStr;
+    if (isLaser) {
+      fmtsStr = 'svg,dxf,pdf';
+    } else {
+      const fmts = ["ufp","3mf"].filter(f => document.getElementById(`edit-fmt-${f}-${id}`)?.checked);
+      if (!fmts.length) { showAlert("Please select at least one file format."); return; }
+      fmtsStr = fmts.join(",");
+    }
+    if (!name) { showAlert("Name is required."); return; }
+    try {
+      const res = await apiFetch(`/api/admin/printers/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ printer_name: name, model: model||null, location: loc||null, accepted_file_formats: fmtsStr }),
+      });
+      const data = await res.json();
+      if (data.success) { showAlert("Updated.", "success"); loadPrinters(); }
+      else showAlert(data.message || "Failed to save.");
+    } catch (e) { showAlert("Network error."); }
+  }
 </script>
 {% endblock %}

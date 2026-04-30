@@ -1,97 +1,379 @@
-{% extends "base.html" %}
-{% block title %}Request Detail — DGSpace{% endblock %}
-
-{% block content %}
-<div style="max-width:860px;margin:0 auto">
-
+{% extends "base.html" %} {% block title %}Request Detail — DGSpace{% endblock
+%} {% block content %}
+<div style="max-width: 860px; margin: 0 auto">
   <!-- Back link -->
-  <a href="/" style="color:#888;font-size:0.9rem;text-decoration:none">← Home</a>
+  <a href="/" style="color: #888; font-size: 0.9rem; text-decoration: none"
+    >← Home</a
+  >
 
-  <div id="loading-detail" style="text-align:center;padding:60px;color:#888">Loading…</div>
+  <div
+    id="loading-detail"
+    style="text-align: center; padding: 60px; color: #888"
+  >
+    Loading…
+  </div>
 
   <!-- Main detail card (hidden until data loads) -->
-  <div id="detail-card" style="display:none">
-
+  <div id="detail-card" style="display: none">
     <!-- Header row -->
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin:16px 0 20px">
+    <div
+      style="
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin: 16px 0 20px;
+      "
+    >
       <div>
-        <h2 id="d-project-name" style="margin:0 0 6px"></h2>
+        <h2 id="d-project-name" style="margin: 0 0 6px"></h2>
         <span id="d-status-badge"></span>
-        <span id="d-priority-badge" style="margin-left:6px"></span>
+        <span id="d-priority-badge" style="margin-left: 6px"></span>
       </div>
-      <div style="text-align:right;font-size:0.85rem;color:#888">
+      <div style="text-align: right; font-size: 0.85rem; color: #888">
         <div>Submitted: <span id="d-created-at"></span></div>
-        <div id="d-reviewed-row" style="display:none">Reviewed: <span id="d-reviewed-at"></span></div>
+        <div id="d-reviewed-row" style="display: none">
+          Reviewed: <span id="d-reviewed-at"></span>
+        </div>
       </div>
     </div>
 
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px">
-
+    <div
+      style="
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 20px;
+      "
+    >
       <!-- Left: details -->
-      <div class="card" style="margin:0">
-        <h3 style="margin:0 0 16px;font-size:1rem;color:#444">Request Details</h3>
-        <table style="width:100%;border-collapse:collapse;font-size:0.9rem">
-          <tr><td style="padding:6px 0;color:#888;width:44%">Material</td>      <td id="d-material"></td></tr>
-          <tr><td style="padding:6px 0;color:#888">Color</td>                   <td id="d-color"></td></tr>
-          <tr id="d-weight-row" style="display:none"><td style="padding:6px 0;color:#888">Est. Weight</td>      <td id="d-weight"></td></tr>
-          <tr id="d-print-time-row" style="display:none"><td style="padding:6px 0;color:#888">Est. Print Time</td>  <td id="d-print-time"></td></tr>
-          <tr id="d-deadline-row" style="display:none"><td style="padding:6px 0;color:#888">📅 Deadline</td>      <td id="d-deadline" style="font-weight:600"></td></tr>
-          <tr><td style="padding:6px 0;color:#888">Submitted by</td>            <td id="d-student"></td></tr>
-          <tr id="d-email-row" style="display:none"><td style="padding:6px 0;color:#888">Student Email</td>  <td><a id="d-student-email" href="#" style="color:#e94560;font-size:0.9rem"></a></td></tr>
-          <tr id="d-approved-by-row" style="display:none"><td style="padding:6px 0;color:#888">✅ Approved by</td>  <td id="d-approved-by" style="font-size:0.9rem"></td></tr>
-          <tr id="d-assigned-by-row" style="display:none"><td style="padding:6px 0;color:#888">🔖 Assigned by</td> <td id="d-assigned-by" style="font-size:0.9rem"></td></tr>
+      <div class="card" style="margin: 0">
+        <h3 style="margin: 0 0 16px; font-size: 1rem; color: #444">
+          Request Details
+        </h3>
+        <table
+          style="width: 100%; border-collapse: collapse; font-size: 0.9rem"
+        >
+          <tr id="d-service-type-row" style="display: none">
+            <td style="padding: 6px 0; color: #888; width: 44%">
+              Service Type
+            </td>
+            <td id="d-service-type"></td>
+          </tr>
+          <tr id="d-material-row">
+            <td style="padding: 6px 0; color: #888; width: 44%">Material</td>
+            <td id="d-material"></td>
+          </tr>
+          <tr id="d-color-row">
+            <td style="padding: 6px 0; color: #888">Color</td>
+            <td id="d-color"></td>
+          </tr>
+          <tr id="d-weight-row" style="display: none">
+            <td style="padding: 6px 0; color: #888">Est. Weight</td>
+            <td id="d-weight"></td>
+          </tr>
+          <tr id="d-print-time-row" style="display: none">
+            <td style="padding: 6px 0; color: #888">Est. Print Time</td>
+            <td id="d-print-time"></td>
+          </tr>
+          <tr id="d-deadline-row" style="display: none">
+            <td style="padding: 6px 0; color: #888">📅 Deadline</td>
+            <td id="d-deadline" style="font-weight: 600"></td>
+          </tr>
+          <tr>
+            <td style="padding: 6px 0; color: #888">Submitted by</td>
+            <td id="d-student"></td>
+          </tr>
+          <tr id="d-email-row" style="display: none">
+            <td style="padding: 6px 0; color: #888">Student Email</td>
+            <td>
+              <a
+                id="d-student-email"
+                href="#"
+                style="color: #e94560; font-size: 0.9rem"
+              ></a>
+            </td>
+          </tr>
+          <tr id="d-approved-by-row" style="display: none">
+            <td style="padding: 6px 0; color: #888">✅ Approved by</td>
+            <td id="d-approved-by" style="font-size: 0.9rem"></td>
+          </tr>
+          <tr id="d-assigned-by-row" style="display: none">
+            <td style="padding: 6px 0; color: #888">🔖 Assigned by</td>
+            <td id="d-assigned-by" style="font-size: 0.9rem"></td>
+          </tr>
         </table>
 
-        <div id="d-description-block" style="margin-top:16px;display:none">
-          <div style="font-size:0.85rem;color:#888;margin-bottom:4px">Description</div>
-          <div id="d-description" style="font-size:0.9rem;color:#333;white-space:pre-wrap"></div>
+        <!-- Laser cut details block -->
+        <div
+          id="d-laser-block"
+          style="
+            display: none;
+            margin-top: 14px;
+            padding: 12px 14px;
+            background: #fff5f7;
+            border: 1px solid #f5c0cb;
+            border-radius: 8px;
+          "
+        >
+          <div
+            style="
+              font-size: 0.85rem;
+              font-weight: 700;
+              color: #c0392b;
+              margin-bottom: 10px;
+            "
+          >
+            ✂️ Laser Cut Details
+          </div>
+          <table
+            style="width: 100%; border-collapse: collapse; font-size: 0.88rem"
+          >
+            <tr>
+              <td style="padding: 4px 0; color: #888; width: 44%">Material</td>
+              <td id="d-laser-material" style="font-weight: 600"></td>
+            </tr>
+            <tr>
+              <td style="padding: 4px 0; color: #888">Job Type</td>
+              <td id="d-laser-job-type" style="font-weight: 600"></td>
+            </tr>
+            <tr id="d-laser-dims-row" style="display: none">
+              <td style="padding: 4px 0; color: #888; vertical-align: top">
+                Dimensions / Notes
+              </td>
+              <td id="d-laser-dims" style="white-space: pre-wrap"></td>
+            </tr>
+            <tr id="d-laser-file-row" style="display: none">
+              <td style="padding: 4px 0; color: #888">Design File</td>
+              <td>
+                <a
+                  id="d-laser-file-link"
+                  href="#"
+                  style="color: #e94560; font-size: 0.88rem"
+                ></a>
+              </td>
+            </tr>
+          </table>
         </div>
 
-        <div id="d-admin-notes-block" style="margin-top:16px;padding:12px 14px;background:#fff8e1;border:1px solid #ffe082;border-radius:6px;display:none;white-space:normal;overflow-wrap:anywhere;word-break:break-word">
-          <div style="font-size:0.85rem;font-weight:600;color:#7a5800;margin-bottom:4px">⚠️ Admin Feedback</div>
-          <div id="d-admin-notes" style="font-size:0.9rem;color:#7a5800"></div>
+        <div id="d-description-block" style="margin-top: 16px; display: none">
+          <div style="font-size: 0.85rem; color: #888; margin-bottom: 4px">
+            Description
+          </div>
+          <div
+            id="d-description"
+            style="font-size: 0.9rem; color: #333; white-space: pre-wrap"
+          ></div>
         </div>
 
+        <div
+          id="d-admin-notes-block"
+          style="
+            margin-top: 16px;
+            padding: 12px 14px;
+            background: #fff8e1;
+            border: 1px solid #ffe082;
+            border-radius: 6px;
+            display: none;
+            white-space: normal;
+            overflow-wrap: anywhere;
+            word-break: break-word;
+          "
+        >
+          <div
+            style="
+              font-size: 0.85rem;
+              font-weight: 600;
+              color: #7a5800;
+              margin-bottom: 4px;
+            "
+          >
+            ⚠️ Admin Feedback
+          </div>
+          <div
+            id="d-admin-notes"
+            style="font-size: 0.9rem; color: #7a5800"
+          ></div>
+        </div>
       </div>
 
-      <!-- Right: STL viewer -->
-      <div class="card" style="margin:0;padding:0;overflow:hidden;position:relative">
+      <!-- Right: STL viewer / Laser file preview -->
+      <div
+        class="card"
+        style="margin: 0; padding: 0; overflow: hidden; position: relative"
+      >
         <!-- No STL placeholder -->
-        <div id="stl-placeholder" style="height:320px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#bbb;gap:8px">
-          <svg width="48" height="48" fill="none" stroke="#ddd" stroke-width="1.2" viewBox="0 0 24 24">
-            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+        <div
+          id="stl-placeholder"
+          style="
+            height: 320px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #bbb;
+            gap: 8px;
+          "
+        >
+          <svg
+            width="48"
+            height="48"
+            fill="none"
+            stroke="#ddd"
+            stroke-width="1.2"
+            viewBox="0 0 24 24"
+          >
+            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
           </svg>
-          <span style="font-size:0.85rem">No STL file attached</span>
+          <span style="font-size: 0.85rem">No STL file attached</span>
         </div>
         <!-- Three.js canvas container -->
-        <div id="stl-viewer-wrap" style="display:none;position:relative">
-          <canvas id="stl-canvas" style="width:100%;height:320px;display:block"></canvas>
-          <div style="position:absolute;bottom:8px;right:10px;font-size:0.72rem;color:#aaa;pointer-events:none">
+        <div id="stl-viewer-wrap" style="display: none; position: relative">
+          <canvas
+            id="stl-canvas"
+            style="width: 100%; height: 320px; display: block"
+          ></canvas>
+          <div
+            style="
+              position: absolute;
+              bottom: 8px;
+              right: 10px;
+              font-size: 0.72rem;
+              color: #aaa;
+              pointer-events: none;
+            "
+          >
             🖱 Drag to rotate · Scroll to zoom
           </div>
-          <div id="stl-loading" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.85);font-size:0.85rem;color:#888">
+          <div
+            id="stl-loading"
+            style="
+              position: absolute;
+              inset: 0;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              background: rgba(255, 255, 255, 0.85);
+              font-size: 0.85rem;
+              color: #888;
+            "
+          >
             Loading 3D model…
           </div>
-          <a id="stl-download" href="#" download
-             style="position:absolute;top:8px;right:10px;font-size:0.75rem;color:#007bff;text-decoration:none;background:rgba(255,255,255,0.9);padding:3px 8px;border-radius:4px">
+          <a
+            id="stl-download"
+            href="#"
+            download
+            style="
+              position: absolute;
+              top: 8px;
+              right: 10px;
+              font-size: 0.75rem;
+              color: #007bff;
+              text-decoration: none;
+              background: rgba(255, 255, 255, 0.9);
+              padding: 3px 8px;
+              border-radius: 4px;
+            "
+          >
             ⬇ Download STL
           </a>
         </div>
+        <!-- Laser file download panel -->
+        <div
+          id="laser-file-panel"
+          style="
+            display: none;
+            height: 320px;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+          "
+        >
+          <svg
+            width="48"
+            height="48"
+            fill="none"
+            stroke="#e94560"
+            stroke-width="1.4"
+            viewBox="0 0 24 24"
+          >
+            <path
+              d="M9 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9l-6-6z"
+            />
+            <polyline points="9 3 9 9 15 9" />
+          </svg>
+          <span
+            id="laser-file-name"
+            style="
+              font-size: 0.9rem;
+              color: #555;
+              max-width: 240px;
+              text-align: center;
+              overflow-wrap: anywhere;
+            "
+          ></span>
+          <a
+            id="laser-file-download"
+            href="#"
+            download
+            style="
+              display: inline-flex;
+              align-items: center;
+              gap: 6px;
+              font-size: 0.88rem;
+              color: #e94560;
+              text-decoration: none;
+              border: 1px solid #e94560;
+              padding: 6px 16px;
+              border-radius: 6px;
+            "
+          >
+            ⬇ Download Design File
+          </a>
+        </div>
       </div>
-
-    </div><!-- /grid -->
+    </div>
+    <!-- /grid -->
 
     <!-- ══════ Admin Actions (below the grid) ══════ -->
-    <div id="admin-actions" style="display:none;margin-top:24px">
-      <div class="card" style="margin:0">
-        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:16px">
-          <h3 style="margin:0;font-size:1rem;color:#444">🛠 Admin Actions</h3>
+    <div id="admin-actions" style="display: none; margin-top: 24px">
+      <div class="card" style="margin: 0">
+        <div
+          style="
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 16px;
+          "
+        >
+          <h3 style="margin: 0; font-size: 1rem; color: #444">
+            🛠 Admin Actions
+          </h3>
           <!-- Priority selector — staff/admin only -->
-          <div style="display:flex;align-items:center;gap:8px;font-size:0.88rem">
-            <label style="color:#666;white-space:nowrap;font-weight:600">Priority:</label>
-            <select id="admin-priority-select"
-                    onchange="adminSetPriority(this.value)"
-                    style="padding:4px 10px;border:1px solid #ddd;border-radius:6px;font-size:0.88rem;cursor:pointer">
+          <div
+            style="
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              font-size: 0.88rem;
+            "
+          >
+            <label style="color: #666; white-space: nowrap; font-weight: 600"
+              >Priority:</label
+            >
+            <select
+              id="admin-priority-select"
+              onchange="adminSetPriority(this.value)"
+              style="
+                padding: 4px 10px;
+                border: 1px solid #ddd;
+                border-radius: 6px;
+                font-size: 0.88rem;
+                cursor: pointer;
+              "
+            >
               <option value="normal">🟢 Normal</option>
               <option value="high">🟠 High</option>
               <option value="urgent">🔴 Urgent</option>
@@ -101,142 +383,559 @@
         <div id="admin-alert-box"></div>
 
         <!-- Status info for non-pending (completed / rejected / cancelled) -->
-        <div id="admin-status-info" style="display:none;font-size:0.9rem;color:#555"></div>
+        <div
+          id="admin-status-info"
+          style="display: none; font-size: 0.9rem; color: #555"
+        ></div>
 
         <!-- ── Review panel (shown for pending / revision_requested) ── -->
-        <div id="admin-review-panel" style="display:none">
+        <div id="admin-review-panel" style="display: none">
+          <!-- ── Laser review step (shown only for laser requests) ── -->
+          <div
+            id="admin-laser-review-step"
+            style="
+              display: none;
+              align-items: flex-start;
+              gap: 12px;
+              margin-bottom: 16px;
+            "
+          >
+            <div
+              style="
+                min-width: 26px;
+                height: 26px;
+                background: #e94560;
+                color: #fff;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-weight: 700;
+                font-size: 0.85rem;
+                flex-shrink: 0;
+              "
+            >
+              1
+            </div>
+            <div>
+              <div
+                style="
+                  font-weight: 600;
+                  font-size: 0.9rem;
+                  color: #333;
+                  margin-bottom: 4px;
+                "
+              >
+                ✂️ Review the laser design file
+              </div>
+              <div style="font-size: 0.85rem; color: #666; margin-bottom: 6px">
+                Download and verify the design file before approving. Then
+                approve or request revision below.
+              </div>
+              <a
+                id="laser-review-link"
+                href="#"
+                download
+                style="
+                  display: inline-flex;
+                  align-items: center;
+                  gap: 6px;
+                  font-size: 0.85rem;
+                  color: #e94560;
+                  text-decoration: none;
+                  border: 1px solid #e94560;
+                  padding: 5px 12px;
+                  border-radius: 6px;
+                "
+              >
+                ⬇ Download Design File
+              </a>
+              <span
+                id="laser-review-no-file"
+                style="display: none; font-size: 0.85rem; color: #dc3545"
+                >⚠️ No design file attached to this request.</span
+              >
+            </div>
+          </div>
 
           <!-- Step 1: Download STL -->
-          <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:16px">
-            <div style="min-width:26px;height:26px;background:#007bff;color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.85rem;flex-shrink:0">1</div>
+          <div
+            id="admin-review-step1"
+            style="
+              display: flex;
+              align-items: flex-start;
+              gap: 12px;
+              margin-bottom: 16px;
+            "
+          >
+            <div
+              style="
+                min-width: 26px;
+                height: 26px;
+                background: #007bff;
+                color: #fff;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-weight: 700;
+                font-size: 0.85rem;
+                flex-shrink: 0;
+              "
+            >
+              1
+            </div>
             <div>
-              <div style="font-weight:600;font-size:0.9rem;color:#333;margin-bottom:4px">Download &amp; slice the STL file</div>
-              <div style="font-size:0.85rem;color:#666;margin-bottom:6px">Open in your slicer, then save/export the sliced file as <code>.ufp</code> (Cura) or <code>.3mf</code> (Bambu Studio / PrusaSlicer).</div>
-              <a id="ufp-stl-link" href="#" download
-                 style="display:inline-flex;align-items:center;gap:6px;font-size:0.85rem;color:#007bff;text-decoration:none;border:1px solid #007bff;padding:5px 12px;border-radius:6px">
+              <div
+                style="
+                  font-weight: 600;
+                  font-size: 0.9rem;
+                  color: #333;
+                  margin-bottom: 4px;
+                "
+              >
+                Download &amp; slice the STL file
+              </div>
+              <div style="font-size: 0.85rem; color: #666; margin-bottom: 6px">
+                Open in your slicer, then save/export the sliced file as
+                <code>.ufp</code> (Cura) or <code>.3mf</code> (Bambu Studio /
+                PrusaSlicer).
+              </div>
+              <a
+                id="ufp-stl-link"
+                href="#"
+                download
+                style="
+                  display: inline-flex;
+                  align-items: center;
+                  gap: 6px;
+                  font-size: 0.85rem;
+                  color: #007bff;
+                  text-decoration: none;
+                  border: 1px solid #007bff;
+                  padding: 5px 12px;
+                  border-radius: 6px;
+                "
+              >
                 ⬇ Download STL
               </a>
-              <span id="ufp-no-stl-msg" style="display:none;font-size:0.85rem;color:#dc3545">⚠️ No STL file attached to this request.</span>
+              <span
+                id="ufp-no-stl-msg"
+                style="display: none; font-size: 0.85rem; color: #dc3545"
+                >⚠️ No STL file attached to this request.</span
+              >
             </div>
           </div>
 
           <!-- Step 2: Upload sliced file (UFP or 3MF) -->
-          <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:16px">
-            <div style="min-width:26px;height:26px;background:#007bff;color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.85rem;flex-shrink:0">2</div>
-            <div style="flex:1">
-              <div style="font-weight:600;font-size:0.9rem;color:#333;margin-bottom:4px">Upload the sliced file <span style="font-weight:400;color:#888;font-size:0.82rem">(.ufp or .3mf)</span></div>
-              <div style="font-size:0.85rem;color:#666;margin-bottom:8px">If the model looks good, upload the sliced file to approve. Otherwise skip this step and send feedback below.</div>
+          <div
+            id="admin-review-step2"
+            style="
+              display: flex;
+              align-items: flex-start;
+              gap: 12px;
+              margin-bottom: 16px;
+            "
+          >
+            <div
+              style="
+                min-width: 26px;
+                height: 26px;
+                background: #007bff;
+                color: #fff;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-weight: 700;
+                font-size: 0.85rem;
+                flex-shrink: 0;
+              "
+            >
+              2
+            </div>
+            <div style="flex: 1">
+              <div
+                style="
+                  font-weight: 600;
+                  font-size: 0.9rem;
+                  color: #333;
+                  margin-bottom: 4px;
+                "
+              >
+                Upload the sliced file
+                <span style="font-weight: 400; color: #888; font-size: 0.82rem"
+                  >(.ufp or .3mf)</span
+                >
+              </div>
+              <div style="font-size: 0.85rem; color: #666; margin-bottom: 8px">
+                If the model looks good, upload the sliced file to approve.
+                Otherwise skip this step and send feedback below.
+              </div>
 
               <!-- Drop zone -->
-              <div id="ufp-dropzone"
-                   style="border:2px dashed #adb5bd;border-radius:8px;padding:24px;text-align:center;cursor:pointer;transition:border-color 0.2s,background 0.2s;background:#fafafa"
-                   ondragover="event.preventDefault();this.style.borderColor='#007bff';this.style.background='#e8f4ff'"
-                   ondragleave="this.style.borderColor='#adb5bd';this.style.background='#fafafa'"
-                   ondrop="event.preventDefault();this.style.borderColor='#adb5bd';this.style.background='#fafafa';handleUfpUpload(event.dataTransfer.files[0])"
-                   onclick="document.getElementById('ufp-file-input').click()">
-                <div style="font-size:1.5rem;margin-bottom:6px">📦</div>
-                <div style="font-size:0.9rem;color:#555">Drop <strong>.ufp</strong> or <strong>.3mf</strong> here or click to browse</div>
-                <div style="font-size:0.78rem;color:#999;margin-top:4px">Max 200 MB</div>
+              <div
+                id="ufp-dropzone"
+                style="
+                  border: 2px dashed #adb5bd;
+                  border-radius: 8px;
+                  padding: 24px;
+                  text-align: center;
+                  cursor: pointer;
+                  transition:
+                    border-color 0.2s,
+                    background 0.2s;
+                  background: #fafafa;
+                "
+                ondragover="
+                  event.preventDefault();
+                  this.style.borderColor = '#007bff';
+                  this.style.background = '#e8f4ff';
+                "
+                ondragleave="
+                  this.style.borderColor = '#adb5bd';
+                  this.style.background = '#fafafa';
+                "
+                ondrop="
+                  event.preventDefault();
+                  this.style.borderColor = '#adb5bd';
+                  this.style.background = '#fafafa';
+                  handleUfpUpload(event.dataTransfer.files[0]);
+                "
+                onclick="document.getElementById('ufp-file-input').click()"
+              >
+                <div style="font-size: 1.5rem; margin-bottom: 6px">📦</div>
+                <div style="font-size: 0.9rem; color: #555">
+                  Drop <strong>.ufp</strong> or <strong>.3mf</strong> here or
+                  click to browse
+                </div>
+                <div style="font-size: 0.78rem; color: #999; margin-top: 4px">
+                  Max 200 MB
+                </div>
               </div>
-              <input id="ufp-file-input" type="file" accept=".ufp,.3mf" style="display:none"
-                     onchange="handleUfpUpload(this.files[0])">
+              <input
+                id="ufp-file-input"
+                type="file"
+                accept=".ufp,.3mf"
+                style="display: none"
+                onchange="handleUfpUpload(this.files[0])"
+              />
 
               <!-- Upload progress -->
-              <div id="ufp-uploading" style="display:none;margin-top:10px;font-size:0.88rem;color:#007bff;text-align:center">
+              <div
+                id="ufp-uploading"
+                style="
+                  display: none;
+                  margin-top: 10px;
+                  font-size: 0.88rem;
+                  color: #007bff;
+                  text-align: center;
+                "
+              >
                 ⏳ Uploading and reading slice data…
               </div>
             </div>
           </div>
 
           <!-- Parsed data card (hidden until upload succeeds) -->
-          <div id="ufp-parsed-card" style="display:none;margin-bottom:16px">
-            <div style="display:flex;align-items:flex-start;gap:12px">
-              <div style="min-width:26px;height:26px;background:#28a745;color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.85rem;flex-shrink:0">✓</div>
-              <div style="flex:1;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:14px">
-                <div style="font-weight:600;font-size:0.9rem;color:#166534;margin-bottom:10px">✅ Slice data loaded</div>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:0.88rem">
+          <div id="ufp-parsed-card" style="display: none; margin-bottom: 16px">
+            <div style="display: flex; align-items: flex-start; gap: 12px">
+              <div
+                style="
+                  min-width: 26px;
+                  height: 26px;
+                  background: #28a745;
+                  color: #fff;
+                  border-radius: 50%;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  font-weight: 700;
+                  font-size: 0.85rem;
+                  flex-shrink: 0;
+                "
+              >
+                ✓
+              </div>
+              <div
+                style="
+                  flex: 1;
+                  background: #f0fdf4;
+                  border: 1px solid #bbf7d0;
+                  border-radius: 8px;
+                  padding: 14px;
+                "
+              >
+                <div
+                  style="
+                    font-weight: 600;
+                    font-size: 0.9rem;
+                    color: #166534;
+                    margin-bottom: 10px;
+                  "
+                >
+                  ✅ Slice data loaded
+                </div>
+                <div
+                  style="
+                    display: grid;
+                    grid-template-columns: 1fr 1fr;
+                    gap: 10px;
+                    font-size: 0.88rem;
+                  "
+                >
                   <div>
-                    <div style="color:#888;margin-bottom:2px">Print Time</div>
-                    <div id="ufp-disp-time" style="font-weight:600;color:#333;font-size:1rem"></div>
+                    <div style="color: #888; margin-bottom: 2px">
+                      Print Time
+                    </div>
+                    <div
+                      id="ufp-disp-time"
+                      style="font-weight: 600; color: #333; font-size: 1rem"
+                    ></div>
                   </div>
                   <div>
-                    <div style="color:#888;margin-bottom:2px">Material</div>
-                    <div id="ufp-disp-material" style="font-weight:600;color:#333;font-size:1rem"></div>
+                    <div style="color: #888; margin-bottom: 2px">Material</div>
+                    <div
+                      id="ufp-disp-material"
+                      style="font-weight: 600; color: #333; font-size: 1rem"
+                    ></div>
                   </div>
                   <div>
-                    <div style="color:#888;margin-bottom:2px">Layer Height</div>
-                    <div id="ufp-disp-layer" style="font-weight:600;color:#333"></div>
+                    <div style="color: #888; margin-bottom: 2px">
+                      Layer Height
+                    </div>
+                    <div
+                      id="ufp-disp-layer"
+                      style="font-weight: 600; color: #333"
+                    ></div>
                   </div>
                   <div>
-                    <div style="color:#888;margin-bottom:2px">Infill</div>
-                    <div id="ufp-disp-infill" style="font-weight:600;color:#333"></div>
+                    <div style="color: #888; margin-bottom: 2px">Infill</div>
+                    <div
+                      id="ufp-disp-infill"
+                      style="font-weight: 600; color: #333"
+                    ></div>
                   </div>
                 </div>
-                <div style="margin-top:10px;font-size:0.8rem;color:#555">
-                  File: <span id="ufp-disp-filename" style="color:#166534"></span>
-                  <a href="#" onclick="cancelUfpUpload();return false" style="margin-left:12px;color:#dc3545;font-size:0.78rem">✕ Remove</a>
+                <div style="margin-top: 10px; font-size: 0.8rem; color: #555">
+                  File:
+                  <span id="ufp-disp-filename" style="color: #166534"></span>
+                  <a
+                    href="#"
+                    onclick="
+                      cancelUfpUpload();
+                      return false;
+                    "
+                    style="
+                      margin-left: 12px;
+                      color: #dc3545;
+                      font-size: 0.78rem;
+                    "
+                    >✕ Remove</a
+                  >
                 </div>
               </div>
             </div>
           </div>
 
           <!-- ── Send-Back Templates ── -->
-          <div id="sendback-section" style="margin-bottom:16px">
-            <label style="font-size:0.85rem;font-weight:600;color:#555;display:block;margin-bottom:8px">↩ Send Back — Select Reason(s)</label>
+          <div id="sendback-section" style="margin-bottom: 16px">
+            <label
+              style="
+                font-size: 0.85rem;
+                font-weight: 600;
+                color: #555;
+                display: block;
+                margin-bottom: 8px;
+              "
+              >↩ Send Back — Select Reason(s)</label
+            >
 
             <!-- Template chips (multi-select) -->
-            <div id="fb-chips" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px">
+            <div
+              id="fb-chips"
+              style="
+                display: flex;
+                flex-wrap: wrap;
+                gap: 8px;
+                margin-bottom: 10px;
+              "
+            >
               <!-- chips injected by JS -->
             </div>
 
             <!-- Notes textarea -->
-            <textarea id="admin-notes-input" rows="3"
-                      placeholder="Select template(s) above or write custom feedback…"
-                      oninput="fbSyncChipsFromTextarea()"
-                      style="width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:0.88rem;resize:vertical;font-family:inherit"></textarea>
-            <div style="font-size:0.78rem;color:#aaa;margin-top:4px">Selected templates are appended automatically. You can also edit the text directly.</div>
+            <textarea
+              id="admin-notes-input"
+              rows="3"
+              placeholder="Select template(s) above or write custom feedback…"
+              oninput="fbSyncChipsFromTextarea()"
+              style="
+                width: 100%;
+                box-sizing: border-box;
+                padding: 8px 10px;
+                border: 1px solid #ddd;
+                border-radius: 6px;
+                font-size: 0.88rem;
+                resize: vertical;
+                font-family: inherit;
+              "
+            ></textarea>
+            <div style="font-size: 0.78rem; color: #aaa; margin-top: 4px">
+              Selected templates are appended automatically. You can also edit
+              the text directly.
+            </div>
           </div>
 
           <!-- Approve notes (collapsed until UFP uploaded) -->
-          <div id="approve-notes-section" style="display:none;margin-bottom:16px">
-            <label style="font-size:0.85rem;font-weight:600;color:#555;display:block;margin-bottom:4px">Approval Notes <span style="font-weight:400;color:#aaa">(optional)</span></label>
-            <textarea id="approve-notes-input" rows="2" placeholder="Optional notes for the approval…"
-                      style="width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:0.88rem;resize:vertical;font-family:inherit"></textarea>
+          <div
+            id="approve-notes-section"
+            style="display: none; margin-bottom: 16px"
+          >
+            <label
+              style="
+                font-size: 0.85rem;
+                font-weight: 600;
+                color: #555;
+                display: block;
+                margin-bottom: 4px;
+              "
+              >Approval Notes
+              <span style="font-weight: 400; color: #aaa"
+                >(optional)</span
+              ></label
+            >
+            <textarea
+              id="approve-notes-input"
+              rows="2"
+              placeholder="Optional notes for the approval…"
+              style="
+                width: 100%;
+                box-sizing: border-box;
+                padding: 8px 10px;
+                border: 1px solid #ddd;
+                border-radius: 6px;
+                font-size: 0.88rem;
+                resize: vertical;
+                font-family: inherit;
+              "
+            ></textarea>
           </div>
 
           <!-- Action buttons — always visible -->
-          <div style="display:flex;gap:10px;flex-wrap:wrap">
-            <button id="btn-confirm-approve" class="btn" onclick="adminApproveWithUfp()" disabled
-                    style="width:auto;padding:10px 24px;background:#28a745;font-size:0.95rem;opacity:0.55;cursor:not-allowed">
+          <div style="display: flex; gap: 10px; flex-wrap: wrap">
+            <button
+              id="btn-confirm-approve"
+              class="btn"
+              onclick="adminApproveWithUfp()"
+              disabled
+              style="
+                width: auto;
+                padding: 10px 24px;
+                background: #28a745;
+                font-size: 0.95rem;
+                opacity: 0.55;
+                cursor: not-allowed;
+              "
+            >
               ✅ Approve
             </button>
-            <button id="btn-send-back" class="btn" onclick="adminSendBack()"
-                    style="width:auto;padding:10px 24px;background:#f39c12;font-size:0.95rem">
+            <button
+              id="btn-send-back"
+              class="btn"
+              onclick="adminSendBack()"
+              style="
+                width: auto;
+                padding: 10px 24px;
+                background: #f39c12;
+                font-size: 0.95rem;
+              "
+            >
               ↩ Send Back
             </button>
-            <button id="btn-reject" class="btn" onclick="adminReject()"
-                    style="width:auto;padding:10px 24px;background:#dc3545;font-size:0.95rem">
+            <button
+              id="btn-reject"
+              class="btn"
+              onclick="adminReject()"
+              style="
+                width: auto;
+                padding: 10px 24px;
+                background: #dc3545;
+                font-size: 0.95rem;
+              "
+            >
               ❌ Reject
             </button>
-            <button id="btn-cannot-deadline" class="btn" onclick="adminCannotCompleteByDeadline()"
-                    style="width:auto;padding:10px 24px;background:#6c757d;font-size:0.95rem;display:none">
+            <button
+              id="btn-cannot-deadline"
+              class="btn"
+              onclick="adminCannotCompleteByDeadline()"
+              style="
+                width: auto;
+                padding: 10px 24px;
+                background: #6c757d;
+                font-size: 0.95rem;
+                display: none;
+              "
+            >
               ⏰ Cannot Complete by Deadline
             </button>
           </div>
         </div>
 
         <!-- Status update buttons for in_progress / approved -->
-        <div id="admin-progress-group" style="display:none;margin-top:12px;display:flex;gap:12px;flex-wrap:wrap;align-items:center">
-          <button id="btn-mark-completed" class="btn" onclick="adminSetStatus('completed')"
-                  style="width:auto;padding:10px 24px;background:#28a745;font-size:0.95rem">
+        <div
+          id="admin-progress-group"
+          style="
+            display: none;
+            margin-top: 12px;
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: center;
+          "
+        >
+          <button
+            id="btn-mark-completed"
+            class="btn"
+            onclick="adminSetStatus('completed')"
+            style="
+              width: auto;
+              padding: 10px 24px;
+              background: #28a745;
+              font-size: 0.95rem;
+            "
+          >
             ✅ Mark Completed
           </button>
-          <button id="btn-cancel-job" class="btn" onclick="adminSetStatus('cancelled')"
-                  style="width:auto;padding:10px 24px;background:#6c757d;font-size:0.95rem">
+          <button
+            id="btn-cancel-job"
+            class="btn"
+            onclick="adminSetStatus('cancelled')"
+            style="
+              width: auto;
+              padding: 10px 24px;
+              background: #6c757d;
+              font-size: 0.95rem;
+            "
+          >
             🚫 Cancel
           </button>
-          <a id="btn-go-board" href="/production/"
-             style="display:none;width:auto;padding:10px 24px;background:#1a1a2e;color:#fff;border-radius:8px;font-size:0.95rem;text-decoration:none;font-weight:600">
+          <a
+            id="btn-go-board"
+            href="/production/"
+            style="
+              display: none;
+              width: auto;
+              padding: 10px 24px;
+              background: #1a1a2e;
+              color: #fff;
+              border-radius: 8px;
+              font-size: 0.95rem;
+              text-decoration: none;
+              font-weight: 600;
+            "
+          >
             🖨️ Go to Production Board
           </a>
         </div>
@@ -244,40 +943,129 @@
     </div>
 
     <!-- ══════ Student Resubmit Panel (revision_requested only) ══════ -->
-    <div id="student-resubmit-panel" style="display:none;margin-top:24px">
-      <div class="card" style="margin:0;border:2px solid #ffe082">
-        <h3 style="margin:0 0 6px;font-size:1rem;color:#7a5800">✏️ Address Feedback &amp; Resubmit</h3>
-        <p style="margin:0 0 16px;font-size:0.85rem;color:#888">Update the fields below and click <strong>Resubmit</strong>. Staff will see the same record.</p>
+    <div id="student-resubmit-panel" style="display: none; margin-top: 24px">
+      <div class="card" style="margin: 0; border: 2px solid #ffe082">
+        <h3 style="margin: 0 0 6px; font-size: 1rem; color: #7a5800">
+          ✏️ Address Feedback &amp; Resubmit
+        </h3>
+        <p style="margin: 0 0 16px; font-size: 0.85rem; color: #888">
+          Update the fields below and click <strong>Resubmit</strong>. Staff
+          will see the same record.
+        </p>
         <div id="resubmit-alert-box"></div>
 
         <!-- Project name (always shown) -->
-        <div style="margin-bottom:12px">
-          <label style="font-size:0.85rem;font-weight:600;color:#555;display:block;margin-bottom:4px">Project Name</label>
-          <input id="rs-project-name" type="text"
-                 style="width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:0.9rem;font-family:inherit">
+        <div style="margin-bottom: 12px">
+          <label
+            style="
+              font-size: 0.85rem;
+              font-weight: 600;
+              color: #555;
+              display: block;
+              margin-bottom: 4px;
+            "
+            >Project Name</label
+          >
+          <input
+            id="rs-project-name"
+            type="text"
+            style="
+              width: 100%;
+              box-sizing: border-box;
+              padding: 8px 10px;
+              border: 1px solid #ddd;
+              border-radius: 6px;
+              font-size: 0.9rem;
+              font-family: inherit;
+            "
+          />
         </div>
 
         <!-- Description (shown when staff flags it) -->
-        <div id="rs-field-description" style="margin-bottom:12px;display:none">
-          <label style="font-size:0.85rem;font-weight:600;color:#555;display:block;margin-bottom:4px">
+        <div
+          id="rs-field-description"
+          style="margin-bottom: 12px; display: none"
+        >
+          <label
+            style="
+              font-size: 0.85rem;
+              font-weight: 600;
+              color: #555;
+              display: block;
+              margin-bottom: 4px;
+            "
+          >
             Description
-            <span style="font-weight:400;color:#e94560;font-size:0.8rem;margin-left:6px">⚑ Staff requested update</span>
+            <span
+              style="
+                font-weight: 400;
+                color: #e94560;
+                font-size: 0.8rem;
+                margin-left: 6px;
+              "
+              >⚑ Staff requested update</span
+            >
           </label>
-          <textarea id="rs-description" rows="4"
-                    style="width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid #e94560;border-radius:6px;font-size:0.9rem;resize:vertical;font-family:inherit"></textarea>
+          <textarea
+            id="rs-description"
+            rows="4"
+            style="
+              width: 100%;
+              box-sizing: border-box;
+              padding: 8px 10px;
+              border: 1px solid #e94560;
+              border-radius: 6px;
+              font-size: 0.9rem;
+              resize: vertical;
+              font-family: inherit;
+            "
+          ></textarea>
         </div>
 
         <!-- Material & Color (shown when staff flags it) -->
-        <div id="rs-field-material" style="margin-bottom:12px;display:none">
-          <label style="font-size:0.85rem;font-weight:600;color:#555;display:block;margin-bottom:8px">
+        <div id="rs-field-material" style="margin-bottom: 12px; display: none">
+          <label
+            style="
+              font-size: 0.85rem;
+              font-weight: 600;
+              color: #555;
+              display: block;
+              margin-bottom: 8px;
+            "
+          >
             Material &amp; Color
-            <span style="font-weight:400;color:#e94560;font-size:0.8rem;margin-left:6px">⚑ Staff requested update</span>
+            <span
+              style="
+                font-weight: 400;
+                color: #e94560;
+                font-size: 0.8rem;
+                margin-left: 6px;
+              "
+              >⚑ Staff requested update</span
+            >
           </label>
-          <div style="display:flex;gap:10px;flex-wrap:wrap">
-            <div style="flex:1;min-width:140px">
-              <label style="font-size:0.8rem;color:#888;display:block;margin-bottom:4px">Material</label>
-              <select id="rs-material"
-                      style="width:100%;padding:8px 10px;border:1px solid #e94560;border-radius:6px;font-size:0.9rem;font-family:inherit">
+          <div style="display: flex; gap: 10px; flex-wrap: wrap">
+            <div style="flex: 1; min-width: 140px">
+              <label
+                style="
+                  font-size: 0.8rem;
+                  color: #888;
+                  display: block;
+                  margin-bottom: 4px;
+                "
+                >Material</label
+              >
+              <select
+                id="rs-material"
+                style="
+                  width: 100%;
+                  padding: 8px 10px;
+                  border: 1px solid #e94560;
+                  border-radius: 6px;
+                  font-size: 0.9rem;
+                  font-family: inherit;
+                "
+              >
                 <option value="PLA">PLA</option>
                 <option value="ABS">ABS</option>
                 <option value="PETG">PETG</option>
@@ -286,10 +1074,27 @@
                 <option value="Other">Other</option>
               </select>
             </div>
-            <div style="flex:1;min-width:140px">
-              <label style="font-size:0.8rem;color:#888;display:block;margin-bottom:4px">Color Preference</label>
-              <select id="rs-color"
-                      style="width:100%;padding:8px 10px;border:1px solid #e94560;border-radius:6px;font-size:0.9rem;font-family:inherit">
+            <div style="flex: 1; min-width: 140px">
+              <label
+                style="
+                  font-size: 0.8rem;
+                  color: #888;
+                  display: block;
+                  margin-bottom: 4px;
+                "
+                >Color Preference</label
+              >
+              <select
+                id="rs-color"
+                style="
+                  width: 100%;
+                  padding: 8px 10px;
+                  border: 1px solid #e94560;
+                  border-radius: 6px;
+                  font-size: 0.9rem;
+                  font-family: inherit;
+                "
+              >
                 <option value="Any">🎨 Any (let staff decide)</option>
                 <option value="White">⬜ White</option>
                 <option value="Black">⬛ Black</option>
@@ -305,929 +1110,1298 @@
         </div>
 
         <!-- STL replacement (shown when staff flags it, or always available as optional) -->
-        <div id="rs-field-stl" style="margin-bottom:16px">
-          <label style="font-size:0.85rem;font-weight:600;color:#555;display:block;margin-bottom:4px">
+        <div id="rs-field-stl" style="margin-bottom: 16px">
+          <label
+            style="
+              font-size: 0.85rem;
+              font-weight: 600;
+              color: #555;
+              display: block;
+              margin-bottom: 4px;
+            "
+          >
             <span id="rs-stl-label">Replace STL File</span>
-            <span id="rs-stl-flag" style="display:none;font-weight:400;color:#e94560;font-size:0.8rem;margin-left:6px">⚑ Staff requested update</span>
-            <span id="rs-stl-optional" style="font-weight:400;color:#aaa;font-size:0.8rem;margin-left:6px">(optional)</span>
+            <span
+              id="rs-stl-flag"
+              style="
+                display: none;
+                font-weight: 400;
+                color: #e94560;
+                font-size: 0.8rem;
+                margin-left: 6px;
+              "
+              >⚑ Staff requested update</span
+            >
+            <span
+              id="rs-stl-optional"
+              style="
+                font-weight: 400;
+                color: #aaa;
+                font-size: 0.8rem;
+                margin-left: 6px;
+              "
+              >(optional)</span
+            >
           </label>
 
           <!-- current file chip -->
-          <div id="rs-current-stl" style="display:none;font-size:0.82rem;color:#555;margin-bottom:8px;padding:6px 10px;background:#f0f4ff;border:1px solid #c8d8ff;border-radius:6px">
-            Keeping current: <span id="rs-current-stl-name" style="font-family:monospace;color:#007bff"></span>
-            <a href="#" onclick="rsRemoveCurrentStl();return false" style="margin-left:8px;color:#dc3545;font-size:0.78rem">✕ Replace with new file</a>
+          <div
+            id="rs-current-stl"
+            style="
+              display: none;
+              font-size: 0.82rem;
+              color: #555;
+              margin-bottom: 8px;
+              padding: 6px 10px;
+              background: #f0f4ff;
+              border: 1px solid #c8d8ff;
+              border-radius: 6px;
+            "
+          >
+            Keeping current:
+            <span
+              id="rs-current-stl-name"
+              style="font-family: monospace; color: #007bff"
+            ></span>
+            <a
+              href="#"
+              onclick="
+                rsRemoveCurrentStl();
+                return false;
+              "
+              style="margin-left: 8px; color: #dc3545; font-size: 0.78rem"
+              >✕ Replace with new file</a
+            >
           </div>
 
           <!-- drop zone -->
-          <div id="rs-dropzone"
-               style="border:2px dashed #adb5bd;border-radius:8px;padding:20px;text-align:center;cursor:pointer;background:#fafafa;transition:border-color 0.2s,background 0.2s"
-               ondragover="event.preventDefault();this.style.borderColor='#007bff';this.style.background='#e8f4ff'"
-               ondragleave="this.style.borderColor='#adb5bd';this.style.background='#fafafa'"
-               ondrop="event.preventDefault();this.style.borderColor='#adb5bd';this.style.background='#fafafa';rsHandleStl(event.dataTransfer.files[0])"
-               onclick="document.getElementById('rs-stl-input').click()">
-            <div style="font-size:1.2rem;margin-bottom:4px">📁</div>
-            <div style="font-size:0.88rem;color:#555">Drop <strong>.stl</strong> here or click to browse</div>
+          <div
+            id="rs-dropzone"
+            style="
+              border: 2px dashed #adb5bd;
+              border-radius: 8px;
+              padding: 20px;
+              text-align: center;
+              cursor: pointer;
+              background: #fafafa;
+              transition:
+                border-color 0.2s,
+                background 0.2s;
+            "
+            ondragover="
+              event.preventDefault();
+              this.style.borderColor = '#007bff';
+              this.style.background = '#e8f4ff';
+            "
+            ondragleave="
+              this.style.borderColor = '#adb5bd';
+              this.style.background = '#fafafa';
+            "
+            ondrop="
+              event.preventDefault();
+              this.style.borderColor = '#adb5bd';
+              this.style.background = '#fafafa';
+              rsHandleStl(event.dataTransfer.files[0]);
+            "
+            onclick="document.getElementById('rs-stl-input').click()"
+          >
+            <div style="font-size: 1.2rem; margin-bottom: 4px">📁</div>
+            <div style="font-size: 0.88rem; color: #555">
+              Drop <strong>.stl</strong> here or click to browse
+            </div>
           </div>
-          <input id="rs-stl-input" type="file" accept=".stl" style="display:none"
-                 onchange="rsHandleStl(this.files[0])">
+          <input
+            id="rs-stl-input"
+            type="file"
+            accept=".stl"
+            style="display: none"
+            onchange="rsHandleStl(this.files[0])"
+          />
 
           <!-- new file chip -->
-          <div id="rs-new-stl-chip" style="display:none;margin-top:8px;font-size:0.82rem;padding:6px 10px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;color:#166534">
+          <div
+            id="rs-new-stl-chip"
+            style="
+              display: none;
+              margin-top: 8px;
+              font-size: 0.82rem;
+              padding: 6px 10px;
+              background: #f0fdf4;
+              border: 1px solid #bbf7d0;
+              border-radius: 6px;
+              color: #166534;
+            "
+          >
             ✅ New STL ready: <strong id="rs-new-stl-name"></strong>
-            <a href="#" onclick="rsCancelNewStl();return false" style="margin-left:10px;color:#dc3545;font-size:0.78rem">✕ Cancel</a>
+            <a
+              href="#"
+              onclick="
+                rsCancelNewStl();
+                return false;
+              "
+              style="margin-left: 10px; color: #dc3545; font-size: 0.78rem"
+              >✕ Cancel</a
+            >
           </div>
-          <div id="rs-stl-uploading" style="display:none;margin-top:8px;font-size:0.85rem;color:#007bff">⏳ Uploading STL…</div>
+          <div
+            id="rs-stl-uploading"
+            style="
+              display: none;
+              margin-top: 8px;
+              font-size: 0.85rem;
+              color: #007bff;
+            "
+          >
+            ⏳ Uploading STL…
+          </div>
         </div>
 
         <!-- Submit button -->
-        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
-          <button id="btn-resubmit" class="btn" onclick="submitResubmit()"
-                  style="width:auto;padding:10px 28px;background:#e94560;font-size:0.95rem">
+        <div
+          style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center"
+        >
+          <button
+            id="btn-resubmit"
+            class="btn"
+            onclick="submitResubmit()"
+            style="
+              width: auto;
+              padding: 10px 28px;
+              background: #e94560;
+              font-size: 0.95rem;
+            "
+          >
             🔄 Resubmit
           </button>
-          <span style="font-size:0.82rem;color:#aaa">Status will reset to <strong>Pending</strong></span>
+          <span style="font-size: 0.82rem; color: #aaa"
+            >Status will reset to <strong>Pending</strong></span
+          >
         </div>
       </div>
     </div>
-
-  </div><!-- /detail-card -->
+  </div>
+  <!-- /detail-card -->
 </div>
 
 <!-- Three.js + STLLoader via CDN (importmap) -->
 <script type="importmap">
-{
-  "imports": {
-    "three": "https://cdn.jsdelivr.net/npm/three@0.165.0/build/three.module.js",
-    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.165.0/examples/jsm/"
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.165.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.165.0/examples/jsm/"
+    }
   }
-}
 </script>
 
 <script type="module">
-import * as THREE from 'three';
-import { STLLoader }     from 'three/addons/loaders/STLLoader.js';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+  import * as THREE from "three";
+  import { STLLoader } from "three/addons/loaders/STLLoader.js";
+  import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 
-const requestId = parseInt(location.pathname.split('/').filter(Boolean).pop());
-
-// ── fetch request data ──────────────────────────────────────
-async function loadDetail() {
-  const _u = window.getUser ? window.getUser() : null;
-
-  // student_staff always use the admin-capable detail page …
-  // … EXCEPT when it is their own request sent back for revision.
-  // We check after fetching so we know the owner + status.
-  if (_u && _u.user_type === 'student_staff') {
-    try {
-      const res  = await window.apiFetch(`/api/print-requests/${requestId}`);
-      if (res.status === 401) { location.href = '/login'; return; }
-      const data = await res.json();
-      if (!data.success) {
-        document.getElementById('loading-detail').textContent = 'Request not found.';
-        return;
-      }
-      const r = data.request;
-      // Own request that needs revision → stay here so the resubmit panel shows
-      if (r.status === 'revision_requested' && r.student_email === _u.email) {
-        renderDetail(r);
-        return;
-      }
-      // All other cases → go to the admin review page
-      location.replace(`/print-requests/${requestId}/head/`);
-    } catch(e) {
-      document.getElementById('loading-detail').textContent = 'Failed to load. Is the backend running?';
-    }
-    return;
-  }
-
-  // Normal (non-student_staff) path
-  try {
-    const res  = await window.apiFetch(`/api/print-requests/${requestId}`);
-    if (res.status === 401) { location.href = '/login'; return; }
-    const data = await res.json();
-
-    if (!data.success) {
-      document.getElementById('loading-detail').textContent = 'Request not found.';
-      return;
-    }
-
-    renderDetail(data.request);
-  } catch(e) {
-    document.getElementById('loading-detail').textContent = 'Failed to load. Is the backend running?';
-  }
-}
-
-function statusBadge(s) {
-  const map = { pending:'Pending', approved:'Approved', queued:'Queued', printing:'Printing',
-                rejected:'Rejected', in_progress:'In Progress', completed:'Completed',
-                cancelled:'Cancelled', revision_requested:'Revision Requested' };
-  return `<span class="badge badge-${s}">${map[s] || s}</span>`;
-}
-function priorityLabel(p) {
-  return p === 'urgent' ? '<span style="color:#dc3545">🔴 Urgent</span>'
-       : p === 'high'   ? '<span style="color:#fd7e14">🟠 High</span>'
-                        : '<span style="color:#28a745">🟢 Normal</span>';
-}
-
-function renderDetail(r) {
-  document.getElementById('loading-detail').style.display = 'none';
-  document.getElementById('detail-card').style.display    = 'block';
-
-  document.getElementById('d-project-name').textContent = r.project_name;
-  document.getElementById('d-status-badge').innerHTML    = statusBadge(r.status);
-  // Priority badge — only visible to admin / student_staff; rendered later in admin block
-  document.getElementById('d-created-at').textContent    = new Date(r.created_at).toLocaleDateString('en-US');
-  document.getElementById('d-material').textContent      = r.material_type || '—';
-  document.getElementById('d-color').textContent         = r.color_preference || '—';
-  document.getElementById('d-student').textContent         = r.student_name || r.student_email || '—';
-
-  // Est. Weight (from UFP analysis)
-  if (r.ufp_material_g != null) {
-    document.getElementById('d-weight').textContent = r.ufp_material_g.toFixed(1) + ' g';
-    document.getElementById('d-weight-row').style.display = '';
-  }
-  // Est. Print Time (from UFP analysis)
-  if (r.ufp_print_time_minutes != null) {
-    const totalMins = Math.round(r.ufp_print_time_minutes);
-    const hrs  = Math.floor(totalMins / 60);
-    const mins = totalMins % 60;
-    const label = hrs > 0
-      ? (mins > 0 ? `${hrs}h ${mins}m` : `${hrs}h`)
-      : `${mins}m`;
-    document.getElementById('d-print-time').textContent = label;
-    document.getElementById('d-print-time-row').style.display = '';
-  }
-
-  // Deadline
-  if (r.deadline_date) {
-    const datePart = String(r.deadline_date).slice(0, 10);
-    const dl      = new Date(datePart + 'T00:00:00');
-    const today   = new Date(); today.setHours(0,0,0,0);
-    const daysLeft = Math.round((dl - today) / (1000 * 60 * 60 * 24));
-    let label, color;
-    if (daysLeft < 0) {
-      label = `Overdue by ${Math.abs(daysLeft)}d`;
-      color = '#dc3545';
-    } else if (daysLeft === 0) {
-      label = 'Due today';
-      color = '#dc3545';
-    } else if (daysLeft <= 3) {
-      label = `${daysLeft}d left`;
-      color = '#dc3545';
-    } else if (daysLeft <= 7) {
-      label = `${daysLeft}d left`;
-      color = '#fd7e14';
-    } else {
-      label = `${daysLeft}d left`;
-      color = '#888';
-    }
-    document.getElementById('d-deadline').innerHTML =
-      `<span style="color:${color};font-weight:600">${label}</span>`;
-    document.getElementById('d-deadline-row').style.display = '';
-    // Show "Cannot Complete by Deadline" button for staff when deadline exists
-    const deadlineBtn = document.getElementById('btn-cannot-deadline');
-    if (deadlineBtn) deadlineBtn.style.display = 'inline-flex';
-  }
-
-  // Show student email only to admins
-  const currentUser = window.getUser ? window.getUser() : null;
-  if (currentUser && (currentUser.user_type === 'admin' || currentUser.user_type === 'student_staff') && r.student_email) {
-    const emailEl = document.getElementById('d-student-email');
-    emailEl.textContent = r.student_email;
-    emailEl.href = `mailto:${r.student_email}`;
-    document.getElementById('d-email-row').style.display = '';
-  }
-
-  // Show Approved by / Assigned by — admin & student_staff only
-  if (currentUser && (currentUser.user_type === 'admin' || currentUser.user_type === 'student_staff')) {
-    if (r.reviewed_by) {
-      document.getElementById('d-approved-by').textContent = r.reviewed_by;
-      document.getElementById('d-approved-by-row').style.display = '';
-    }
-    if (r.assigned_by) {
-      document.getElementById('d-assigned-by').textContent = r.assigned_by;
-      document.getElementById('d-assigned-by-row').style.display = '';
-    }
-  }
-
-  if (r.description) {
-    document.getElementById('d-description').textContent = r.description;
-    document.getElementById('d-description-block').style.display = 'block';
-  }
-  if (r.admin_notes) {
-    document.getElementById('d-admin-notes').textContent = r.admin_notes;
-    document.getElementById('d-admin-notes-block').style.display = 'block';
-  }
-  if (r.reviewed_at) {
-    document.getElementById('d-reviewed-at').textContent = new Date(r.reviewed_at).toLocaleDateString('en-US');
-    document.getElementById('d-reviewed-row').style.display = 'block';
-  }
-
-  // STL viewer
-  if (r.stl_file_path) {
-    const stlUrl = `/api/uploads/${r.stl_file_path}`;
-    document.getElementById('stl-placeholder').style.display = 'none';
-    document.getElementById('stl-viewer-wrap').style.display = 'block';
-    document.getElementById('stl-download').href     = stlUrl;
-    document.getElementById('stl-download').download = r.stl_original_name || r.stl_file_path;
-    initViewer(stlUrl);
-  }
-
-  // ── Admin actions panel ──────────────────────────────────
-  // student_staff viewing their OWN revision_requested request should act as a student here
-  const isOwnRevision = currentUser && currentUser.user_type === 'student_staff' &&
-                        r.status === 'revision_requested' && r.student_email === currentUser.email;
-  if (currentUser && (currentUser.user_type === 'admin' || currentUser.user_type === 'student_staff') && !isOwnRevision) {
-    document.getElementById('admin-actions').style.display = 'block';
-    window._currentRequestId = r.id || requestId;
-    window._currentStatus = r.status;
-    window._currentRequest = r;
-
-    // Show priority badge and set the inline selector value
-    document.getElementById('d-priority-badge').innerHTML = priorityLabel(r.priority);
-    document.getElementById('admin-priority-select').value = r.priority || 'normal';
-
-    const reviewPanel   = document.getElementById('admin-review-panel');
-    const progressGroup = document.getElementById('admin-progress-group');
-    const statusInfo    = document.getElementById('admin-status-info');
-
-    // Reset visibility
-    reviewPanel.style.display   = 'none';
-    progressGroup.style.display = 'none';
-    statusInfo.style.display    = 'none';
-
-    if (r.status === 'pending' || r.status === 'revision_requested') {
-      reviewPanel.style.display = 'block';
-      fbBuildChips();  // render template chips for send-back
-
-      // Set up the STL download link
-      const stlLink  = document.getElementById('ufp-stl-link');
-      const noStlMsg = document.getElementById('ufp-no-stl-msg');
-      if (r.stl_file_path) {
-        stlLink.href     = `/api/uploads/${r.stl_file_path}`;
-        stlLink.download = r.stl_original_name || r.stl_file_path;
-        stlLink.style.display  = 'inline-flex';
-        noStlMsg.style.display = 'none';
-      } else {
-        stlLink.style.display  = 'none';
-        noStlMsg.style.display = 'inline';
-      }
-    } else if (r.status === 'approved' || r.status === 'in_progress') {
-      progressGroup.style.display = 'flex';
-      const btnBoard     = document.getElementById('btn-go-board');
-      const btnCompleted = document.getElementById('btn-mark-completed');
-      const btnCancel    = document.getElementById('btn-cancel-job');
-      if (r.status === 'approved') {
-        if (btnBoard)     btnBoard.style.display     = 'inline-block';
-        if (btnCompleted) btnCompleted.style.display = 'none';
-        if (btnCancel)    btnCancel.style.display    = 'none';
-      } else {
-        if (btnBoard)     btnBoard.style.display     = 'none';
-        if (btnCompleted) btnCompleted.style.display = '';
-        if (btnCancel)    btnCancel.style.display    = '';
-      }
-    } else {
-      statusInfo.style.display = 'block';
-      const labels = { completed: '✅ Completed', rejected: '❌ Rejected', cancelled: '🚫 Cancelled' };
-      statusInfo.innerHTML = `<span style="font-size:1rem">${labels[r.status] || r.status}</span> — No further actions available.`;
-    }
-  }
-
-  // ── Student Resubmit Panel ───────────────────────────────
-  // Show when the request is revision_requested AND viewer is the owning student
-  if (r.status === 'revision_requested' && currentUser &&
-      (currentUser.user_type === 'student' ||
-       (currentUser.user_type === 'student_staff' && r.student_email === currentUser.email))) {
-    const panel = document.getElementById('student-resubmit-panel');
-    panel.style.display = 'block';
-
-    // Pre-fill editable fields
-    document.getElementById('rs-project-name').value = r.project_name || '';
-    document.getElementById('rs-description').value  = r.description  || '';
-
-    // Show current STL chip if one exists, hide drop zone
-    if (r.stl_file_path) {
-      document.getElementById('rs-current-stl-name').textContent = r.stl_original_name || r.stl_file_path;
-      document.getElementById('rs-current-stl').style.display  = 'block';
-      document.getElementById('rs-dropzone').style.display     = 'none';
-    }
-
-    // Apply revision_fields to show/hide flagged fields
-    // null → all fields unlocked (legacy / manual send-back)
-    const fields = r.revision_fields || ['stl', 'description', 'material'];
-    if (fields.includes('description')) {
-      document.getElementById('rs-field-description').style.display = 'block';
-    }
-    if (fields.includes('material')) {
-      document.getElementById('rs-field-material').style.display = 'block';
-      document.getElementById('rs-material').value = r.material_type || 'PLA';
-      document.getElementById('rs-color').value    = r.color_preference || 'Any';
-    }
-    if (fields.includes('stl')) {
-      document.getElementById('rs-stl-flag').style.display     = 'inline';
-      document.getElementById('rs-stl-optional').style.display = 'none';
-    }
-
-    // Store request data for submit
-    window._rsRequest = r;
-  }
-}
-
-// ── Three.js STL viewer ─────────────────────────────────────
-function initViewer(stlUrl) {
-  const canvas = document.getElementById('stl-canvas');
-  const wrap   = document.getElementById('stl-viewer-wrap');
-
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
-  renderer.setPixelRatio(window.devicePixelRatio);
-  renderer.setClearColor(0xf8f9fa, 1);
-
-  const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 10000);
-  camera.position.set(0, 0, 200);
-
-  const scene = new THREE.Scene();
-  const ambient  = new THREE.AmbientLight(0xffffff, 0.6);
-  const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
-  dirLight.position.set(1, 2, 3);
-  scene.add(ambient, dirLight);
-
-  const controls = new OrbitControls(camera, renderer.domElement);
-  controls.enableDamping  = true;
-  controls.dampingFactor  = 0.08;
-
-  function resize() {
-    const w = wrap.clientWidth;
-    const h = 320;
-    renderer.setSize(w, h, false);
-    camera.aspect = w / h;
-    camera.updateProjectionMatrix();
-  }
-
-  const loader = new STLLoader();
-  loader.load(
-    stlUrl,
-    (geometry) => {
-      document.getElementById('stl-loading').style.display = 'none';
-      geometry.computeBoundingBox();
-      const box    = geometry.boundingBox;
-      const center = new THREE.Vector3();
-      box.getCenter(center);
-      const size   = new THREE.Vector3();
-      box.getSize(size);
-      const maxDim = Math.max(size.x, size.y, size.z);
-      geometry.translate(-center.x, -center.y, -center.z);
-      const material = new THREE.MeshPhongMaterial({
-        color: 0x4a90d9, specular: 0x222222, shininess: 40, side: THREE.DoubleSide,
-      });
-      const mesh = new THREE.Mesh(geometry, material);
-      scene.add(mesh);
-      const dist = maxDim * 1.6;
-      camera.position.set(dist * 0.6, dist * 0.4, dist);
-      camera.near = dist * 0.001;
-      camera.far  = dist * 100;
-      camera.updateProjectionMatrix();
-      controls.target.set(0, 0, 0);
-      controls.update();
-      resize();
-    },
-    undefined,
-    (err) => {
-      document.getElementById('stl-loading').textContent = 'Failed to load 3D model.';
-      console.error(err);
-    }
+  const requestId = parseInt(
+    location.pathname.split("/").filter(Boolean).pop(),
   );
 
-  new ResizeObserver(resize).observe(wrap);
-  resize();
+  // ── fetch request data ──────────────────────────────────────
+  async function loadDetail() {
+    const _u = window.getUser ? window.getUser() : null;
 
-  (function animate() {
-    requestAnimationFrame(animate);
-    controls.update();
-    renderer.render(scene, camera);
-  })();
-}
-
-// ── Admin action functions ──────────────────────────────────
-// Expose to global scope so onclick handlers in HTML can call them
-window.adminReject        = adminReject;
-window.adminSetStatus     = adminSetStatus;
-window.adminSendBack      = adminSendBack;
-window.handleUfpUpload    = handleUfpUpload;
-window.adminApproveWithUfp = adminApproveWithUfp;
-window.cancelUfpUpload    = cancelUfpUpload;
-window.fbToggleChip       = fbToggleChip;
-window.fbSyncChipsFromTextarea = fbSyncChipsFromTextarea;
-window.adminCannotCompleteByDeadline = adminCannotCompleteByDeadline;
-window.adminSetPriority   = adminSetPriority;
-
-// ── Student Resubmit functions (expose to global) ──────────
-window.rsRemoveCurrentStl = rsRemoveCurrentStl;
-window.rsHandleStl        = rsHandleStl;
-window.rsCancelNewStl     = rsCancelNewStl;
-window.submitResubmit     = submitResubmit;
-
-// ════════════════════════════════════════════════════════════
-// SEND-BACK TEMPLATES
-// Each template has: label, icon, fields to unlock on student side
-// fields: 'stl' | 'description' | 'material'
-// ════════════════════════════════════════════════════════════
-const FB_TEMPLATES = [
-  { id: 'dims',     icon: '📐', label: 'Missing dimensions',           text: 'Missing dimensions — please add measurements to the description.',           fields: ['description'] },
-  { id: 'overhang', icon: '⚠️', label: 'Unsupported geometry / overhang', text: 'Unsupported geometry or excessive overhang — please revise the STL.',      fields: ['stl'] },
-  { id: 'toolarge', icon: '📦', label: 'Too large for printer',        text: 'Model is too large for our printer bed — please scale down or split the model.', fields: ['stl'] },
-  { id: 'material', icon: '🎨', label: 'Material/color unavailable',   text: 'Requested material or color is currently unavailable — please choose an alternative.', fields: ['material'] },
-  { id: 'wall',     icon: '🔧', label: 'Need stronger wall / redesign', text: 'Wall thickness is too thin or model needs structural redesign — please revise and re-upload.', fields: ['stl', 'description'] },
-  { id: 'manifold', icon: '🛠', label: 'STL not manifold / model issue', text: 'STL file has mesh errors (non-manifold geometry) — please repair and re-upload.', fields: ['stl'] },
-];
-
-// Active chip IDs set
-const _fbActive = new Set();
-// All fields that are currently unlocked for student
-let _fbUnlockedFields = new Set();
-
-function fbBuildChips() {
-  const container = document.getElementById('fb-chips');
-  if (!container) return;
-  container.innerHTML = '';
-  FB_TEMPLATES.forEach(t => {
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.id   = `chip-${t.id}`;
-    btn.onclick = () => fbToggleChip(t.id);
-    btn.style.cssText = 'display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:20px;border:1.5px solid #ddd;background:#f8f9fa;font-size:0.82rem;cursor:pointer;transition:all 0.15s;color:#444;white-space:nowrap';
-    btn.innerHTML = `${t.icon} ${t.label}`;
-    container.appendChild(btn);
-  });
-}
-
-function fbToggleChip(id) {
-  const t = FB_TEMPLATES.find(x => x.id === id);
-  if (!t) return;
-
-  if (_fbActive.has(id)) {
-    _fbActive.delete(id);
-  } else {
-    _fbActive.add(id);
-  }
-
-  // Update chip visual
-  _fbActive.forEach(aid => {
-    const btn = document.getElementById(`chip-${aid}`);
-    if (btn) {
-      btn.style.background    = '#fff3cd';
-      btn.style.borderColor   = '#f39c12';
-      btn.style.color         = '#7a5800';
-      btn.style.fontWeight    = '600';
-    }
-  });
-  FB_TEMPLATES.forEach(x => {
-    if (!_fbActive.has(x.id)) {
-      const btn = document.getElementById(`chip-${x.id}`);
-      if (btn) {
-        btn.style.background  = '#f8f9fa';
-        btn.style.borderColor = '#ddd';
-        btn.style.color       = '#444';
-        btn.style.fontWeight  = 'normal';
+    // student_staff always use the admin-capable detail page …
+    // … EXCEPT when it is their own request sent back for revision.
+    // We check after fetching so we know the owner + status.
+    if (_u && _u.user_type === "student_staff") {
+      try {
+        const res = await window.apiFetch(`/api/print-requests/${requestId}`);
+        if (res.status === 401) {
+          location.href = "/login";
+          return;
+        }
+        const data = await res.json();
+        if (!data.success) {
+          document.getElementById("loading-detail").textContent =
+            "Request not found.";
+          return;
+        }
+        const r = data.request;
+        // Own request that needs revision → stay here so the resubmit panel shows
+        if (r.status === "revision_requested" && r.student_email === _u.email) {
+          renderDetail(r);
+          return;
+        }
+        // All other cases → go to the admin review page
+        location.replace(`/print-requests/${requestId}/head/`);
+      } catch (e) {
+        document.getElementById("loading-detail").textContent =
+          "Failed to load. Is the backend running?";
       }
-    }
-  });
-
-  // Rebuild textarea from active templates
-  fbRebuildTextarea();
-}
-
-function fbRebuildTextarea() {
-  const lines = FB_TEMPLATES
-    .filter(t => _fbActive.has(t.id))
-    .map(t => `• ${t.text}`);
-  document.getElementById('admin-notes-input').value = lines.join('\n');
-}
-
-// If staff edits textarea directly, deselect all chips (they typed custom)
-function fbSyncChipsFromTextarea() {
-  // Only deactivate if the text no longer matches all active templates
-  const current = document.getElementById('admin-notes-input').value;
-  const expected = FB_TEMPLATES.filter(t => _fbActive.has(t.id)).map(t => `• ${t.text}`).join('\n');
-  if (current !== expected) {
-    _fbActive.clear();
-    FB_TEMPLATES.forEach(t => {
-      const btn = document.getElementById(`chip-${t.id}`);
-      if (btn) {
-        btn.style.background  = '#f8f9fa';
-        btn.style.borderColor = '#ddd';
-        btn.style.color       = '#444';
-        btn.style.fontWeight  = 'normal';
-      }
-    });
-  }
-}
-
-// Compute union of fields from active chips (used to encode in send-back payload)
-function fbGetUnlockedFields() {
-  const fields = new Set();
-  _fbActive.forEach(id => {
-    const t = FB_TEMPLATES.find(x => x.id === id);
-    if (t) t.fields.forEach(f => fields.add(f));
-  });
-  return fields;
-}
-
-function adminShowAlert(msg, type='error') {
-  document.getElementById('admin-alert-box').innerHTML =
-    `<div class="alert alert-${type}">${msg}</div>`;
-}
-
-// Stored UFP upload result
-let _ufpUploadResult = null;
-
-async function cancelUfpUpload() {
-  if (_ufpUploadResult && _ufpUploadResult.filename) {
-    try {
-      const token = window.getToken ? window.getToken() : localStorage.getItem('dg_token');
-      const fn    = _ufpUploadResult.filename;
-      const deleteEndpoint = fn.endsWith('.3mf')
-        ? `/api/print-requests/upload-3mf/${fn}`
-        : `/api/print-requests/upload-ufp/${fn}`;
-      await fetch(deleteEndpoint, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-    } catch(e) {
-      console.warn('Could not delete slicer file from server:', e);
-    }
-  }
-
-  _ufpUploadResult = null;
-  document.getElementById('ufp-parsed-card').style.display  = 'none';
-  document.getElementById('ufp-dropzone').style.display     = 'block';
-  document.getElementById('ufp-file-input').value           = '';
-  const btn = document.getElementById('btn-confirm-approve');
-  btn.disabled = true;
-  btn.style.opacity = '0.55';
-  btn.style.cursor  = 'not-allowed';
-}
-
-async function handleUfpUpload(file) {
-  if (!file) return;
-  const nameLow = file.name.toLowerCase();
-  const isUfp   = nameLow.endsWith('.ufp');
-  const is3mf   = nameLow.endsWith('.3mf');
-  if (!isUfp && !is3mf) {
-    adminShowAlert('Please upload a <strong>.ufp</strong> or <strong>.3mf</strong> slicer file.');
-    return;
-  }
-  const uploadEndpoint = is3mf ? '/api/print-requests/upload-3mf' : '/api/print-requests/upload-ufp';
-
-  document.getElementById('ufp-uploading').style.display = 'block';
-  document.getElementById('ufp-dropzone').style.display  = 'none';
-  document.getElementById('admin-alert-box').innerHTML   = '';
-
-  // Switch to approve notes once UFP is uploaded
-  document.getElementById('sendback-section').style.display    = 'none';
-  document.getElementById('approve-notes-section').style.display = 'block';
-
-  try {
-    const formData = new FormData();
-    formData.append('file', file);
-
-    const token = window.getToken ? window.getToken() : localStorage.getItem('dg_token');
-    const res = await fetch(uploadEndpoint, {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${token}` },
-      body: formData
-    });
-    const data = await res.json();
-
-    document.getElementById('ufp-uploading').style.display = 'none';
-
-    if (!data.success) {
-      document.getElementById('ufp-dropzone').style.display = 'block';
-      document.getElementById('sendback-section').style.display    = 'block';
-      document.getElementById('approve-notes-section').style.display = 'none';
-      adminShowAlert(data.message || 'Failed to upload slicer file.');
       return;
     }
 
-    _ufpUploadResult = {
-      filename:      data.filename,
-      original_name: data.original_name,
-      analysis:      data.analysis
+    // Normal (non-student_staff) path
+    try {
+      const res = await window.apiFetch(`/api/print-requests/${requestId}`);
+      if (res.status === 401) {
+        location.href = "/login";
+        return;
+      }
+      const data = await res.json();
+
+      if (!data.success) {
+        document.getElementById("loading-detail").textContent =
+          "Request not found.";
+        return;
+      }
+
+      renderDetail(data.request);
+    } catch (e) {
+      document.getElementById("loading-detail").textContent =
+        "Failed to load. Is the backend running?";
+    }
+  }
+
+  function statusBadge(s) {
+    const map = {
+      pending: "Pending",
+      approved: "Approved",
+      queued: "Queued",
+      printing: "Printing",
+      rejected: "Rejected",
+      in_progress: "In Progress",
+      completed: "Completed",
+      cancelled: "Cancelled",
+      revision_requested: "Revision Requested",
+    };
+    return `<span class="badge badge-${s}">${map[s] || s}</span>`;
+  }
+  function priorityLabel(p) {
+    return p === "urgent"
+      ? '<span style="color:#dc3545">🔴 Urgent</span>'
+      : p === "high"
+        ? '<span style="color:#fd7e14">🟠 High</span>'
+        : '<span style="color:#28a745">🟢 Normal</span>';
+  }
+
+  function renderDetail(r) {
+    document.getElementById("loading-detail").style.display = "none";
+    document.getElementById("detail-card").style.display = "block";
+
+    document.getElementById("d-project-name").textContent = r.project_name;
+    document.getElementById("d-status-badge").innerHTML = statusBadge(r.status);
+    // Priority badge — only visible to admin / student_staff; rendered later in admin block
+    document.getElementById("d-created-at").textContent = new Date(
+      r.created_at,
+    ).toLocaleDateString("en-US");
+    document.getElementById("d-student").textContent =
+      r.student_name || r.student_email || "—";
+
+    const isLaser = r.service_type === "laser";
+
+    if (isLaser) {
+      // Show service type badge
+      document.getElementById("d-service-type").innerHTML =
+        '<span style="background:#fff0f3;color:#c0392b;border:1px solid #f5c0cb;padding:2px 10px;border-radius:12px;font-size:0.8rem;font-weight:600">✂️ Laser Cut</span>';
+      document.getElementById("d-service-type-row").style.display = "";
+      // Hide 3D-only rows
+      document.getElementById("d-material-row").style.display = "none";
+      document.getElementById("d-color-row").style.display = "none";
+
+      // Parse laser_options JSON
+      let lo = {};
+      try {
+        lo = JSON.parse(r.laser_options || "{}");
+      } catch (e) {}
+      document.getElementById("d-laser-material").textContent =
+        lo.material || "—";
+      document.getElementById("d-laser-job-type").textContent =
+        lo.job_type || "—";
+      if (lo.dimensions_notes) {
+        document.getElementById("d-laser-dims").textContent =
+          lo.dimensions_notes;
+        document.getElementById("d-laser-dims-row").style.display = "";
+      }
+      document.getElementById("d-laser-block").style.display = "block";
+
+      // File panel
+      if (r.stl_file_path) {
+        const fileUrl = `/api/uploads/${r.stl_file_path}`;
+        document.getElementById("stl-placeholder").style.display = "none";
+        document.getElementById("laser-file-panel").style.display = "flex";
+        document.getElementById("laser-file-name").textContent =
+          r.stl_original_name || r.stl_file_path;
+        document.getElementById("laser-file-download").href = fileUrl;
+        document.getElementById("laser-file-download").download =
+          r.stl_original_name || r.stl_file_path;
+      }
+    } else {
+      // 3D print — existing behaviour
+      document.getElementById("d-material").textContent =
+        r.material_type || "—";
+      document.getElementById("d-color").textContent =
+        r.color_preference || "—";
+    }
+
+    // Est. Weight (from UFP analysis)
+    if (r.ufp_material_g != null) {
+      document.getElementById("d-weight").textContent =
+        r.ufp_material_g.toFixed(1) + " g";
+      document.getElementById("d-weight-row").style.display = "";
+    }
+    // Est. Print Time (from UFP analysis)
+    if (r.ufp_print_time_minutes != null) {
+      const totalMins = Math.round(r.ufp_print_time_minutes);
+      const hrs = Math.floor(totalMins / 60);
+      const mins = totalMins % 60;
+      const label =
+        hrs > 0 ? (mins > 0 ? `${hrs}h ${mins}m` : `${hrs}h`) : `${mins}m`;
+      document.getElementById("d-print-time").textContent = label;
+      document.getElementById("d-print-time-row").style.display = "";
+    }
+
+    // Deadline
+    if (r.deadline_date) {
+      const datePart = String(r.deadline_date).slice(0, 10);
+      const dl = new Date(datePart + "T00:00:00");
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const daysLeft = Math.round((dl - today) / (1000 * 60 * 60 * 24));
+      let label, color;
+      if (daysLeft < 0) {
+        label = `Overdue by ${Math.abs(daysLeft)}d`;
+        color = "#dc3545";
+      } else if (daysLeft === 0) {
+        label = "Due today";
+        color = "#dc3545";
+      } else if (daysLeft <= 3) {
+        label = `${daysLeft}d left`;
+        color = "#dc3545";
+      } else if (daysLeft <= 7) {
+        label = `${daysLeft}d left`;
+        color = "#fd7e14";
+      } else {
+        label = `${daysLeft}d left`;
+        color = "#888";
+      }
+      document.getElementById("d-deadline").innerHTML =
+        `<span style="color:${color};font-weight:600">${label}</span>`;
+      document.getElementById("d-deadline-row").style.display = "";
+      // Show "Cannot Complete by Deadline" button for staff when deadline exists
+      const deadlineBtn = document.getElementById("btn-cannot-deadline");
+      if (deadlineBtn) deadlineBtn.style.display = "inline-flex";
+    }
+
+    // Show student email only to admins
+    const currentUser = window.getUser ? window.getUser() : null;
+    if (
+      currentUser &&
+      (currentUser.user_type === "admin" ||
+        currentUser.user_type === "student_staff") &&
+      r.student_email
+    ) {
+      const emailEl = document.getElementById("d-student-email");
+      emailEl.textContent = r.student_email;
+      emailEl.href = `mailto:${r.student_email}`;
+      document.getElementById("d-email-row").style.display = "";
+    }
+
+    // Show Approved by / Assigned by — admin & student_staff only
+    if (
+      currentUser &&
+      (currentUser.user_type === "admin" ||
+        currentUser.user_type === "student_staff")
+    ) {
+      if (r.reviewed_by) {
+        document.getElementById("d-approved-by").textContent = r.reviewed_by;
+        document.getElementById("d-approved-by-row").style.display = "";
+      }
+      if (r.assigned_by) {
+        document.getElementById("d-assigned-by").textContent = r.assigned_by;
+        document.getElementById("d-assigned-by-row").style.display = "";
+      }
+    }
+
+    if (r.description) {
+      document.getElementById("d-description").textContent = r.description;
+      document.getElementById("d-description-block").style.display = "block";
+    }
+    if (r.admin_notes) {
+      document.getElementById("d-admin-notes").textContent = r.admin_notes;
+      document.getElementById("d-admin-notes-block").style.display = "block";
+    }
+    if (r.reviewed_at) {
+      document.getElementById("d-reviewed-at").textContent = new Date(
+        r.reviewed_at,
+      ).toLocaleDateString("en-US");
+      document.getElementById("d-reviewed-row").style.display = "block";
+    }
+
+    // STL viewer (3D only)
+    if (!isLaser) {
+      if (r.stl_file_path) {
+        const stlUrl = `/api/uploads/${r.stl_file_path}`;
+        document.getElementById("stl-placeholder").style.display = "none";
+        document.getElementById("stl-viewer-wrap").style.display = "block";
+        document.getElementById("stl-download").href = stlUrl;
+        document.getElementById("stl-download").download =
+          r.stl_original_name || r.stl_file_path;
+        initViewer(stlUrl);
+      }
+    }
+
+    // ── Admin actions panel ──────────────────────────────────
+    // student_staff viewing their OWN revision_requested request should act as a student here
+    const isOwnRevision =
+      currentUser &&
+      currentUser.user_type === "student_staff" &&
+      r.status === "revision_requested" &&
+      r.student_email === currentUser.email;
+    if (
+      currentUser &&
+      (currentUser.user_type === "admin" ||
+        currentUser.user_type === "student_staff") &&
+      !isOwnRevision
+    ) {
+      document.getElementById("admin-actions").style.display = "block";
+      window._currentRequestId = r.id || requestId;
+      window._currentStatus = r.status;
+      window._currentRequest = r;
+
+      // Show priority badge and set the inline selector value
+      document.getElementById("d-priority-badge").innerHTML = priorityLabel(
+        r.priority,
+      );
+      document.getElementById("admin-priority-select").value =
+        r.priority || "normal";
+
+      const reviewPanel = document.getElementById("admin-review-panel");
+      const progressGroup = document.getElementById("admin-progress-group");
+      const statusInfo = document.getElementById("admin-status-info");
+
+      // Reset visibility
+      reviewPanel.style.display = "none";
+      progressGroup.style.display = "none";
+      statusInfo.style.display = "none";
+
+      if (r.status === "pending" || r.status === "revision_requested") {
+        reviewPanel.style.display = "block";
+        fbBuildChips(); // render template chips for send-back
+
+        if (isLaser) {
+          // Laser review: just show a download link for the design file; hide 3D steps
+          document.getElementById("admin-review-step1").style.display = "none";
+          document.getElementById("admin-review-step2").style.display = "none";
+          const laserReviewStep = document.getElementById(
+            "admin-laser-review-step",
+          );
+          if (laserReviewStep) {
+            laserReviewStep.style.display = "flex";
+            const laserLink = document.getElementById("laser-review-link");
+            const noLaserMsg = document.getElementById("laser-review-no-file");
+            if (r.stl_file_path) {
+              laserLink.href = `/api/uploads/${r.stl_file_path}`;
+              laserLink.download = r.stl_original_name || r.stl_file_path;
+              laserLink.style.display = "inline-flex";
+              if (noLaserMsg) noLaserMsg.style.display = "none";
+            } else {
+              laserLink.style.display = "none";
+              if (noLaserMsg) noLaserMsg.style.display = "inline";
+            }
+          }
+        } else {
+          // 3D print: normal STL download + UFP upload steps
+          if (document.getElementById("admin-laser-review-step"))
+            document.getElementById("admin-laser-review-step").style.display =
+              "none";
+          document.getElementById("admin-review-step1").style.display = "";
+          document.getElementById("admin-review-step2").style.display = "";
+          const stlLink = document.getElementById("ufp-stl-link");
+          const noStlMsg = document.getElementById("ufp-no-stl-msg");
+          if (r.stl_file_path) {
+            stlLink.href = `/api/uploads/${r.stl_file_path}`;
+            stlLink.download = r.stl_original_name || r.stl_file_path;
+            stlLink.style.display = "inline-flex";
+            noStlMsg.style.display = "none";
+          } else {
+            stlLink.style.display = "none";
+            noStlMsg.style.display = "inline";
+          }
+        }
+      } else if (r.status === "approved" || r.status === "in_progress") {
+        progressGroup.style.display = "flex";
+        const btnBoard = document.getElementById("btn-go-board");
+        const btnCompleted = document.getElementById("btn-mark-completed");
+        const btnCancel = document.getElementById("btn-cancel-job");
+        if (r.status === "approved") {
+          if (btnBoard) btnBoard.style.display = "inline-block";
+          if (btnCompleted) btnCompleted.style.display = "none";
+          if (btnCancel) btnCancel.style.display = "none";
+        } else {
+          if (btnBoard) btnBoard.style.display = "none";
+          if (btnCompleted) btnCompleted.style.display = "";
+          if (btnCancel) btnCancel.style.display = "";
+        }
+      } else {
+        statusInfo.style.display = "block";
+        const labels = {
+          completed: "✅ Completed",
+          rejected: "❌ Rejected",
+          cancelled: "🚫 Cancelled",
+        };
+        statusInfo.innerHTML = `<span style="font-size:1rem">${labels[r.status] || r.status}</span> — No further actions available.`;
+      }
+    }
+
+    // ── Student Resubmit Panel ───────────────────────────────
+    // Show when the request is revision_requested AND viewer is the owning student
+    if (
+      r.status === "revision_requested" &&
+      currentUser &&
+      (currentUser.user_type === "student" ||
+        (currentUser.user_type === "student_staff" &&
+          r.student_email === currentUser.email))
+    ) {
+      const panel = document.getElementById("student-resubmit-panel");
+      panel.style.display = "block";
+
+      // Pre-fill editable fields
+      document.getElementById("rs-project-name").value = r.project_name || "";
+      document.getElementById("rs-description").value = r.description || "";
+
+      // Show current STL chip if one exists, hide drop zone
+      if (r.stl_file_path) {
+        document.getElementById("rs-current-stl-name").textContent =
+          r.stl_original_name || r.stl_file_path;
+        document.getElementById("rs-current-stl").style.display = "block";
+        document.getElementById("rs-dropzone").style.display = "none";
+      }
+
+      // Apply revision_fields to show/hide flagged fields
+      // null → all fields unlocked (legacy / manual send-back)
+      const fields = r.revision_fields || ["stl", "description", "material"];
+      if (fields.includes("description")) {
+        document.getElementById("rs-field-description").style.display = "block";
+      }
+      if (fields.includes("material")) {
+        document.getElementById("rs-field-material").style.display = "block";
+        document.getElementById("rs-material").value = r.material_type || "PLA";
+        document.getElementById("rs-color").value = r.color_preference || "Any";
+      }
+      if (fields.includes("stl")) {
+        document.getElementById("rs-stl-flag").style.display = "inline";
+        document.getElementById("rs-stl-optional").style.display = "none";
+      }
+
+      // Store request data for submit
+      window._rsRequest = r;
+    }
+  }
+
+  // ── Three.js STL viewer ─────────────────────────────────────
+  function initViewer(stlUrl) {
+    const canvas = document.getElementById("stl-canvas");
+    const wrap = document.getElementById("stl-viewer-wrap");
+
+    const renderer = new THREE.WebGLRenderer({
+      canvas,
+      antialias: true,
+      alpha: true,
+    });
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setClearColor(0xf8f9fa, 1);
+
+    const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 10000);
+    camera.position.set(0, 0, 200);
+
+    const scene = new THREE.Scene();
+    const ambient = new THREE.AmbientLight(0xffffff, 0.6);
+    const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
+    dirLight.position.set(1, 2, 3);
+    scene.add(ambient, dirLight);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.08;
+
+    function resize() {
+      const w = wrap.clientWidth;
+      const h = 320;
+      renderer.setSize(w, h, false);
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+    }
+
+    const loader = new STLLoader();
+    loader.load(
+      stlUrl,
+      (geometry) => {
+        document.getElementById("stl-loading").style.display = "none";
+        geometry.computeBoundingBox();
+        const box = geometry.boundingBox;
+        const center = new THREE.Vector3();
+        box.getCenter(center);
+        const size = new THREE.Vector3();
+        box.getSize(size);
+        const maxDim = Math.max(size.x, size.y, size.z);
+        geometry.translate(-center.x, -center.y, -center.z);
+        const material = new THREE.MeshPhongMaterial({
+          color: 0x4a90d9,
+          specular: 0x222222,
+          shininess: 40,
+          side: THREE.DoubleSide,
+        });
+        const mesh = new THREE.Mesh(geometry, material);
+        scene.add(mesh);
+        const dist = maxDim * 1.6;
+        camera.position.set(dist * 0.6, dist * 0.4, dist);
+        camera.near = dist * 0.001;
+        camera.far = dist * 100;
+        camera.updateProjectionMatrix();
+        controls.target.set(0, 0, 0);
+        controls.update();
+        resize();
+      },
+      undefined,
+      (err) => {
+        document.getElementById("stl-loading").textContent =
+          "Failed to load 3D model.";
+        console.error(err);
+      },
+    );
+
+    new ResizeObserver(resize).observe(wrap);
+    resize();
+
+    (function animate() {
+      requestAnimationFrame(animate);
+      controls.update();
+      renderer.render(scene, camera);
+    })();
+  }
+
+  // ── Admin action functions ──────────────────────────────────
+  // Expose to global scope so onclick handlers in HTML can call them
+  window.adminReject = adminReject;
+  window.adminSetStatus = adminSetStatus;
+  window.adminSendBack = adminSendBack;
+  window.handleUfpUpload = handleUfpUpload;
+  window.adminApproveWithUfp = adminApproveWithUfp;
+  window.cancelUfpUpload = cancelUfpUpload;
+  window.fbToggleChip = fbToggleChip;
+  window.fbSyncChipsFromTextarea = fbSyncChipsFromTextarea;
+  window.adminCannotCompleteByDeadline = adminCannotCompleteByDeadline;
+  window.adminSetPriority = adminSetPriority;
+
+  // ── Student Resubmit functions (expose to global) ──────────
+  window.rsRemoveCurrentStl = rsRemoveCurrentStl;
+  window.rsHandleStl = rsHandleStl;
+  window.rsCancelNewStl = rsCancelNewStl;
+  window.submitResubmit = submitResubmit;
+
+  // ════════════════════════════════════════════════════════════
+  // SEND-BACK TEMPLATES
+  // Each template has: label, icon, fields to unlock on student side
+  // fields: 'stl' | 'description' | 'material'
+  // ════════════════════════════════════════════════════════════
+  const FB_TEMPLATES = [
+    {
+      id: "dims",
+      icon: "📐",
+      label: "Missing dimensions",
+      text: "Missing dimensions — please add measurements to the description.",
+      fields: ["description"],
+    },
+    {
+      id: "overhang",
+      icon: "⚠️",
+      label: "Unsupported geometry / overhang",
+      text: "Unsupported geometry or excessive overhang — please revise the STL.",
+      fields: ["stl"],
+    },
+    {
+      id: "toolarge",
+      icon: "📦",
+      label: "Too large for printer",
+      text: "Model is too large for our printer bed — please scale down or split the model.",
+      fields: ["stl"],
+    },
+    {
+      id: "material",
+      icon: "🎨",
+      label: "Material/color unavailable",
+      text: "Requested material or color is currently unavailable — please choose an alternative.",
+      fields: ["material"],
+    },
+    {
+      id: "wall",
+      icon: "🔧",
+      label: "Need stronger wall / redesign",
+      text: "Wall thickness is too thin or model needs structural redesign — please revise and re-upload.",
+      fields: ["stl", "description"],
+    },
+    {
+      id: "manifold",
+      icon: "🛠",
+      label: "STL not manifold / model issue",
+      text: "STL file has mesh errors (non-manifold geometry) — please repair and re-upload.",
+      fields: ["stl"],
+    },
+  ];
+
+  // Active chip IDs set
+  const _fbActive = new Set();
+  // All fields that are currently unlocked for student
+  let _fbUnlockedFields = new Set();
+
+  function fbBuildChips() {
+    const container = document.getElementById("fb-chips");
+    if (!container) return;
+    container.innerHTML = "";
+    FB_TEMPLATES.forEach((t) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.id = `chip-${t.id}`;
+      btn.onclick = () => fbToggleChip(t.id);
+      btn.style.cssText =
+        "display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:20px;border:1.5px solid #ddd;background:#f8f9fa;font-size:0.82rem;cursor:pointer;transition:all 0.15s;color:#444;white-space:nowrap";
+      btn.innerHTML = `${t.icon} ${t.label}`;
+      container.appendChild(btn);
+    });
+  }
+
+  function fbToggleChip(id) {
+    const t = FB_TEMPLATES.find((x) => x.id === id);
+    if (!t) return;
+
+    if (_fbActive.has(id)) {
+      _fbActive.delete(id);
+    } else {
+      _fbActive.add(id);
+    }
+
+    // Update chip visual
+    _fbActive.forEach((aid) => {
+      const btn = document.getElementById(`chip-${aid}`);
+      if (btn) {
+        btn.style.background = "#fff3cd";
+        btn.style.borderColor = "#f39c12";
+        btn.style.color = "#7a5800";
+        btn.style.fontWeight = "600";
+      }
+    });
+    FB_TEMPLATES.forEach((x) => {
+      if (!_fbActive.has(x.id)) {
+        const btn = document.getElementById(`chip-${x.id}`);
+        if (btn) {
+          btn.style.background = "#f8f9fa";
+          btn.style.borderColor = "#ddd";
+          btn.style.color = "#444";
+          btn.style.fontWeight = "normal";
+        }
+      }
+    });
+
+    // Rebuild textarea from active templates
+    fbRebuildTextarea();
+  }
+
+  function fbRebuildTextarea() {
+    const lines = FB_TEMPLATES.filter((t) => _fbActive.has(t.id)).map(
+      (t) => `• ${t.text}`,
+    );
+    document.getElementById("admin-notes-input").value = lines.join("\n");
+  }
+
+  // If staff edits textarea directly, deselect all chips (they typed custom)
+  function fbSyncChipsFromTextarea() {
+    // Only deactivate if the text no longer matches all active templates
+    const current = document.getElementById("admin-notes-input").value;
+    const expected = FB_TEMPLATES.filter((t) => _fbActive.has(t.id))
+      .map((t) => `• ${t.text}`)
+      .join("\n");
+    if (current !== expected) {
+      _fbActive.clear();
+      FB_TEMPLATES.forEach((t) => {
+        const btn = document.getElementById(`chip-${t.id}`);
+        if (btn) {
+          btn.style.background = "#f8f9fa";
+          btn.style.borderColor = "#ddd";
+          btn.style.color = "#444";
+          btn.style.fontWeight = "normal";
+        }
+      });
+    }
+  }
+
+  // Compute union of fields from active chips (used to encode in send-back payload)
+  function fbGetUnlockedFields() {
+    const fields = new Set();
+    _fbActive.forEach((id) => {
+      const t = FB_TEMPLATES.find((x) => x.id === id);
+      if (t) t.fields.forEach((f) => fields.add(f));
+    });
+    return fields;
+  }
+
+  function adminShowAlert(msg, type = "error") {
+    document.getElementById("admin-alert-box").innerHTML =
+      `<div class="alert alert-${type}">${msg}</div>`;
+  }
+
+  // Stored UFP upload result
+  let _ufpUploadResult = null;
+
+  async function cancelUfpUpload() {
+    if (_ufpUploadResult && _ufpUploadResult.filename) {
+      try {
+        const token = window.getToken
+          ? window.getToken()
+          : localStorage.getItem("dg_token");
+        const fn = _ufpUploadResult.filename;
+        const deleteEndpoint = fn.endsWith(".3mf")
+          ? `/api/print-requests/upload-3mf/${fn}`
+          : `/api/print-requests/upload-ufp/${fn}`;
+        await fetch(deleteEndpoint, {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${token}` },
+        });
+      } catch (e) {
+        console.warn("Could not delete slicer file from server:", e);
+      }
+    }
+
+    _ufpUploadResult = null;
+    document.getElementById("ufp-parsed-card").style.display = "none";
+    document.getElementById("ufp-dropzone").style.display = "block";
+    document.getElementById("ufp-file-input").value = "";
+    const btn = document.getElementById("btn-confirm-approve");
+    btn.disabled = true;
+    btn.style.opacity = "0.55";
+    btn.style.cursor = "not-allowed";
+  }
+
+  async function handleUfpUpload(file) {
+    if (!file) return;
+    const nameLow = file.name.toLowerCase();
+    const isUfp = nameLow.endsWith(".ufp");
+    const is3mf = nameLow.endsWith(".3mf");
+    if (!isUfp && !is3mf) {
+      adminShowAlert(
+        "Please upload a <strong>.ufp</strong> or <strong>.3mf</strong> slicer file.",
+      );
+      return;
+    }
+    const uploadEndpoint = is3mf
+      ? "/api/print-requests/upload-3mf"
+      : "/api/print-requests/upload-ufp";
+
+    document.getElementById("ufp-uploading").style.display = "block";
+    document.getElementById("ufp-dropzone").style.display = "none";
+    document.getElementById("admin-alert-box").innerHTML = "";
+
+    // Switch to approve notes once UFP is uploaded
+    document.getElementById("sendback-section").style.display = "none";
+    document.getElementById("approve-notes-section").style.display = "block";
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const token = window.getToken
+        ? window.getToken()
+        : localStorage.getItem("dg_token");
+      const res = await fetch(uploadEndpoint, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+      const data = await res.json();
+
+      document.getElementById("ufp-uploading").style.display = "none";
+
+      if (!data.success) {
+        document.getElementById("ufp-dropzone").style.display = "block";
+        document.getElementById("sendback-section").style.display = "block";
+        document.getElementById("approve-notes-section").style.display = "none";
+        adminShowAlert(data.message || "Failed to upload slicer file.");
+        return;
+      }
+
+      _ufpUploadResult = {
+        filename: data.filename,
+        original_name: data.original_name,
+        analysis: data.analysis,
+      };
+
+      const a = data.analysis;
+      const pt = a.print_time;
+      document.getElementById("ufp-disp-time").textContent =
+        `${pt.hours}h ${pt.minutes}m`;
+      document.getElementById("ufp-disp-material").textContent =
+        a.material_weight_g != null ? `${a.material_weight_g} g` : "—";
+      document.getElementById("ufp-disp-layer").textContent =
+        a.layer_height != null ? `${a.layer_height} mm` : "—";
+      document.getElementById("ufp-disp-infill").textContent =
+        a.infill_sparse_density != null ? `${a.infill_sparse_density}%` : "—";
+      document.getElementById("ufp-disp-filename").textContent =
+        data.original_name;
+
+      document.getElementById("ufp-parsed-card").style.display = "block";
+
+      const btn = document.getElementById("btn-confirm-approve");
+      btn.disabled = false;
+      btn.style.opacity = "1";
+      btn.style.cursor = "pointer";
+    } catch (e) {
+      document.getElementById("ufp-uploading").style.display = "none";
+      document.getElementById("ufp-dropzone").style.display = "block";
+      document.getElementById("sendback-section").style.display = "block";
+      document.getElementById("approve-notes-section").style.display = "none";
+      adminShowAlert(
+        "Network error during upload. Check that the backend is running.",
+      );
+    }
+  }
+
+  async function adminApproveWithUfp() {
+    if (!_ufpUploadResult) {
+      adminShowAlert("Please upload a UFP file first.");
+      return;
+    }
+
+    const btn = document.getElementById("btn-confirm-approve");
+    btn.disabled = true;
+    btn.textContent = "Approving…";
+
+    const a = _ufpUploadResult.analysis;
+    const body = {
+      ufp_filename: _ufpUploadResult.filename,
+      ufp_original_name: _ufpUploadResult.original_name,
+      ufp_print_time_minutes: a.print_time.total_minutes,
+      ufp_material_g: a.material_weight_g,
+      admin_notes: document.getElementById("approve-notes-input").value.trim(),
     };
 
-    const a = data.analysis;
-    const pt = a.print_time;
-    document.getElementById('ufp-disp-time').textContent     = `${pt.hours}h ${pt.minutes}m`;
-    document.getElementById('ufp-disp-material').textContent = a.material_weight_g != null ? `${a.material_weight_g} g` : '—';
-    document.getElementById('ufp-disp-layer').textContent    = a.layer_height != null ? `${a.layer_height} mm` : '—';
-    document.getElementById('ufp-disp-infill').textContent   = a.infill_sparse_density != null ? `${a.infill_sparse_density}%` : '—';
-    document.getElementById('ufp-disp-filename').textContent = data.original_name;
-
-    document.getElementById('ufp-parsed-card').style.display = 'block';
-
-    const btn = document.getElementById('btn-confirm-approve');
-    btn.disabled = false;
-    btn.style.opacity = '1';
-    btn.style.cursor  = 'pointer';
-
-  } catch(e) {
-    document.getElementById('ufp-uploading').style.display = 'none';
-    document.getElementById('ufp-dropzone').style.display  = 'block';
-    document.getElementById('sendback-section').style.display    = 'block';
-    document.getElementById('approve-notes-section').style.display = 'none';
-    adminShowAlert('Network error during upload. Check that the backend is running.');
-  }
-}
-
-async function adminApproveWithUfp() {
-  if (!_ufpUploadResult) {
-    adminShowAlert('Please upload a UFP file first.');
-    return;
-  }
-
-  const btn = document.getElementById('btn-confirm-approve');
-  btn.disabled = true;
-  btn.textContent = 'Approving…';
-
-  const a = _ufpUploadResult.analysis;
-  const body = {
-    ufp_filename:           _ufpUploadResult.filename,
-    ufp_original_name:      _ufpUploadResult.original_name,
-    ufp_print_time_minutes: a.print_time.total_minutes,
-    ufp_material_g:         a.material_weight_g,
-    admin_notes:            document.getElementById('approve-notes-input').value.trim()
-  };
-
-  try {
-    const res = await window.apiFetch(
-      `/api/admin/print-requests/${window._currentRequestId}/approve-with-ufp`,
-      { method: 'POST', body: JSON.stringify(body) }
-    );
-    const data = await res.json();
-    if (data.success) {
-      adminShowAlert('✅ Request approved with slice data. Reloading…', 'success');
-      setTimeout(() => location.reload(), 1200);
-    } else {
-      adminShowAlert(data.message || 'Approval failed.');
+    try {
+      const res = await window.apiFetch(
+        `/api/admin/print-requests/${window._currentRequestId}/approve-with-ufp`,
+        { method: "POST", body: JSON.stringify(body) },
+      );
+      const data = await res.json();
+      if (data.success) {
+        adminShowAlert(
+          "✅ Request approved with slice data. Reloading…",
+          "success",
+        );
+        setTimeout(() => location.reload(), 1200);
+      } else {
+        adminShowAlert(data.message || "Approval failed.");
+        btn.disabled = false;
+        btn.textContent = "✅ Confirm Approval";
+      }
+    } catch (e) {
+      adminShowAlert("Network error. Make sure the backend is running.");
       btn.disabled = false;
-      btn.textContent = '✅ Confirm Approval';
+      btn.textContent = "✅ Confirm Approval";
     }
-  } catch(e) {
-    adminShowAlert('Network error. Make sure the backend is running.');
-    btn.disabled = false;
-    btn.textContent = '✅ Confirm Approval';
   }
-}
 
-async function adminSetPriority(priority) {
-  const sel = document.getElementById('admin-priority-select');
-  const prev = window._currentRequest ? (window._currentRequest.priority || 'normal') : 'normal';
-  try {
-    const res = await window.apiFetch(
-      `/api/admin/print-requests/${window._currentRequestId}/priority`,
-      { method: 'PATCH', body: JSON.stringify({ priority }) }
-    );
-    const data = await res.json();
-    if (data.success) {
-      // Update the badge next to the project name
-      document.getElementById('d-priority-badge').innerHTML = priorityLabel(priority);
-      if (window._currentRequest) window._currentRequest.priority = priority;
-      adminShowAlert(`Priority updated to "${priority}".`, 'success');
-    } else {
-      adminShowAlert(data.message || 'Failed to update priority.');
-      sel.value = prev;  // revert selector
+  async function adminSetPriority(priority) {
+    const sel = document.getElementById("admin-priority-select");
+    const prev = window._currentRequest
+      ? window._currentRequest.priority || "normal"
+      : "normal";
+    try {
+      const res = await window.apiFetch(
+        `/api/admin/print-requests/${window._currentRequestId}/priority`,
+        { method: "PATCH", body: JSON.stringify({ priority }) },
+      );
+      const data = await res.json();
+      if (data.success) {
+        // Update the badge next to the project name
+        document.getElementById("d-priority-badge").innerHTML =
+          priorityLabel(priority);
+        if (window._currentRequest) window._currentRequest.priority = priority;
+        adminShowAlert(`Priority updated to "${priority}".`, "success");
+      } else {
+        adminShowAlert(data.message || "Failed to update priority.");
+        sel.value = prev; // revert selector
+      }
+    } catch (e) {
+      adminShowAlert("Network error. Make sure the backend is running.");
+      sel.value = prev;
     }
-  } catch(e) {
-    adminShowAlert('Network error. Make sure the backend is running.');
-    sel.value = prev;
   }
-}
 
-async function adminReject() {
-  if (!confirm('Reject this request?')) return;
-  await adminSetStatus('rejected');
-}
+  async function adminReject() {
+    if (!confirm("Reject this request?")) return;
+    await adminSetStatus("rejected");
+  }
 
-async function adminCannotCompleteByDeadline() {
-  const r = window._currentRequest;
-  const deadlineStr = r && r.deadline_date
-    ? new Date(String(r.deadline_date).slice(0, 10) + 'T00:00:00').toLocaleDateString('en-US', { year:'numeric', month:'short', day:'numeric' })
-    : 'the deadline';
-  if (!confirm(`Send back to student with reason: "Cannot complete by ${deadlineStr}"?`)) return;
+  async function adminCannotCompleteByDeadline() {
+    const r = window._currentRequest;
+    const deadlineStr =
+      r && r.deadline_date
+        ? new Date(
+            String(r.deadline_date).slice(0, 10) + "T00:00:00",
+          ).toLocaleDateString("en-US", {
+            year: "numeric",
+            month: "short",
+            day: "numeric",
+          })
+        : "the deadline";
+    if (
+      !confirm(
+        `Send back to student with reason: "Cannot complete by ${deadlineStr}"?`,
+      )
+    )
+      return;
 
-  const btn = document.getElementById('btn-cannot-deadline');
-  btn.disabled = true;
-  const reason = `We regret that we are unable to complete this print request by the deadline (${deadlineStr}). Please reach out if you'd like to resubmit with a later deadline.`;
-  try {
-    const res = await window.apiFetch(`/api/admin/print-requests/${window._currentRequestId}/return`, {
-      method: 'POST',
-      body: JSON.stringify({
-        reason,
-        unlocked_fields: null   // student may edit anything when resubmitting
-      })
-    });
-    const data = await res.json();
-    if (data.success) {
-      adminShowAlert('Request sent back — deadline not met. Reloading…', 'success');
-      setTimeout(() => location.reload(), 1200);
-    } else {
-      adminShowAlert(data.message || 'Failed to send back.');
+    const btn = document.getElementById("btn-cannot-deadline");
+    btn.disabled = true;
+    const reason = `We regret that we are unable to complete this print request by the deadline (${deadlineStr}). Please reach out if you'd like to resubmit with a later deadline.`;
+    try {
+      const res = await window.apiFetch(
+        `/api/admin/print-requests/${window._currentRequestId}/return`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            reason,
+            unlocked_fields: null, // student may edit anything when resubmitting
+          }),
+        },
+      );
+      const data = await res.json();
+      if (data.success) {
+        adminShowAlert(
+          "Request sent back — deadline not met. Reloading…",
+          "success",
+        );
+        setTimeout(() => location.reload(), 1200);
+      } else {
+        adminShowAlert(data.message || "Failed to send back.");
+        btn.disabled = false;
+      }
+    } catch (e) {
+      adminShowAlert("Network error. Make sure the backend is running.");
       btn.disabled = false;
     }
-  } catch(e) {
-    adminShowAlert('Network error. Make sure the backend is running.');
-    btn.disabled = false;
   }
-}
 
-async function adminSetStatus(newStatus) {
-  try {
-    const res = await window.apiFetch(`/api/admin/print-requests/${window._currentRequestId}/status`, {
-      method: 'PATCH',
-      body: JSON.stringify({ status: newStatus })
-    });
-    const data = await res.json();
-    if (data.success) {
-      adminShowAlert(`Status updated to "${newStatus}". Reloading…`, 'success');
-      setTimeout(() => location.reload(), 1000);
-    } else {
-      adminShowAlert(data.message || 'Failed to update status.');
+  async function adminSetStatus(newStatus) {
+    try {
+      const res = await window.apiFetch(
+        `/api/admin/print-requests/${window._currentRequestId}/status`,
+        {
+          method: "PATCH",
+          body: JSON.stringify({ status: newStatus }),
+        },
+      );
+      const data = await res.json();
+      if (data.success) {
+        adminShowAlert(
+          `Status updated to "${newStatus}". Reloading…`,
+          "success",
+        );
+        setTimeout(() => location.reload(), 1000);
+      } else {
+        adminShowAlert(data.message || "Failed to update status.");
+      }
+    } catch (e) {
+      adminShowAlert("Network error. Make sure the backend is running.");
     }
-  } catch(e) {
-    adminShowAlert('Network error. Make sure the backend is running.');
-  }
-}
-
-async function adminSendBack() {
-  const reason = document.getElementById('admin-notes-input').value.trim();
-  if (!reason) {
-    adminShowAlert('Please select a template or write feedback before sending back.');
-    document.getElementById('admin-notes-input').focus();
-    return;
   }
 
-  // Compute which fields to unlock for the student
-  const unlocked = fbGetUnlockedFields();
-  // If staff typed custom text without chips, unlock all fields as fallback
-  const fieldsToUnlock = unlocked.size > 0
-    ? Array.from(unlocked)
-    : ['stl', 'description', 'material'];
-
-  const btn = document.getElementById('btn-send-back');
-  btn.disabled = true;
-  btn.textContent = 'Sending…';
-
-  try {
-    const res = await window.apiFetch(`/api/admin/print-requests/${window._currentRequestId}/return`, {
-      method: 'POST',
-      body: JSON.stringify({ reason, unlocked_fields: fieldsToUnlock })
-    });
-    const data = await res.json();
-    if (data.success) {
-      adminShowAlert('Feedback sent successfully. Reloading…', 'success');
-      setTimeout(() => location.reload(), 1000);
-    } else {
-      adminShowAlert(data.message || 'Failed to send feedback.');
-      btn.disabled = false;
-      btn.textContent = '↩ Send Back';
-    }
-  } catch(e) {
-    adminShowAlert('Network error. Make sure the backend is running.');
-    btn.disabled = false;
-    btn.textContent = '↩ Send Back';
-  }
-}
-
-// ════════════════════════════════════════════════════════════
-// STUDENT RESUBMIT
-// ════════════════════════════════════════════════════════════
-
-// Track uploaded new STL
-let _rsNewStl = null; // { filename, original_name } or null
-
-function rsRemoveCurrentStl() {
-  document.getElementById('rs-current-stl').style.display = 'none';
-  document.getElementById('rs-dropzone').style.display    = 'block';
-  _rsNewStl = { filename: '', original_name: '' };
-}
-
-async function rsHandleStl(file) {
-  if (!file) return;
-  if (!file.name.toLowerCase().endsWith('.stl')) {
-    rsShowAlert('Please upload a <strong>.stl</strong> file.');
-    return;
-  }
-
-  document.getElementById('rs-stl-uploading').style.display = 'block';
-  document.getElementById('rs-dropzone').style.display      = 'none';
-
-  try {
-    const formData = new FormData();
-    formData.append('file', file);
-    const token = window.getToken ? window.getToken() : localStorage.getItem('dg_token');
-    const res = await fetch('/api/print-requests/upload-stl', {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${token}` },
-      body: formData
-    });
-    const data = await res.json();
-    document.getElementById('rs-stl-uploading').style.display = 'none';
-
-    if (!data.success) {
-      document.getElementById('rs-dropzone').style.display = 'block';
-      rsShowAlert(data.message || 'STL upload failed.');
+  async function adminSendBack() {
+    const reason = document.getElementById("admin-notes-input").value.trim();
+    if (!reason) {
+      adminShowAlert(
+        "Please select a template or write feedback before sending back.",
+      );
+      document.getElementById("admin-notes-input").focus();
       return;
     }
 
-    _rsNewStl = { filename: data.filename, original_name: data.original_name || file.name };
-    document.getElementById('rs-new-stl-name').textContent   = _rsNewStl.original_name;
-    document.getElementById('rs-new-stl-chip').style.display = 'block';
-    document.getElementById('rs-current-stl').style.display  = 'none';
-    document.getElementById('rs-dropzone').style.display     = 'none';
-  } catch(e) {
-    document.getElementById('rs-stl-uploading').style.display = 'none';
-    document.getElementById('rs-dropzone').style.display      = 'block';
-    rsShowAlert('Network error during STL upload.');
-  }
-}
+    // Compute which fields to unlock for the student
+    const unlocked = fbGetUnlockedFields();
+    // If staff typed custom text without chips, unlock all fields as fallback
+    const fieldsToUnlock =
+      unlocked.size > 0
+        ? Array.from(unlocked)
+        : ["stl", "description", "material"];
 
-async function rsCancelNewStl() {
-  if (_rsNewStl && _rsNewStl.filename) {
+    const btn = document.getElementById("btn-send-back");
+    btn.disabled = true;
+    btn.textContent = "Sending…";
+
     try {
-      const token = window.getToken ? window.getToken() : localStorage.getItem('dg_token');
-      await fetch(`/api/print-requests/upload-stl/${_rsNewStl.filename}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-    } catch(e) { /* ignore */ }
-  }
-  _rsNewStl = null;
-  document.getElementById('rs-new-stl-chip').style.display = 'none';
-  const r = window._rsRequest;
-  if (r && r.stl_file_path) {
-    document.getElementById('rs-current-stl').style.display = 'block';
-    document.getElementById('rs-dropzone').style.display    = 'none';
-  } else {
-    document.getElementById('rs-dropzone').style.display = 'block';
-  }
-}
-
-function rsShowAlert(msg, type='error') {
-  document.getElementById('resubmit-alert-box').innerHTML =
-    `<div class="alert alert-${type}">${msg}</div>`;
-}
-
-async function submitResubmit() {
-  const btn = document.getElementById('btn-resubmit');
-  btn.disabled = true;
-  btn.textContent = 'Submitting…';
-  document.getElementById('resubmit-alert-box').innerHTML = '';
-
-  const body = {
-    project_name: document.getElementById('rs-project-name').value.trim() || undefined,
-  };
-
-  // Description — only include if field is visible
-  const descField = document.getElementById('rs-field-description');
-  if (descField && descField.style.display !== 'none') {
-    const v = document.getElementById('rs-description').value.trim();
-    if (v) body.description = v;
-  }
-
-  // Material/color — only include if field is visible
-  const matField = document.getElementById('rs-field-material');
-  if (matField && matField.style.display !== 'none') {
-    body.material_type    = document.getElementById('rs-material').value;
-    body.color_preference = document.getElementById('rs-color').value.trim() || undefined;
-  }
-
-  // STL — only if user explicitly changed it
-  if (_rsNewStl !== null) {
-    body.stl_file_path     = _rsNewStl.filename      || null;
-    body.stl_original_name = _rsNewStl.original_name || null;
-  }
-
-  try {
-    const r   = window._rsRequest;
-    const res = await window.apiFetch(`/api/print-requests/${r.id}/resubmit`, {
-      method: 'PATCH',
-      body: JSON.stringify(body)
-    });
-    const data = await res.json();
-    if (data.success) {
-      rsShowAlert('✅ Resubmitted! Reloading…', 'success');
-      setTimeout(() => location.reload(), 1200);
-    } else {
-      rsShowAlert(data.message || 'Resubmit failed.');
+      const res = await window.apiFetch(
+        `/api/admin/print-requests/${window._currentRequestId}/return`,
+        {
+          method: "POST",
+          body: JSON.stringify({ reason, unlocked_fields: fieldsToUnlock }),
+        },
+      );
+      const data = await res.json();
+      if (data.success) {
+        adminShowAlert("Feedback sent successfully. Reloading…", "success");
+        setTimeout(() => location.reload(), 1000);
+      } else {
+        adminShowAlert(data.message || "Failed to send feedback.");
+        btn.disabled = false;
+        btn.textContent = "↩ Send Back";
+      }
+    } catch (e) {
+      adminShowAlert("Network error. Make sure the backend is running.");
       btn.disabled = false;
-      btn.textContent = '🔄 Resubmit';
+      btn.textContent = "↩ Send Back";
     }
-  } catch(e) {
-    rsShowAlert('Network error. Make sure the backend is running.');
-    btn.disabled = false;
-    btn.textContent = '🔄 Resubmit';
   }
-}
 
-loadDetail();
+  // ════════════════════════════════════════════════════════════
+  // STUDENT RESUBMIT
+  // ════════════════════════════════════════════════════════════
+
+  // Track uploaded new STL
+  let _rsNewStl = null; // { filename, original_name } or null
+
+  function rsRemoveCurrentStl() {
+    document.getElementById("rs-current-stl").style.display = "none";
+    document.getElementById("rs-dropzone").style.display = "block";
+    _rsNewStl = { filename: "", original_name: "" };
+  }
+
+  async function rsHandleStl(file) {
+    if (!file) return;
+    if (!file.name.toLowerCase().endsWith(".stl")) {
+      rsShowAlert("Please upload a <strong>.stl</strong> file.");
+      return;
+    }
+
+    document.getElementById("rs-stl-uploading").style.display = "block";
+    document.getElementById("rs-dropzone").style.display = "none";
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const token = window.getToken
+        ? window.getToken()
+        : localStorage.getItem("dg_token");
+      const res = await fetch("/api/print-requests/upload-stl", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+      const data = await res.json();
+      document.getElementById("rs-stl-uploading").style.display = "none";
+
+      if (!data.success) {
+        document.getElementById("rs-dropzone").style.display = "block";
+        rsShowAlert(data.message || "STL upload failed.");
+        return;
+      }
+
+      _rsNewStl = {
+        filename: data.filename,
+        original_name: data.original_name || file.name,
+      };
+      document.getElementById("rs-new-stl-name").textContent =
+        _rsNewStl.original_name;
+      document.getElementById("rs-new-stl-chip").style.display = "block";
+      document.getElementById("rs-current-stl").style.display = "none";
+      document.getElementById("rs-dropzone").style.display = "none";
+    } catch (e) {
+      document.getElementById("rs-stl-uploading").style.display = "none";
+      document.getElementById("rs-dropzone").style.display = "block";
+      rsShowAlert("Network error during STL upload.");
+    }
+  }
+
+  async function rsCancelNewStl() {
+    if (_rsNewStl && _rsNewStl.filename) {
+      try {
+        const token = window.getToken
+          ? window.getToken()
+          : localStorage.getItem("dg_token");
+        await fetch(`/api/print-requests/upload-stl/${_rsNewStl.filename}`, {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${token}` },
+        });
+      } catch (e) {
+        /* ignore */
+      }
+    }
+    _rsNewStl = null;
+    document.getElementById("rs-new-stl-chip").style.display = "none";
+    const r = window._rsRequest;
+    if (r && r.stl_file_path) {
+      document.getElementById("rs-current-stl").style.display = "block";
+      document.getElementById("rs-dropzone").style.display = "none";
+    } else {
+      document.getElementById("rs-dropzone").style.display = "block";
+    }
+  }
+
+  function rsShowAlert(msg, type = "error") {
+    document.getElementById("resubmit-alert-box").innerHTML =
+      `<div class="alert alert-${type}">${msg}</div>`;
+  }
+
+  async function submitResubmit() {
+    const btn = document.getElementById("btn-resubmit");
+    btn.disabled = true;
+    btn.textContent = "Submitting…";
+    document.getElementById("resubmit-alert-box").innerHTML = "";
+
+    const body = {
+      project_name:
+        document.getElementById("rs-project-name").value.trim() || undefined,
+    };
+
+    // Description — only include if field is visible
+    const descField = document.getElementById("rs-field-description");
+    if (descField && descField.style.display !== "none") {
+      const v = document.getElementById("rs-description").value.trim();
+      if (v) body.description = v;
+    }
+
+    // Material/color — only include if field is visible
+    const matField = document.getElementById("rs-field-material");
+    if (matField && matField.style.display !== "none") {
+      body.material_type = document.getElementById("rs-material").value;
+      body.color_preference =
+        document.getElementById("rs-color").value.trim() || undefined;
+    }
+
+    // STL — only if user explicitly changed it
+    if (_rsNewStl !== null) {
+      body.stl_file_path = _rsNewStl.filename || null;
+      body.stl_original_name = _rsNewStl.original_name || null;
+    }
+
+    try {
+      const r = window._rsRequest;
+      const res = await window.apiFetch(
+        `/api/print-requests/${r.id}/resubmit`,
+        {
+          method: "PATCH",
+          body: JSON.stringify(body),
+        },
+      );
+      const data = await res.json();
+      if (data.success) {
+        rsShowAlert("✅ Resubmitted! Reloading…", "success");
+        setTimeout(() => location.reload(), 1200);
+      } else {
+        rsShowAlert(data.message || "Resubmit failed.");
+        btn.disabled = false;
+        btn.textContent = "🔄 Resubmit";
+      }
+    } catch (e) {
+      rsShowAlert("Network error. Make sure the backend is running.");
+      btn.disabled = false;
+      btn.textContent = "🔄 Resubmit";
+    }
+  }
+
+  loadDetail();
 </script>
 {% endblock %}
