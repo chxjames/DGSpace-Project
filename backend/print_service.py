@@ -423,7 +423,7 @@ class PrintService:
                 'count': len(requests)
             }
             
-        except Exception as e:56yj
+        except Exception as e:
             print(f"Error getting all requests: {e}")
             return {
                 'success': False,
