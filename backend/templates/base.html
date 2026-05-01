@@ -22,13 +22,14 @@
       nav {
         background: #1a1a2e;
         color: #fff;
-        padding: 0 24px;
+        padding: 0 16px;
         height: 56px;
         display: flex;
         align-items: center;
         justify-content: space-between;
-        min-width: 360px;
-        gap: 12px;
+        width: 100%;
+        box-sizing: border-box;
+        gap: 8px;
       }
       nav .brand {
         font-size: 1.2rem;
@@ -75,7 +76,9 @@
       }
       /* Hide username on narrow screens so nav links stay visible */
       @media (max-width: 520px) {
-        #nav-username { display: none !important; }
+        #nav-username {
+          display: none !important;
+        }
       }
 
       /* ── Main ── */
