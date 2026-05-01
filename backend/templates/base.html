@@ -1,335 +1,650 @@
 <!-- templates/base.html -->
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}DG Space{% endblock %}</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: Arial, sans-serif; background: #f4f6f9; color: #333; min-width: 360px; }
-
-    /* ── Nav ── */
-    nav {
-      background: #1a1a2e; color: #fff;
-      padding: 0 24px; height: 56px;
-      display: flex; align-items: center; justify-content: space-between;
-    }
-    nav .brand { font-size: 1.2rem; font-weight: bold; color: #e94560; text-decoration: none; }
-    nav .nav-links { display: flex; gap: 16px; align-items: center; }
-    nav .nav-links a { color: #ccc; text-decoration: none; font-size: 0.9rem; }
-    nav .nav-links a:hover { color: #fff; }
-    nav .nav-links button {
-      background: #e94560; color: #fff; border: none;
-      padding: 6px 14px; border-radius: 4px; cursor: pointer; font-size: 0.9rem;
-    }
-    #nav-username { color: #e94560; font-weight: bold; margin-right: 8px; }
-
-    /* ── Main ── */
-    main { max-width: 960px; margin: 32px auto; padding: 0 16px; }
-
-    /* ── Card ── */
-    .card {
-      background: #fff; border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0,0,0,.1); padding: 32px;
-    }
-    .card h2 { margin-bottom: 20px; color: #1a1a2e; }
-
-    /* ── Form ── */
-    .form-group { margin-bottom: 16px; }
-    .form-group label { display: block; margin-bottom: 6px; font-weight: bold; font-size: 0.9rem; }
-    .form-group input, .form-group select, .form-group textarea {
-      width: 100%; padding: 10px 12px; border: 1px solid #ddd;
-      border-radius: 4px; font-size: 0.95rem;
-    }
-    .form-group textarea { resize: vertical; min-height: 80px; }
-    .btn {
-      display: inline-block; padding: 10px 24px;
-      background: #e94560; color: #fff; border: none;
-      border-radius: 4px; cursor: pointer; font-size: 1rem; width: 100%;
-    }
-    .btn:hover { background: #c73652; }
-    .btn-secondary {
-      background: #6c757d;
-    }
-    .btn-secondary:hover { background: #545b62; }
-
-    /* ── Alert ── */
-    .alert {
-      padding: 12px 16px; border-radius: 4px; margin-bottom: 16px; font-size: 0.9rem;
-    }
-    .alert-error { background: #fdecea; color: #c0392b; border-left: 4px solid #e74c3c; }
-    .alert-success { background: #eafaf1; color: #1e8449; border-left: 4px solid #2ecc71; }
-    .alert-info { background: #eaf4fb; color: #1a6fa0; border-left: 4px solid #3498db; }
-
-    /* ── Table ── */
-    table { width: 100%; border-collapse: collapse; margin-top: 16px; }
-    th, td { padding: 10px 12px; border-bottom: 1px solid #eee; text-align: left; font-size: 0.9rem; }
-    th { background: #f8f9fa; font-weight: bold; color: #555; }
-    .badge {
-      display: inline-block; padding: 2px 10px; border-radius: 12px;
-      font-size: 0.8rem; font-weight: bold;
-    }
-    .badge-pending  { background: #fff3cd; color: #856404; }
-    .badge-approved { background: #d1ecf1; color: #0c5460; }
-    .badge-queued   { background: #cce5ff; color: #004085; }
-    .badge-printing { background: #d4c6f5; color: #4a235a; }
-    .badge-rejected { background: #f8d7da; color: #721c24; }
-    .badge-in_progress { background: #cce5ff; color: #004085; }
-    .badge-completed   { background: #d4edda; color: #155724; }
-    .badge-cancelled   { background: #e2e3e5; color: #383d41; }
-    .badge-revision_requested { background: #f8d7da; color: #856404; border: 1px solid #f5c6cb; }
-    /* ── Delete button ── */
-    .btn-delete {
-      background: none; border: 1px solid #e74c3c; color: #e74c3c;
-      border-radius: 6px; padding: 3px 8px; font-size: 0.75rem;
-      cursor: pointer; transition: background 0.15s, color 0.15s;
-      white-space: nowrap;
-    }
-    .btn-delete:hover { background: #e74c3c; color: #fff; }
-    /* ── Return button ── */
-    .btn-return {
-      display: inline-block; border: 1px solid #f39c12; color: #f39c12;
-      border-radius: 6px; padding: 2px 10px; font-size: 0.8rem;
-      text-decoration: none; transition: background 0.15s, color 0.15s;
-    }
-    .btn-return:hover { background: #f39c12; color: #fff; }
-    /* ── Admin feedback banner (student view) ── */
-    .feedback-banner {
-      background: #fff8e1; border: 1px solid #ffe082; border-radius: 6px;
-      padding: 8px 14px; font-size: 0.85rem; color: #7a5800;
-      white-space: normal;
-      overflow-wrap: anywhere;
-      word-break: break-word;
-    }
-    .feedback-row td { border-bottom: none; padding-top: 0; }
-    /* ── Alert messages ── */
-    .alert { padding: 10px 16px; border-radius: 8px; margin-bottom: 12px; font-size: 0.9rem; }
-    .alert-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
-    .alert-error   { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
-
-    /* ── Shared print-request list cards (used in print_requests + profile) ── */
-    .req-card {
-      background: #fff; border-radius: 10px; border: 1.5px solid #e0e0e0;
-      padding: 14px 16px; margin-bottom: 10px; cursor: pointer;
-      transition: box-shadow 0.15s, border-color 0.15s;
-      text-decoration: none; display: block; color: inherit;
-    }
-    .req-card:hover { box-shadow: 0 3px 12px rgba(0,0,0,0.1); border-color: #e94560; }
-    .req-card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 8px; }
-    .req-card-name { font-weight: 600; color: #e94560; font-size: 0.95rem; flex: 1; }
-    .req-card-meta { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 0.8rem; color: #666; }
-    .req-card-meta span { display: flex; align-items: center; gap: 4px; }
-  </style>
-  <script>
-    /* ── JWT helpers — loaded in <head> so all page scripts can use them ── */
-    const API = '';  // Same-origin: Flask serves both pages and API
-
-    function getToken()  { return localStorage.getItem('dg_token'); }
-    function getUser()   { try { return JSON.parse(localStorage.getItem('dg_user')); } catch { return null; } }
-    function saveAuth(token, user) {
-      localStorage.setItem('dg_token', token);
-      localStorage.setItem('dg_user', JSON.stringify(user));
-    }
-    function clearAuth() {
-      localStorage.removeItem('dg_token');
-      localStorage.removeItem('dg_user');
-    }
-    function logout() { clearAuth(); location.href = '/'; }
-
-    async function apiFetch(path, options = {}) {
-      const token = getToken();
-      const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
-      if (token) headers['Authorization'] = 'Bearer ' + token;
-      return fetch(API + path, { ...options, headers });
-    }
-
-    /* ── Shared print-request rendering helpers ── */
-    function statusBadge(s) {
-      const map = {
-        pending: 'Pending', approved: 'Approved', queued: 'Queued',
-        printing: 'Printing', rejected: 'Rejected', in_progress: 'In Progress',
-        completed: 'Completed', cancelled: 'Cancelled', revision_requested: 'Revision Requested',
-      };
-      return `<span class="badge badge-${s}">${map[s] || s}</span>`;
-    }
-
-    function priorityLabel(p) {
-      return p === 'urgent' ? '🔴 Urgent' : p === 'high' ? '🟠 High' : '🟢 Normal';
-    }
-
-    function deadlineBadge(deadline_date) {
-      if (!deadline_date) return '<span style="color:#aaa">—</span>';
-      const dl = new Date(deadline_date);
-      const now = new Date();
-      const days = Math.ceil((dl - now) / 86400000);
-      const fmt = dl.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-      if (days < 0)  return `<span style="color:#e74c3c;font-weight:600">⚠️ ${fmt}</span>`;
-      if (days <= 3) return `<span style="color:#e67e22;font-weight:600">🔶 ${fmt} (${days}d)</span>`;
-      return `<span style="color:#27ae60">📅 ${fmt} (${days}d)</span>`;
-    }
-
-    /* renderPrintRequestList(container, list, userType, user, opts)
-       opts: { showDelete: bool, emptyMsg: string } */
-    function renderPrintRequestList(container, list, userType, user, opts) {
-      opts = opts || {};
-      const showDelete = !!opts.showDelete;
-      const isMobile = window.innerWidth < 600;
-      const showPriority = userType === 'admin' || userType === 'student_staff';
-      const showStudent  = userType === 'admin' || userType === 'student_staff';
-      container.innerHTML = '';
-
-      if (!list.length) {
-        container.innerHTML = `<p style="text-align:center;color:#888;padding:32px">${opts.emptyMsg || 'No requests found.'}</p>`;
-        return;
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{% block title %}DG Space{% endblock %}</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: Arial, sans-serif;
+        background: #f4f6f9;
+        color: #333;
+        min-width: 360px;
       }
 
-      const groups = [
-        { key: 'feedback',   label: '⚠️ Needs Your Attention', statuses: ['revision_requested'],                       color: '#fff3cd', border: '#f0ad4e' },
-        { key: 'pending',    label: '🕐 Pending Review',        statuses: ['pending'],                                  color: '#e8f4fd', border: '#3498db' },
-        { key: 'inprogress', label: '🖨️ In Progress',           statuses: ['approved', 'queued', 'printing'],           color: '#eaf7ef', border: '#2ecc71' },
-        { key: 'done',       label: '✅ Completed',             statuses: ['completed', 'failed', 'cancelled', 'rejected'], color: '#f8f9fa', border: '#adb5bd' },
-      ];
+      /* ── Nav ── */
+      nav {
+        background: #1a1a2e;
+        color: #fff;
+        padding: 0 24px;
+        height: 56px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        min-width: 360px;
+        gap: 12px;
+      }
+      nav .brand {
+        font-size: 1.2rem;
+        font-weight: bold;
+        color: #e94560;
+        text-decoration: none;
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
+      nav .nav-links {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        flex-wrap: nowrap;
+        overflow: hidden;
+      }
+      nav .nav-links a {
+        color: #ccc;
+        text-decoration: none;
+        font-size: 0.9rem;
+        white-space: nowrap;
+      }
+      nav .nav-links a:hover {
+        color: #fff;
+      }
+      nav .nav-links button {
+        background: #e94560;
+        color: #fff;
+        border: none;
+        padding: 6px 14px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.9rem;
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
+      #nav-username {
+        color: #e94560;
+        font-weight: bold;
+        margin-right: 4px;
+        max-width: 120px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
 
-      let globalIdx = 0;
-      groups.forEach(function(g) {
-        const rows = list.filter(function(r) { return g.statuses.includes(r.status); });
-        if (!rows.length) return;
+      /* ── Main ── */
+      main {
+        max-width: 960px;
+        margin: 32px auto;
+        padding: 0 16px;
+      }
 
-        const header = document.createElement('div');
-        header.style.cssText = 'display:flex;align-items:center;gap:8px;margin:18px 0 6px;';
-        header.innerHTML = `<span style="font-weight:700;font-size:0.95rem;color:#333">${g.label}</span>`
-          + `<span style="font-size:0.8rem;background:#eee;border-radius:10px;padding:1px 8px;color:#666">${rows.length}</span>`;
-        container.appendChild(header);
+      /* ── Card ── */
+      .card {
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        padding: 32px;
+      }
+      .card h2 {
+        margin-bottom: 20px;
+        color: #1a1a2e;
+      }
 
-        if (isMobile) {
-          const wrap = document.createElement('div');
-          rows.forEach(function(r) {
-            globalIdx++;
-            const rid = r.id || r.request_id;
-            const isOwn = userType === 'student_staff' ? r.student_email === (user && user.email) : true;
-            const canDelete = showDelete && isOwn && ['pending', 'revision_requested', 'rejected'].includes(r.status) && userType !== 'admin';
-            const isLaser = (r.service_type || '3dprint') === 'laser';
-            const svcBadge = isLaser
-              ? `<span style="background:#fce4ec;color:#c62828;border-radius:10px;padding:1px 7px;font-size:0.72rem;font-weight:600;white-space:nowrap">✂️ Laser</span>`
-              : `<span style="background:#e8f0fe;color:#1a73e8;border-radius:10px;padding:1px 7px;font-size:0.72rem;font-weight:600;white-space:nowrap">🖨️ 3D</span>`;
-            const card = document.createElement('a');
-            card.href = `/print-requests/${rid}/`;
-            card.className = 'req-card';
-            card.style.borderColor = g.border;
-            card.style.background = g.color;
-            card.innerHTML = `
+      /* ── Form ── */
+      .form-group {
+        margin-bottom: 16px;
+      }
+      .form-group label {
+        display: block;
+        margin-bottom: 6px;
+        font-weight: bold;
+        font-size: 0.9rem;
+      }
+      .form-group input,
+      .form-group select,
+      .form-group textarea {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 0.95rem;
+      }
+      .form-group textarea {
+        resize: vertical;
+        min-height: 80px;
+      }
+      .btn {
+        display: inline-block;
+        padding: 10px 24px;
+        background: #e94560;
+        color: #fff;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 1rem;
+        width: 100%;
+      }
+      .btn:hover {
+        background: #c73652;
+      }
+      .btn-secondary {
+        background: #6c757d;
+      }
+      .btn-secondary:hover {
+        background: #545b62;
+      }
+
+      /* ── Alert ── */
+      .alert {
+        padding: 12px 16px;
+        border-radius: 4px;
+        margin-bottom: 16px;
+        font-size: 0.9rem;
+      }
+      .alert-error {
+        background: #fdecea;
+        color: #c0392b;
+        border-left: 4px solid #e74c3c;
+      }
+      .alert-success {
+        background: #eafaf1;
+        color: #1e8449;
+        border-left: 4px solid #2ecc71;
+      }
+      .alert-info {
+        background: #eaf4fb;
+        color: #1a6fa0;
+        border-left: 4px solid #3498db;
+      }
+
+      /* ── Table ── */
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 16px;
+      }
+      th,
+      td {
+        padding: 10px 12px;
+        border-bottom: 1px solid #eee;
+        text-align: left;
+        font-size: 0.9rem;
+      }
+      th {
+        background: #f8f9fa;
+        font-weight: bold;
+        color: #555;
+      }
+      .badge {
+        display: inline-block;
+        padding: 2px 10px;
+        border-radius: 12px;
+        font-size: 0.8rem;
+        font-weight: bold;
+      }
+      .badge-pending {
+        background: #fff3cd;
+        color: #856404;
+      }
+      .badge-approved {
+        background: #d1ecf1;
+        color: #0c5460;
+      }
+      .badge-queued {
+        background: #cce5ff;
+        color: #004085;
+      }
+      .badge-printing {
+        background: #d4c6f5;
+        color: #4a235a;
+      }
+      .badge-rejected {
+        background: #f8d7da;
+        color: #721c24;
+      }
+      .badge-in_progress {
+        background: #cce5ff;
+        color: #004085;
+      }
+      .badge-completed {
+        background: #d4edda;
+        color: #155724;
+      }
+      .badge-cancelled {
+        background: #e2e3e5;
+        color: #383d41;
+      }
+      .badge-revision_requested {
+        background: #f8d7da;
+        color: #856404;
+        border: 1px solid #f5c6cb;
+      }
+      /* ── Delete button ── */
+      .btn-delete {
+        background: none;
+        border: 1px solid #e74c3c;
+        color: #e74c3c;
+        border-radius: 6px;
+        padding: 3px 8px;
+        font-size: 0.75rem;
+        cursor: pointer;
+        transition:
+          background 0.15s,
+          color 0.15s;
+        white-space: nowrap;
+      }
+      .btn-delete:hover {
+        background: #e74c3c;
+        color: #fff;
+      }
+      /* ── Return button ── */
+      .btn-return {
+        display: inline-block;
+        border: 1px solid #f39c12;
+        color: #f39c12;
+        border-radius: 6px;
+        padding: 2px 10px;
+        font-size: 0.8rem;
+        text-decoration: none;
+        transition:
+          background 0.15s,
+          color 0.15s;
+      }
+      .btn-return:hover {
+        background: #f39c12;
+        color: #fff;
+      }
+      /* ── Admin feedback banner (student view) ── */
+      .feedback-banner {
+        background: #fff8e1;
+        border: 1px solid #ffe082;
+        border-radius: 6px;
+        padding: 8px 14px;
+        font-size: 0.85rem;
+        color: #7a5800;
+        white-space: normal;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+      }
+      .feedback-row td {
+        border-bottom: none;
+        padding-top: 0;
+      }
+      /* ── Alert messages ── */
+      .alert {
+        padding: 10px 16px;
+        border-radius: 8px;
+        margin-bottom: 12px;
+        font-size: 0.9rem;
+      }
+      .alert-success {
+        background: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+      }
+      .alert-error {
+        background: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+      }
+
+      /* ── Shared print-request list cards (used in print_requests + profile) ── */
+      .req-card {
+        background: #fff;
+        border-radius: 10px;
+        border: 1.5px solid #e0e0e0;
+        padding: 14px 16px;
+        margin-bottom: 10px;
+        cursor: pointer;
+        transition:
+          box-shadow 0.15s,
+          border-color 0.15s;
+        text-decoration: none;
+        display: block;
+        color: inherit;
+      }
+      .req-card:hover {
+        box-shadow: 0 3px 12px rgba(0, 0, 0, 0.1);
+        border-color: #e94560;
+      }
+      .req-card-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 8px;
+        margin-bottom: 8px;
+      }
+      .req-card-name {
+        font-weight: 600;
+        color: #e94560;
+        font-size: 0.95rem;
+        flex: 1;
+      }
+      .req-card-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px 14px;
+        font-size: 0.8rem;
+        color: #666;
+      }
+      .req-card-meta span {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+    </style>
+    <script>
+      /* ── JWT helpers — loaded in <head> so all page scripts can use them ── */
+      const API = ""; // Same-origin: Flask serves both pages and API
+
+      function getToken() {
+        return localStorage.getItem("dg_token");
+      }
+      function getUser() {
+        try {
+          return JSON.parse(localStorage.getItem("dg_user"));
+        } catch {
+          return null;
+        }
+      }
+      function saveAuth(token, user) {
+        localStorage.setItem("dg_token", token);
+        localStorage.setItem("dg_user", JSON.stringify(user));
+      }
+      function clearAuth() {
+        localStorage.removeItem("dg_token");
+        localStorage.removeItem("dg_user");
+      }
+      function logout() {
+        clearAuth();
+        location.href = "/";
+      }
+
+      async function apiFetch(path, options = {}) {
+        const token = getToken();
+        const headers = {
+          "Content-Type": "application/json",
+          ...(options.headers || {}),
+        };
+        if (token) headers["Authorization"] = "Bearer " + token;
+        return fetch(API + path, { ...options, headers });
+      }
+
+      /* ── Shared print-request rendering helpers ── */
+      function statusBadge(s) {
+        const map = {
+          pending: "Pending",
+          approved: "Approved",
+          queued: "Queued",
+          printing: "Printing",
+          rejected: "Rejected",
+          in_progress: "In Progress",
+          completed: "Completed",
+          cancelled: "Cancelled",
+          revision_requested: "Revision Requested",
+        };
+        return `<span class="badge badge-${s}">${map[s] || s}</span>`;
+      }
+
+      function priorityLabel(p) {
+        return p === "urgent"
+          ? "🔴 Urgent"
+          : p === "high"
+            ? "🟠 High"
+            : "🟢 Normal";
+      }
+
+      function deadlineBadge(deadline_date) {
+        if (!deadline_date) return '<span style="color:#aaa">—</span>';
+        const dl = new Date(deadline_date);
+        const now = new Date();
+        const days = Math.ceil((dl - now) / 86400000);
+        const fmt = dl.toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+        });
+        if (days < 0)
+          return `<span style="color:#e74c3c;font-weight:600">⚠️ ${fmt}</span>`;
+        if (days <= 3)
+          return `<span style="color:#e67e22;font-weight:600">🔶 ${fmt} (${days}d)</span>`;
+        return `<span style="color:#27ae60">📅 ${fmt} (${days}d)</span>`;
+      }
+
+      /* renderPrintRequestList(container, list, userType, user, opts)
+       opts: { showDelete: bool, emptyMsg: string } */
+      function renderPrintRequestList(container, list, userType, user, opts) {
+        opts = opts || {};
+        const showDelete = !!opts.showDelete;
+        const isMobile = window.innerWidth < 600;
+        const showPriority =
+          userType === "admin" || userType === "student_staff";
+        const showStudent =
+          userType === "admin" || userType === "student_staff";
+        container.innerHTML = "";
+
+        if (!list.length) {
+          container.innerHTML = `<p style="text-align:center;color:#888;padding:32px">${opts.emptyMsg || "No requests found."}</p>`;
+          return;
+        }
+
+        const groups = [
+          {
+            key: "feedback",
+            label: "⚠️ Needs Your Attention",
+            statuses: ["revision_requested"],
+            color: "#fff3cd",
+            border: "#f0ad4e",
+          },
+          {
+            key: "pending",
+            label: "🕐 Pending Review",
+            statuses: ["pending"],
+            color: "#e8f4fd",
+            border: "#3498db",
+          },
+          {
+            key: "inprogress",
+            label: "🖨️ In Progress",
+            statuses: ["approved", "queued", "printing"],
+            color: "#eaf7ef",
+            border: "#2ecc71",
+          },
+          {
+            key: "done",
+            label: "✅ Completed",
+            statuses: ["completed", "failed", "cancelled", "rejected"],
+            color: "#f8f9fa",
+            border: "#adb5bd",
+          },
+        ];
+
+        let globalIdx = 0;
+        groups.forEach(function (g) {
+          const rows = list.filter(function (r) {
+            return g.statuses.includes(r.status);
+          });
+          if (!rows.length) return;
+
+          const header = document.createElement("div");
+          header.style.cssText =
+            "display:flex;align-items:center;gap:8px;margin:18px 0 6px;";
+          header.innerHTML =
+            `<span style="font-weight:700;font-size:0.95rem;color:#333">${g.label}</span>` +
+            `<span style="font-size:0.8rem;background:#eee;border-radius:10px;padding:1px 8px;color:#666">${rows.length}</span>`;
+          container.appendChild(header);
+
+          if (isMobile) {
+            const wrap = document.createElement("div");
+            rows.forEach(function (r) {
+              globalIdx++;
+              const rid = r.id || r.request_id;
+              const isOwn =
+                userType === "student_staff"
+                  ? r.student_email === (user && user.email)
+                  : true;
+              const canDelete =
+                showDelete &&
+                isOwn &&
+                ["pending", "revision_requested", "rejected"].includes(
+                  r.status,
+                ) &&
+                userType !== "admin";
+              const isLaser = (r.service_type || "3dprint") === "laser";
+              const svcBadge = isLaser
+                ? `<span style="background:#fce4ec;color:#c62828;border-radius:10px;padding:1px 7px;font-size:0.72rem;font-weight:600;white-space:nowrap">✂️ Laser</span>`
+                : `<span style="background:#e8f0fe;color:#1a73e8;border-radius:10px;padding:1px 7px;font-size:0.72rem;font-weight:600;white-space:nowrap">🖨️ 3D</span>`;
+              const card = document.createElement("a");
+              card.href = `/print-requests/${rid}/`;
+              card.className = "req-card";
+              card.style.borderColor = g.border;
+              card.style.background = g.color;
+              card.innerHTML = `
               <div class="req-card-top">
                 <div class="req-card-name">${globalIdx}. ${r.project_name} ${svcBadge}</div>
                 ${statusBadge(r.status)}
               </div>
               <div class="req-card-meta">
-                ${showStudent ? `<span>👤 ${r.student_name || r.student_email || '—'}</span>` : ''}
+                ${showStudent ? `<span>👤 ${r.student_name || r.student_email || "—"}</span>` : ""}
                 <span>📅 ${deadlineBadge(r.deadline_date)}</span>
-                ${showPriority ? `<span>${priorityLabel(r.priority)}</span>` : ''}
-                <span style="color:#bbb">${new Date(r.created_at).toLocaleDateString('en-US')}</span>
-                ${canDelete ? `<button onclick="event.preventDefault();event.stopPropagation();deleteRequest(${rid},'${(r.project_name||'').replace(/'/g,"&#39;")}')" class="btn-delete" style="margin-left:auto">🗑 Delete</button>` : ''}
+                ${showPriority ? `<span>${priorityLabel(r.priority)}</span>` : ""}
+                <span style="color:#bbb">${new Date(r.created_at).toLocaleDateString("en-US")}</span>
+                ${canDelete ? `<button onclick="event.preventDefault();event.stopPropagation();deleteRequest(${rid},'${(r.project_name || "").replace(/'/g, "&#39;")}')" class="btn-delete" style="margin-left:auto">🗑 Delete</button>` : ""}
               </div>
-              ${userType !== 'admin' && isOwn && r.status === 'revision_requested' && r.admin_notes ? `<div class="feedback-banner" style="margin-top:8px"><strong>⚠️ Admin Feedback:</strong> ${r.admin_notes}</div>` : ''}
+              ${userType !== "admin" && isOwn && r.status === "revision_requested" && r.admin_notes ? `<div class="feedback-banner" style="margin-top:8px"><strong>⚠️ Admin Feedback:</strong> ${r.admin_notes}</div>` : ""}
             `;
-            wrap.appendChild(card);
-          });
-          container.appendChild(wrap);
-        } else {
-          const table = document.createElement('table');
-          table.style.cssText = `width:100%;border-collapse:collapse;border:1.5px solid ${g.border};border-radius:8px;overflow:hidden;margin-bottom:4px;background:${g.color}`;
-          table.innerHTML = `
+              wrap.appendChild(card);
+            });
+            container.appendChild(wrap);
+          } else {
+            const table = document.createElement("table");
+            table.style.cssText = `width:100%;border-collapse:collapse;border:1.5px solid ${g.border};border-radius:8px;overflow:hidden;margin-bottom:4px;background:${g.color}`;
+            table.innerHTML = `
             <thead>
               <tr style="background:${g.border}22">
                 <th>#</th>
                 <th>Project Name</th>
-                ${showStudent ? '<th>Student</th>' : ''}
+                ${showStudent ? "<th>Student</th>" : ""}
                 <th>Status</th>
                 <th>Deadline</th>
                 <th style="color:#999">Submitted</th>
-                ${showPriority ? '<th>Priority</th>' : '<th></th>'}
+                ${showPriority ? "<th>Priority</th>" : "<th></th>"}
               </tr>
             </thead>`;
-          const tbody = document.createElement('tbody');
-          rows.forEach(function(r) {
-            globalIdx++;
-            const rid = r.id || r.request_id;
-            const isOwn = userType === 'student_staff' ? r.student_email === (user && user.email) : true;
-            const canDelete = showDelete && isOwn && ['pending', 'revision_requested', 'rejected'].includes(r.status) && userType !== 'admin';
-            const isLaser = (r.service_type || '3dprint') === 'laser';
-            const svcBadge = isLaser
-              ? `<span style="background:#fce4ec;color:#c62828;border-radius:10px;padding:1px 7px;font-size:0.7rem;font-weight:600;margin-left:5px;white-space:nowrap">✂️ Laser</span>`
-              : `<span style="background:#e8f0fe;color:#1a73e8;border-radius:10px;padding:1px 7px;font-size:0.7rem;font-weight:600;margin-left:5px;white-space:nowrap">🖨️ 3D</span>`;
-            const tr = document.createElement('tr');
-            tr.style.cursor = 'pointer';
-            tr.onclick = function() { location.href = `/print-requests/${rid}/`; };
-            tr.innerHTML = `
+            const tbody = document.createElement("tbody");
+            rows.forEach(function (r) {
+              globalIdx++;
+              const rid = r.id || r.request_id;
+              const isOwn =
+                userType === "student_staff"
+                  ? r.student_email === (user && user.email)
+                  : true;
+              const canDelete =
+                showDelete &&
+                isOwn &&
+                ["pending", "revision_requested", "rejected"].includes(
+                  r.status,
+                ) &&
+                userType !== "admin";
+              const isLaser = (r.service_type || "3dprint") === "laser";
+              const svcBadge = isLaser
+                ? `<span style="background:#fce4ec;color:#c62828;border-radius:10px;padding:1px 7px;font-size:0.7rem;font-weight:600;margin-left:5px;white-space:nowrap">✂️ Laser</span>`
+                : `<span style="background:#e8f0fe;color:#1a73e8;border-radius:10px;padding:1px 7px;font-size:0.7rem;font-weight:600;margin-left:5px;white-space:nowrap">🖨️ 3D</span>`;
+              const tr = document.createElement("tr");
+              tr.style.cursor = "pointer";
+              tr.onclick = function () {
+                location.href = `/print-requests/${rid}/`;
+              };
+              tr.innerHTML = `
               <td>${globalIdx}</td>
               <td><a href="/print-requests/${rid}/" style="color:#e94560;font-weight:500" onclick="event.stopPropagation()">${r.project_name}</a>${svcBadge}</td>
-              ${showStudent ? `<td style="font-size:0.82rem;color:#555">${r.student_name || r.student_email || '—'}</td>` : ''}
+              ${showStudent ? `<td style="font-size:0.82rem;color:#555">${r.student_name || r.student_email || "—"}</td>` : ""}
               <td>${statusBadge(r.status)}</td>
               <td>${deadlineBadge(r.deadline_date)}</td>
-              <td style="color:#999;font-size:0.85rem">${new Date(r.created_at).toLocaleDateString('en-US')}</td>
-              ${showPriority
-                ? `<td>${priorityLabel(r.priority)}${canDelete ? ` <button onclick="event.stopPropagation();deleteRequest(${rid},'${(r.project_name||'').replace(/'/g,"&#39;")}')" class="btn-delete" style="margin-left:6px">🗑</button>` : ''}</td>`
-                : canDelete ? `<td><button onclick="event.stopPropagation();deleteRequest(${rid},'${(r.project_name||'').replace(/'/g,"&#39;")}')" class="btn-delete">🗑 Delete</button></td>` : '<td></td>'}
+              <td style="color:#999;font-size:0.85rem">${new Date(r.created_at).toLocaleDateString("en-US")}</td>
+              ${
+                showPriority
+                  ? `<td>${priorityLabel(r.priority)}${canDelete ? ` <button onclick="event.stopPropagation();deleteRequest(${rid},'${(r.project_name || "").replace(/'/g, "&#39;")}')" class="btn-delete" style="margin-left:6px">🗑</button>` : ""}</td>`
+                  : canDelete
+                    ? `<td><button onclick="event.stopPropagation();deleteRequest(${rid},'${(r.project_name || "").replace(/'/g, "&#39;")}')" class="btn-delete">🗑 Delete</button></td>`
+                    : "<td></td>"
+              }
             `;
-            tbody.appendChild(tr);
-            if (userType !== 'admin' && isOwn && r.status === 'revision_requested' && r.admin_notes) {
-              const feedbackTr = document.createElement('tr');
-              feedbackTr.className = 'feedback-row';
-              const cols = 5 + (showStudent ? 1 : 0) + (showPriority ? 1 : 0);
-              feedbackTr.innerHTML = `<td colspan="${cols}" style="padding:0 12px 10px 32px"><div class="feedback-banner"><strong>⚠️ Admin Feedback:</strong> ${r.admin_notes} &nbsp;—&nbsp; <em>Please review and delete or resubmit a new request.</em></div></td>`;
-              tbody.appendChild(feedbackTr);
-            }
-          });
-          table.appendChild(tbody);
-          container.appendChild(table);
-        }
-      });
-    }
-  </script>
-</head>
-
-<body>
-  <nav>
-    <a class="brand" href="/">🖨 DGSpace</a>
-    <div class="nav-links">
-      <span id="nav-username" style="display:none"></span>
-      <a href="/print-requests/" id="nav-print" style="display:none">Print Requests</a>
-      <a href="/profile/" id="nav-profile" style="display:none">👤 Profile</a>
-      <a href="/login" id="nav-login">Log In</a>
-      <a href="/signup" id="nav-signup">Sign Up</a>
-      <button id="nav-logout" style="display:none" onclick="logout()">Log Out</button>
-    </div>
-  </nav>
-
-  <main>
-    {% block content %}{% endblock %}
-  </main>
-
-  <script>
-    /* ── Update nav based on login state ── */
-    (function updateNav() {
-      const user = getUser();
-      if (user) {
-        document.getElementById('nav-username').textContent = user.full_name || user.email;
-        document.getElementById('nav-username').style.display = 'inline';
-        document.getElementById('nav-login').style.display   = 'none';
-        document.getElementById('nav-signup').style.display  = 'none';
-        document.getElementById('nav-logout').style.display  = 'inline-block';
-        document.getElementById('nav-profile').style.display  = 'inline';
-
-        // Only show Print Requests if 2FA is active
-        fetch('/api/2fa/status', {
-          headers: { 'Authorization': 'Bearer ' + getToken(), 'Content-Type': 'application/json' }
-        }).then(r => r.json()).then(d => {
-          if (d.is_active || d.enabled) {
-            document.getElementById('nav-print').style.display = 'inline';
+              tbody.appendChild(tr);
+              if (
+                userType !== "admin" &&
+                isOwn &&
+                r.status === "revision_requested" &&
+                r.admin_notes
+              ) {
+                const feedbackTr = document.createElement("tr");
+                feedbackTr.className = "feedback-row";
+                const cols = 5 + (showStudent ? 1 : 0) + (showPriority ? 1 : 0);
+                feedbackTr.innerHTML = `<td colspan="${cols}" style="padding:0 12px 10px 32px"><div class="feedback-banner"><strong>⚠️ Admin Feedback:</strong> ${r.admin_notes} &nbsp;—&nbsp; <em>Please review and delete or resubmit a new request.</em></div></td>`;
+                tbody.appendChild(feedbackTr);
+              }
+            });
+            table.appendChild(tbody);
+            container.appendChild(table);
           }
-        }).catch(() => {});
+        });
       }
-    })();
-  </script>
-</body>
+    </script>
+  </head>
+
+  <body>
+    <nav>
+      <a class="brand" href="/">🖨 DGSpace</a>
+      <div class="nav-links">
+        <span id="nav-username" style="display: none"></span>
+        <a href="/print-requests/" id="nav-print" style="display: none"
+          >Print Requests</a
+        >
+        <a href="/profile/" id="nav-profile" style="display: none"
+          >👤 Profile</a
+        >
+        <a href="/login" id="nav-login">Log In</a>
+        <a href="/signup" id="nav-signup">Sign Up</a>
+        <button id="nav-logout" style="display: none" onclick="logout()">
+          Log Out
+        </button>
+      </div>
+    </nav>
+
+    <main>{% block content %}{% endblock %}</main>
+
+    <script>
+      /* ── Update nav based on login state ── */
+      (function updateNav() {
+        const user = getUser();
+        if (user) {
+          document.getElementById("nav-username").textContent =
+            user.full_name || user.email;
+          document.getElementById("nav-username").style.display = "inline";
+          document.getElementById("nav-login").style.display = "none";
+          document.getElementById("nav-signup").style.display = "none";
+          document.getElementById("nav-logout").style.display = "inline-block";
+          document.getElementById("nav-profile").style.display = "inline";
+
+          // Only show Print Requests if 2FA is active
+          fetch("/api/2fa/status", {
+            headers: {
+              Authorization: "Bearer " + getToken(),
+              "Content-Type": "application/json",
+            },
+          })
+            .then((r) => r.json())
+            .then((d) => {
+              if (d.is_active || d.enabled) {
+                document.getElementById("nav-print").style.display = "inline";
+              }
+            })
+            .catch(() => {});
+        }
+      })();
+    </script>
+  </body>
 </html>
