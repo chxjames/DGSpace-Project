@@ -67,7 +67,7 @@ content %}
   /* ── Quick-action cards ── */
   .action-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
     gap: 16px;
     margin-bottom: 32px;
   }
@@ -84,7 +84,11 @@ content %}
       border-color 0.15s,
       box-shadow 0.15s,
       transform 0.12s;
-    display: block;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 140px;
   }
   .action-card:hover {
     border-color: #e94560;
@@ -1248,17 +1252,20 @@ content %}
       // Update section heading based on service type filter
       const titleEl = document.getElementById(titleId);
       if (titleEl) {
-        if (_homeRtsFilter === "laser") titleEl.textContent = "✂️ Laser Cutter Queues";
-        else if (_homeRtsFilter === "3dprint") titleEl.textContent = "🖨️ Printer Queues";
+        if (_homeRtsFilter === "laser")
+          titleEl.textContent = "✂️ Laser Cutter Queues";
+        else if (_homeRtsFilter === "3dprint")
+          titleEl.textContent = "🖨️ Printer Queues";
         else titleEl.textContent = "🖨️ Equipment Queues";
       }
 
       // Filter by service type first, then by file format
-      let visible = _homeRtsFilter === "all"
-        ? _printers
-        : _homeRtsFilter === "laser"
-          ? _printers.filter(p => (p.device_type || "3dprint") === "laser")
-          : _printers.filter(p => (p.device_type || "3dprint") !== "laser");
+      let visible =
+        _homeRtsFilter === "all"
+          ? _printers
+          : _homeRtsFilter === "laser"
+            ? _printers.filter((p) => (p.device_type || "3dprint") === "laser")
+            : _printers.filter((p) => (p.device_type || "3dprint") !== "laser");
 
       if (fmtFilter !== "all") {
         visible = visible.filter((p) =>
@@ -1961,4 +1968,3 @@ content %}
   </script>
   {% endblock %}
 </div>
-
