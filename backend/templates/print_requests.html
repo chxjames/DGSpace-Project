@@ -1,40 +1,41 @@
-{% extends "base.html" %}
-{% block title %}Print Requests — DGSpace{% endblock %}
+{% extends "base.html" %} {% block title %}Print Requests — DGSpace{% endblock
+%} {% block content %}
 
-{% block content %}
-<style>
-  .req-card {
-    background: #fff;
-    border-radius: 10px;
-    border: 1.5px solid #e0e0e0;
-    padding: 14px 16px;
-    margin-bottom: 10px;
-    cursor: pointer;
-    transition: box-shadow .15s, border-color .15s;
-    text-decoration: none;
-    display: block;
-    color: inherit;
-  }
-  .req-card:hover { box-shadow: 0 3px 12px rgba(0,0,0,.1); border-color: #e94560; }
-  .req-card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 8px; }
-  .req-card-name { font-weight: 600; color: #e94560; font-size: 0.95rem; flex: 1; }
-  .req-card-meta { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 0.8rem; color: #666; }
-  .req-card-meta span { display: flex; align-items: center; gap: 4px; }
-</style>
-
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
-  <h2 style="color:#1a1a2e">📋 Print Requests</h2>
-  <a href="/" style="color:#888;text-decoration:none;font-size:0.9rem">← Home</a>
+<div
+  style="
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+  "
+>
+  <h2 style="color: #1a1a2e">📋 Print Requests</h2>
+  <a href="/" style="color: #888; text-decoration: none; font-size: 0.9rem"
+    >← Home</a
+  >
 </div>
 
 <div id="alert-box"></div>
 
 <div class="card">
   <!-- Sort controls -->
-  <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
-    <label style="font-size:0.85rem;color:#666;white-space:nowrap">Sort by:</label>
-    <select id="sort-select" onchange="applySortAndRender()"
-      style="padding:5px 10px;border:1px solid #ddd;border-radius:4px;font-size:0.85rem;cursor:pointer">
+  <div
+    style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px"
+  >
+    <label style="font-size: 0.85rem; color: #666; white-space: nowrap"
+      >Sort by:</label
+    >
+    <select
+      id="sort-select"
+      onchange="applySortAndRender()"
+      style="
+        padding: 5px 10px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 0.85rem;
+        cursor: pointer;
+      "
+    >
       <option value="date-desc">Date (Newest first)</option>
       <option value="date-asc">Date (Oldest first)</option>
       <option value="alpha-asc">Name (A → Z)</option>
@@ -42,303 +43,199 @@
     </select>
   </div>
 
-  <div id="loading" style="text-align:center;padding:32px;color:#888">Loading…</div>
+  <div id="loading" style="text-align: center; padding: 32px; color: #888">
+    Loading…
+  </div>
   <div id="req-groups"></div>
-  <p id="no-data" style="display:none;text-align:center;color:#888;padding:32px">
+  <p
+    id="no-data"
+    style="display: none; text-align: center; color: #888; padding: 32px"
+  >
     No print requests yet. <a href="/print-requests/new/">Submit one now</a>
   </p>
 </div>
 
 <script>
-/* Global state - declared first to avoid TDZ errors */
-var _cachedList = [];
-var _cachedUserType = '';
-var _cachedUser = null;
+  /* Global state - declared first to avoid TDZ errors */
+  var _cachedList = [];
+  var _cachedUserType = "";
+  var _cachedUser = null;
 
-(function() {
-  const user = getUser();
-  if (!user) { location.href = '/login'; return; }
-
-  loadRequests(user.user_type, user);
-})();
-
-function statusBadge(s) {
-  const map = {
-    pending:'Pending', approved:'Approved', queued:'Queued', printing:'Printing',
-    rejected:'Rejected', in_progress:'In Progress', completed:'Completed',
-    cancelled:'Cancelled', revision_requested:'Revision Requested'
-  };
-  return `<span class="badge badge-${s}">${map[s] || s}</span>`;
-}
-
-function priorityLabel(p) {
-  return p === 'urgent' ? '🔴 Urgent' : p === 'high' ? '🟠 High' : '🟢 Normal';
-}
-
-/* ── sorting + state ───────────────────────────────────── */
-// Note: _cachedList, _cachedUserType, _cachedUser declared at top of script
-
-function sortList(list, mode) {
-  const sorted = [...list];
-  switch (mode) {
-    case 'alpha-asc':
-      sorted.sort((a, b) => (a.project_name || '').localeCompare(b.project_name || ''));
-      break;
-    case 'alpha-desc':
-      sorted.sort((a, b) => (b.project_name || '').localeCompare(a.project_name || ''));
-      break;
-    case 'date-asc':
-      sorted.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
-      break;
-    case 'date-desc':
-    default:
-      sorted.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-      break;
-  }
-  return sorted;
-}
-
-function renderTable(list, userType, user) {
-  // ── Group definitions (in display order) ────────────────
-  const groups = [
-    { key: 'feedback',    label: '⚠️ Needs Your Attention',  statuses: ['revision_requested'],            color: '#fff3cd', border: '#f0ad4e' },
-    { key: 'pending',     label: '🕐 Pending Review',         statuses: ['pending'],                       color: '#e8f4fd', border: '#3498db' },
-    { key: 'inprogress',  label: '🖨️ In Progress',            statuses: ['approved','queued','printing'],  color: '#eaf7ef', border: '#2ecc71' },
-    { key: 'done',        label: '✅ Completed',               statuses: ['completed','failed','cancelled','rejected'], color: '#f8f9fa', border: '#adb5bd' },
-  ];
-
-  const showPriority = (userType === 'admin' || userType === 'student_staff');
-  const showStudent  = (userType === 'admin' || userType === 'student_staff');
-  const isMobile     = window.innerWidth < 600;
-
-  let globalIdx = 0;
-  const container = document.getElementById('req-groups');
-  container.innerHTML = '';
-
-  groups.forEach(g => {
-    const rows = list.filter(r => g.statuses.includes(r.status));
-    if (!rows.length) return;
-
-    // Section header
-    const header = document.createElement('div');
-    header.style.cssText = `display:flex;align-items:center;gap:8px;margin:18px 0 6px;`;
-    header.innerHTML = `
-      <span style="font-weight:700;font-size:0.95rem;color:#333">${g.label}</span>
-      <span style="font-size:0.8rem;background:#eee;border-radius:10px;padding:1px 8px;color:#666">${rows.length}</span>`;
-    container.appendChild(header);
-
-    if (isMobile) {
-      // ── Mobile: card list ──────────────────────────────
-      const wrap = document.createElement('div');
-      rows.forEach(r => {
-        globalIdx++;
-        const isOwn = (userType === 'student_staff') ? (r.student_email === user.email) : true;
-        const canDelete = isOwn && ['pending','revision_requested','rejected'].includes(r.status) && userType !== 'admin';
-
-        let deadlineHtml = '<span style="color:#aaa">—</span>';
-        if (r.deadline_date) {
-          const dl   = new Date(r.deadline_date);
-          const now  = new Date();
-          const days = Math.ceil((dl - now) / 86400000);
-          const fmt  = dl.toLocaleDateString('en-US', {month:'short', day:'numeric'});
-          if (days < 0)       deadlineHtml = `<span style="color:#e74c3c;font-weight:600">⚠️ ${fmt}</span>`;
-          else if (days <= 3) deadlineHtml = `<span style="color:#e67e22;font-weight:600">🔶 ${fmt} (${days}d)</span>`;
-          else                deadlineHtml = `<span style="color:#27ae60">📅 ${fmt} (${days}d)</span>`;
-        }
-
-        const card = document.createElement('a');
-        card.href = `/print-requests/${r.id}/`;
-        card.className = 'req-card';
-        card.style.borderColor = g.border;
-        card.style.background  = g.color;
-        const isLaserCard = (r.service_type || '3dprint') === 'laser';
-        const svcBadgeCard = isLaserCard
-          ? `<span style="background:#fce4ec;color:#c62828;border-radius:10px;padding:1px 7px;font-size:0.72rem;font-weight:600;white-space:nowrap">✂️ Laser</span>`
-          : `<span style="background:#e8f0fe;color:#1a73e8;border-radius:10px;padding:1px 7px;font-size:0.72rem;font-weight:600;white-space:nowrap">🖨️ 3D</span>`;
-        card.innerHTML = `
-          <div class="req-card-top">
-            <div class="req-card-name">${globalIdx}. ${r.project_name} ${svcBadgeCard}</div>
-            ${statusBadge(r.status)}
-          </div>
-          <div class="req-card-meta">
-            ${showStudent ? `<span>👤 ${r.student_name || r.student_email || '—'}</span>` : ''}
-            <span>📅 ${deadlineHtml}</span>
-            ${showPriority ? `<span>${priorityLabel(r.priority)}</span>` : ''}
-            <span style="color:#bbb">${new Date(r.created_at).toLocaleDateString('en-US')}</span>
-            ${canDelete ? `<button onclick="event.preventDefault();event.stopPropagation();deleteRequest(${r.id},'${r.project_name.replace(/'/g,"&#39;")}')" class="btn-delete" style="margin-left:auto">🗑 Delete</button>` : ''}
-          </div>
-          ${(userType !== 'admin' && isOwn && r.status === 'revision_requested' && r.admin_notes) ? `<div class="feedback-banner" style="margin-top:8px"><strong>⚠️ Admin Feedback:</strong> ${r.admin_notes}</div>` : ''}
-        `;
-        wrap.appendChild(card);
-      });
-      container.appendChild(wrap);
-
-    } else {
-      // ── Desktop: table ─────────────────────────────────
-      const table = document.createElement('table');
-      table.style.cssText = `width:100%;border-collapse:collapse;border:1.5px solid ${g.border};border-radius:8px;overflow:hidden;margin-bottom:4px;background:${g.color}`;
-      table.innerHTML = `
-        <thead>
-          <tr style="background:${g.border}22">
-            <th>#</th>
-            <th>Project Name</th>
-            ${showStudent  ? '<th>Student</th>' : ''}
-            <th>Status</th>
-            <th style="cursor:pointer;user-select:none" onclick="sortByColumn('deadline')">Deadline <span id="sort-arrow-deadline">⬇</span></th>
-            <th style="color:#999">Submitted</th>
-            ${showPriority ? '<th style="cursor:pointer;user-select:none" onclick="sortByColumn(\'priority\')">Priority <span id="sort-arrow-priority">⬇</span></th>' : ''}
-          </tr>
-        </thead>`;
-      const tbody = document.createElement('tbody');
-
-      rows.forEach(r => {
-        globalIdx++;
-        const isOwn = (userType === 'student_staff') ? (r.student_email === user.email) : true;
-        const canDelete = isOwn && ['pending','revision_requested','rejected'].includes(r.status) && userType !== 'admin';
-
-        let deadlineHtml = '<span style="color:#aaa">—</span>';
-        if (r.deadline_date) {
-          const dl   = new Date(r.deadline_date);
-          const now  = new Date();
-          const days = Math.ceil((dl - now) / 86400000);
-          const fmt  = dl.toLocaleDateString('en-US', {month:'short', day:'numeric'});
-          if (days < 0)       deadlineHtml = `<span style="color:#e74c3c;font-weight:600">⚠️ ${fmt}</span>`;
-          else if (days <= 3) deadlineHtml = `<span style="color:#e67e22;font-weight:600">🔶 ${fmt} (${days}d)</span>`;
-          else                deadlineHtml = `<span style="color:#27ae60">📅 ${fmt} (${days}d)</span>`;
-        }
-
-        const tr = document.createElement('tr');
-        tr.style.cursor = 'pointer';
-        tr.onclick = () => { location.href = `/print-requests/${r.id}/`; };
-        const isLaserRow = (r.service_type || '3dprint') === 'laser';
-        const svcBadgeRow = isLaserRow
-          ? `<span style="background:#fce4ec;color:#c62828;border-radius:10px;padding:1px 7px;font-size:0.7rem;font-weight:600;margin-left:5px;white-space:nowrap">✂️ Laser</span>`
-          : `<span style="background:#e8f0fe;color:#1a73e8;border-radius:10px;padding:1px 7px;font-size:0.7rem;font-weight:600;margin-left:5px;white-space:nowrap">🖨️ 3D</span>`;
-        tr.innerHTML = `
-          <td>${globalIdx}</td>
-          <td><a href="/print-requests/${r.id}/" style="color:#e94560;font-weight:500" onclick="event.stopPropagation()">${r.project_name}</a>${svcBadgeRow}</td>
-          ${showStudent  ? `<td style="font-size:0.82rem;color:#555">${r.student_name || r.student_email || '—'}</td>` : ''}
-          <td>${statusBadge(r.status)}</td>
-          <td>${deadlineHtml}</td>
-          <td style="color:#999;font-size:0.85rem">${new Date(r.created_at).toLocaleDateString('en-US')}</td>
-          ${showPriority ? `<td class="col-priority">${priorityLabel(r.priority)}${canDelete ? ` <button onclick="event.stopPropagation();deleteRequest(${r.id},'${r.project_name.replace(/'/g,"&#39;")}')" class="btn-delete" style="margin-left:6px">🗑</button>` : ''}</td>` : (canDelete ? `<td><button onclick="event.stopPropagation();deleteRequest(${r.id},'${r.project_name.replace(/'/g,"&#39;")}')" class="btn-delete">🗑 Delete</button></td>` : '<td></td>')}
-          `;
-        tbody.appendChild(tr);
-
-        if (userType !== 'admin' && isOwn && r.status === 'revision_requested' && r.admin_notes) {
-          const feedbackTr = document.createElement('tr');
-          feedbackTr.className = 'feedback-row';
-          const cols = 5 + (showStudent ? 1 : 0) + (showPriority ? 1 : 0);
-          feedbackTr.innerHTML = `
-            <td colspan="${cols}" style="padding:0 12px 10px 32px">
-              <div class="feedback-banner">
-                <strong>⚠️ Admin Feedback:</strong> ${r.admin_notes}
-                &nbsp;—&nbsp; <em>Please review and delete or resubmit a new request.</em>
-              </div>
-            </td>`;
-          tbody.appendChild(feedbackTr);
-        }
-      });
-
-      table.appendChild(tbody);
-      container.appendChild(table);
-    }
-  });
-}
-
-function applySortAndRender() {
-  if (!_cachedList.length) return;
-  const mode = document.getElementById('sort-select').value;
-  const sorted = sortList(_cachedList, mode);
-  renderTable(sorted, _cachedUserType, _cachedUser);
-}
-
-// Column sort state
-var _colSortField = null;   // 'deadline' | 'priority'
-var _colSortAsc   = true;
-
-const priorityOrder = { urgent: 0, high: 1, normal: 2, low: 3 };
-
-function sortByColumn(field) {
-  if (_colSortField === field) {
-    _colSortAsc = !_colSortAsc;
-  } else {
-    _colSortField = field;
-    _colSortAsc = true;
-  }
-  // Update arrow indicators
-  ['deadline','priority'].forEach(f => {
-    const el = document.getElementById(`sort-arrow-${f}`);
-    if (el) el.textContent = (f === _colSortField) ? (_colSortAsc ? '⬆' : '⬇') : '⬇';
-  });
-  const sorted = [..._cachedList].sort((a, b) => {
-    let va, vb;
-    if (field === 'deadline') {
-      va = a.deadline_date ? new Date(a.deadline_date).getTime() : Infinity;
-      vb = b.deadline_date ? new Date(b.deadline_date).getTime() : Infinity;
-    } else {
-      va = priorityOrder[a.priority] ?? 99;
-      vb = priorityOrder[b.priority] ?? 99;
-    }
-    return _colSortAsc ? va - vb : vb - va;
-  });
-  renderTable(sorted, _cachedUserType, _cachedUser);
-}
-
-async function loadRequests(userType, user) {
-  _cachedUserType = userType;
-  _cachedUser = user;
-  try {
-    const endpoint = (userType === 'admin' || userType === 'student_staff')
-      ? '/api/admin/print-requests'
-      : '/api/print-requests/my-requests';
-
-    const res  = await apiFetch(endpoint);
-    if (res.status === 401) { location.href = '/login'; return; }
-    const data = await res.json();
-    const list = data.requests || [];
-
-    document.getElementById('loading').style.display = 'none';
-
-    if (!list.length) {
-      document.getElementById('no-data').style.display = 'block';
-      document.getElementById('req-table').style.display = 'none';
+  (function () {
+    const user = getUser();
+    if (!user) {
+      location.href = "/login";
       return;
     }
 
-    _cachedList = list;
-    const mode = document.getElementById('sort-select').value;
-    const sorted = sortList(list, mode);
-    renderTable(sorted, userType, user);
+    loadRequests(user.user_type, user);
+  })();
 
-    document.getElementById('no-data').style.display = 'none';
-    document.getElementById('req-groups').style.display = 'block';
-  } catch(e) {
-    document.getElementById('loading').innerHTML =
-      '<span style="color:#c0392b">Failed to load. Make sure the backend is running.</span>';
-  }
-}
+  function statusBadge(s) { return window.statusBadge ? window.statusBadge(s) : s; }
+  function priorityLabel(p) { return window.priorityLabel ? window.priorityLabel(p) : p; }
 
-async function deleteRequest(id, name) {
-  if (!confirm(`Delete request "${name}"?\n\nThis cannot be undone.`)) return;
+  /* ── sorting + state ───────────────────────────────────── */
+  // Note: _cachedList, _cachedUserType, _cachedUser declared at top of script
 
-  const alertBox = document.getElementById('alert-box');
-  alertBox.innerHTML = '';
-
-  try {
-    const res = await apiFetch(`/api/print-requests/${id}`, { method: 'DELETE' });
-    const data = await res.json();
-
-    if (data.success) {
-      alertBox.innerHTML = `<div class="alert alert-success">Request deleted successfully.</div>`;
-      const user = getUser();
-      loadRequests(user.user_type, user);
-    } else {
-      alertBox.innerHTML = `<div class="alert alert-error">${data.message}</div>`;
+  function sortList(list, mode) {
+    const sorted = [...list];
+    switch (mode) {
+      case "alpha-asc":
+        sorted.sort((a, b) =>
+          (a.project_name || "").localeCompare(b.project_name || ""),
+        );
+        break;
+      case "alpha-desc":
+        sorted.sort((a, b) =>
+          (b.project_name || "").localeCompare(a.project_name || ""),
+        );
+        break;
+      case "date-asc":
+        sorted.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+        break;
+      case "date-desc":
+      default:
+        sorted.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+        break;
     }
-  } catch(e) {
-    alertBox.innerHTML = `<div class="alert alert-error">Failed to delete. Make sure the backend is running.</div>`;
+    return sorted;
   }
-}
+
+  /* renderTable: thin wrapper around shared renderPrintRequestList.
+     Keeps column-sort header clicks (sortByColumn) by using the shared
+     function for the content but adding clickable th after render. */
+  function renderTable(list, userType, user) {
+    const container = document.getElementById("req-groups");
+    renderPrintRequestList(container, list, userType, user, {
+      showDelete: true,
+      emptyMsg: 'No print requests yet. <a href="/print-requests/new/">Submit one now</a>',
+    });
+
+    // Re-attach clickable column headers for deadline/priority sort
+    const showPriority = userType === "admin" || userType === "student_staff";
+    const isMobile = window.innerWidth < 600;
+    if (!isMobile) {
+      container.querySelectorAll("thead tr").forEach((tr) => {
+        const ths = tr.querySelectorAll("th");
+        // Deadline column index: 3 (if showStudent) or 3 (fixed after #, name, status)
+        ths.forEach((th) => {
+          if (th.textContent.trim() === "Deadline") {
+            th.style.cursor = "pointer";
+            th.style.userSelect = "none";
+            th.innerHTML = `Deadline <span id="sort-arrow-deadline">⬇</span>`;
+            th.onclick = () => sortByColumn("deadline");
+          }
+          if (th.textContent.trim().startsWith("Priority")) {
+            th.style.cursor = "pointer";
+            th.style.userSelect = "none";
+            th.innerHTML = `Priority <span id="sort-arrow-priority">⬇</span>`;
+            th.onclick = () => sortByColumn("priority");
+          }
+        });
+      });
+    }
+  }
+
+  function applySortAndRender() {
+    if (!_cachedList.length) return;
+    const mode = document.getElementById("sort-select").value;
+    const sorted = sortList(_cachedList, mode);
+    renderTable(sorted, _cachedUserType, _cachedUser);
+  }
+
+  // Column sort state
+  var _colSortField = null; // 'deadline' | 'priority'
+  var _colSortAsc = true;
+
+  const priorityOrder = { urgent: 0, high: 1, normal: 2, low: 3 };
+
+  function sortByColumn(field) {
+    if (_colSortField === field) {
+      _colSortAsc = !_colSortAsc;
+    } else {
+      _colSortField = field;
+      _colSortAsc = true;
+    }
+    // Update arrow indicators
+    ["deadline", "priority"].forEach((f) => {
+      const el = document.getElementById(`sort-arrow-${f}`);
+      if (el)
+        el.textContent = f === _colSortField ? (_colSortAsc ? "⬆" : "⬇") : "⬇";
+    });
+    const sorted = [..._cachedList].sort((a, b) => {
+      let va, vb;
+      if (field === "deadline") {
+        va = a.deadline_date ? new Date(a.deadline_date).getTime() : Infinity;
+        vb = b.deadline_date ? new Date(b.deadline_date).getTime() : Infinity;
+      } else {
+        va = priorityOrder[a.priority] ?? 99;
+        vb = priorityOrder[b.priority] ?? 99;
+      }
+      return _colSortAsc ? va - vb : vb - va;
+    });
+    renderTable(sorted, _cachedUserType, _cachedUser);
+  }
+
+  async function loadRequests(userType, user) {
+    _cachedUserType = userType;
+    _cachedUser = user;
+    try {
+      const endpoint =
+        userType === "admin" || userType === "student_staff"
+          ? "/api/admin/print-requests"
+          : "/api/print-requests/my-requests";
+
+      const res = await apiFetch(endpoint);
+      if (res.status === 401) {
+        location.href = "/login";
+        return;
+      }
+      const data = await res.json();
+      const list = data.requests || [];
+
+      document.getElementById("loading").style.display = "none";
+
+      if (!list.length) {
+        document.getElementById("no-data").style.display = "block";
+        document.getElementById("req-table").style.display = "none";
+        return;
+      }
+
+      _cachedList = list;
+      const mode = document.getElementById("sort-select").value;
+      const sorted = sortList(list, mode);
+      renderTable(sorted, userType, user);
+
+      document.getElementById("no-data").style.display = "none";
+      document.getElementById("req-groups").style.display = "block";
+    } catch (e) {
+      document.getElementById("loading").innerHTML =
+        '<span style="color:#c0392b">Failed to load. Make sure the backend is running.</span>';
+    }
+  }
+
+  async function deleteRequest(id, name) {
+    if (!confirm(`Delete request "${name}"?\n\nThis cannot be undone.`)) return;
+
+    const alertBox = document.getElementById("alert-box");
+    alertBox.innerHTML = "";
+
+    try {
+      const res = await apiFetch(`/api/print-requests/${id}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        alertBox.innerHTML = `<div class="alert alert-success">Request deleted successfully.</div>`;
+        const user = getUser();
+        loadRequests(user.user_type, user);
+      } else {
+        alertBox.innerHTML = `<div class="alert alert-error">${data.message}</div>`;
+      }
+    } catch (e) {
+      alertBox.innerHTML = `<div class="alert alert-error">Failed to delete. Make sure the backend is running.</div>`;
+    }
+  }
 </script>
 {% endblock %}

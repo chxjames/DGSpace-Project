@@ -217,7 +217,11 @@ block content %}
     </div>
 
     <!-- ── Layout Preference card ── -->
-    <div class="card" style="margin-bottom: 20px; display: none" id="layout-pref-card">
+    <div
+      class="card"
+      style="margin-bottom: 20px; display: none"
+      id="layout-pref-card"
+    >
       <div class="section-title">🖥️ Upload Layout Preference</div>
       <p style="font-size: 0.85rem; color: #666; margin: 0 0 14px">
         Choose how the file upload area looks when you create a new print
@@ -571,7 +575,7 @@ block content %}
 
   <!-- ── RIGHT COLUMN: print history ── -->
   <div class="card">
-    <div class="section-title">🖨 Print Request History</div>
+    <div class="section-title">� Print Request History</div>
 
     <!-- Filter row -->
     <div
@@ -625,27 +629,7 @@ block content %}
       Loading…
     </div>
 
-    <table id="history-table" style="display: none">
-      <thead>
-        <tr>
-          <th>#</th>
-          <th>Project</th>
-          <th>Material</th>
-          <th>Status</th>
-          <th>Print Time</th>
-          <th>Material Used</th>
-          <th>Submitted</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody id="history-body"></tbody>
-    </table>
-    <p
-      id="history-empty"
-      style="display: none; text-align: center; color: #888; padding: 32px"
-    >
-      No requests found.
-    </p>
+    <div id="history-container"></div>
   </div>
 </div>
 <!-- end grid -->
@@ -742,50 +726,10 @@ block content %}
         return true;
       });
 
-      const tbody = document.getElementById("history-body");
-      tbody.innerHTML = "";
-
-      if (!filtered.length) {
-        document.getElementById("history-table").style.display = "none";
-        document.getElementById("history-empty").style.display = "block";
-        return;
-      }
-      document.getElementById("history-table").style.display = "table";
-      document.getElementById("history-empty").style.display = "none";
-
-      filtered.forEach((req) => {
-        const date = req.created_at
-          ? new Date(req.created_at).toLocaleDateString()
-          : "—";
-        const _printMins =
-          req.ufp_print_time_minutes || req.slicer_time_minutes;
-        const printTime = _printMins
-          ? _printMins >= 60
-            ? Math.floor(_printMins / 60) +
-              "h " +
-              Math.round(_printMins % 60) +
-              "m"
-            : Math.round(_printMins) + "m"
-          : "—";
-        const _materialG = req.ufp_material_g || req.slicer_material_g;
-        const material = _materialG ? _materialG.toFixed(1) + " g" : "—";
-        const statusLabel = req.status
-          .replace(/_/g, " ")
-          .replace(/\b\w/g, (c) => c.toUpperCase());
-        tbody.insertAdjacentHTML(
-          "beforeend",
-          `
-        <tr>
-          <td style="color:#aaa;font-size:0.8rem">#${req.request_id}</td>
-          <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${req.project_name || ""}">${req.project_name || "—"}</td>
-          <td>${req.material_type || "—"}</td>
-          <td><span class="status-dot dot-${req.status}"></span>${statusLabel}</td>
-          <td>${printTime}</td>
-          <td>${material}</td>
-          <td style="font-size:0.82rem;color:#888">${date}</td>
-          <td><a href="/print-requests/${req.request_id}/" style="font-size:0.82rem;color:#e94560">View</a></td>
-        </tr>`,
-        );
+      const container = document.getElementById("history-container");
+      renderPrintRequestList(container, filtered, user.user_type, user, {
+        showDelete: false,
+        emptyMsg: "No requests found.",
       });
     };
 
