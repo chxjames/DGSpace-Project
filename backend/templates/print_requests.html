@@ -71,8 +71,8 @@
     loadRequests(user.user_type, user);
   })();
 
-  function statusBadge(s) { return window.statusBadge ? window.statusBadge(s) : s; }
-  function priorityLabel(p) { return window.priorityLabel ? window.priorityLabel(p) : p; }
+  /* statusBadge, priorityLabel, deadlineBadge, renderPrintRequestList
+     are all defined globally in base.html */
 
   /* ── sorting + state ───────────────────────────────────── */
   // Note: _cachedList, _cachedUserType, _cachedUser declared at top of script

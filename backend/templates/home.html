@@ -169,10 +169,18 @@ content %}
     grid-template-columns: 360px 1fr;
     gap: 20px;
     align-items: start;
+    min-width: 700px;
+  }
+  #pb-layout-ss {
+    display: grid;
+    grid-template-columns: 360px 1fr;
+    gap: 20px;
+    align-items: start;
+    min-width: 700px;
   }
   @media (max-width: 860px) {
     #pb-layout {
-      grid-template-columns: 1fr;
+      grid-template-columns: 360px 1fr;
     }
   }
   .pb-section-title {
@@ -723,6 +731,7 @@ content %}
       </button>
     </div>
     <div id="pb-alert"></div>
+    <div style="overflow-x: auto; -webkit-overflow-scrolling: touch;">
     <div id="pb-layout">
       <div>
         <div class="card" style="margin: 0">
@@ -825,6 +834,7 @@ content %}
         <div id="printers-list"></div>
       </div>
     </div>
+    </div><!-- end overflow-x scroll wrapper -->
   </div>
 
   <!-- ── STUDENT STAFF ── -->
@@ -864,6 +874,7 @@ content %}
       </button>
     </div>
     <div id="pb-alert-ss"></div>
+    <div style="overflow-x: auto; -webkit-overflow-scrolling: touch;">
     <div id="pb-layout-ss">
       <div>
         <div class="card" style="margin: 0">
@@ -966,6 +977,7 @@ content %}
         <div id="printers-list-ss"></div>
       </div>
     </div>
+    </div><!-- end overflow-x scroll wrapper -->
   </div>
 
   <!-- ══ Assign Modal (shared) ══ -->
