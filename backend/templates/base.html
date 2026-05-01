@@ -43,7 +43,6 @@
         gap: 10px;
         align-items: center;
         flex-wrap: nowrap;
-        overflow: hidden;
       }
       nav .nav-links a {
         color: #ccc;
@@ -73,6 +72,10 @@
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
+      }
+      /* Hide username on narrow screens so nav links stay visible */
+      @media (max-width: 520px) {
+        #nav-username { display: none !important; }
       }
 
       /* ── Main ── */
