@@ -176,8 +176,15 @@ content %}
     gap: 20px;
     align-items: start;
   }
+  /* Prevent grid children from overflowing their column */
+  #pb-layout > div,
+  #pb-layout-ss > div {
+    min-width: 0;
+    overflow: hidden;
+  }
   @media (max-width: 860px) {
-    #pb-layout, #pb-layout-ss {
+    #pb-layout,
+    #pb-layout-ss {
       grid-template-columns: 1fr;
     }
   }
@@ -209,6 +216,10 @@ content %}
       box-shadow 0.15s,
       border-color 0.15s;
     position: relative;
+    min-width: 0;
+    overflow: hidden;
+    word-break: break-word;
+    overflow-wrap: anywhere;
   }
   .rts-card:hover {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
@@ -264,6 +275,10 @@ content %}
     border-radius: 12px;
     padding: 14px 16px;
     margin-bottom: 16px;
+    min-width: 0;
+    overflow: hidden;
+    word-break: break-word;
+    overflow-wrap: anywhere;
   }
   .printer-header {
     display: flex;
@@ -351,6 +366,10 @@ content %}
     gap: 10px;
     cursor: grab;
     position: relative;
+    min-width: 0;
+    overflow: hidden;
+    word-break: break-word;
+    overflow-wrap: anywhere;
   }
   .job-card:last-child {
     margin-bottom: 0;
