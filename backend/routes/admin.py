@@ -1,5 +1,6 @@
 import bcrypt
 import datetime
+import traceback
 import jwt as _jwt
 from flask import Blueprint, request, jsonify
 from database import db
@@ -83,13 +84,17 @@ def admin_create_student():
         return jsonify({'success': False, 'message': 'Email already registered'}), 409
 
     password_hash = AuthService.hash_password(password)
-    result = db.execute_query(
-        "INSERT INTO students (email, password_hash, full_name, department, role, email_verified) VALUES (%s, %s, %s, %s, %s, TRUE)",
-        (email, password_hash, full_name, department, role)
-    )
-    if result is not None:
-        return jsonify({'success': True, 'message': 'Student account created successfully'}), 201
-    return jsonify({'success': False, 'message': 'Failed to create student'}), 500
+    try:
+        result = db.execute_query(
+            "INSERT INTO students (email, password_hash, full_name, department, role, email_verified) VALUES (%s, %s, %s, %s, %s, TRUE)",
+            (email, password_hash, full_name, department, role)
+        )
+        if result is not None:
+            return jsonify({'success': True, 'message': 'Student account created successfully'}), 201
+        return jsonify({'success': False, 'message': 'Failed to create student (DB returned None — check Railway logs for SQL error)'}), 500
+    except Exception as exc:
+        traceback.print_exc()
+        return jsonify({'success': False, 'message': f'DB error: {exc}'}), 500
 
 
 @admin_bp.route('/api/admin/students/<email>', methods=['DELETE'])
