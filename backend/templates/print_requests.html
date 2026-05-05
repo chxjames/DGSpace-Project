@@ -108,7 +108,8 @@
     const container = document.getElementById("req-groups");
     renderPrintRequestList(container, list, userType, user, {
       showDelete: true,
-      emptyMsg: 'No print requests yet. <a href="/print-requests/new/">Submit one now</a>',
+      emptyMsg:
+        'No print requests yet. <a href="/print-requests/new/">Submit one now</a>',
     });
 
     // Re-attach clickable column headers for deadline/priority sort

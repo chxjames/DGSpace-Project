@@ -662,13 +662,17 @@
       btn.style.background = active
         ? id === "laser"
           ? "#e94560"
-          : id === "3dprint" ? "#007bff" : "#555"
+          : id === "3dprint"
+            ? "#007bff"
+            : "#555"
         : "#fff";
       btn.style.color = active ? "#fff" : "#555";
       btn.style.borderColor = active
         ? id === "laser"
           ? "#e94560"
-          : id === "3dprint" ? "#007bff" : "#555"
+          : id === "3dprint"
+            ? "#007bff"
+            : "#555"
         : "#ccc";
     });
     // Update equipment section heading
@@ -789,11 +793,12 @@
       return;
     }
     // Filter equipment by service type selection
-    const visible = _rtsFilter === "all"
-      ? _printers
-      : _rtsFilter === "laser"
-        ? _printers.filter(p => (p.device_type || "3dprint") === "laser")
-        : _printers.filter(p => (p.device_type || "3dprint") !== "laser");
+    const visible =
+      _rtsFilter === "all"
+        ? _printers
+        : _rtsFilter === "laser"
+          ? _printers.filter((p) => (p.device_type || "3dprint") === "laser")
+          : _printers.filter((p) => (p.device_type || "3dprint") !== "laser");
     if (!visible.length) {
       const label = _rtsFilter === "laser" ? "laser cutters" : "3D printers";
       el.innerHTML = `<div class="pb-empty">No ${label} configured. <a href="/admin/printers/">Add equipment →</a></div>`;
