@@ -198,7 +198,6 @@
 
       if (!list.length) {
         document.getElementById("no-data").style.display = "block";
-        document.getElementById("req-table").style.display = "none";
         return;
       }
 
@@ -208,7 +207,6 @@
       renderTable(sorted, userType, user);
 
       document.getElementById("no-data").style.display = "none";
-      document.getElementById("req-groups").style.display = "block";
     } catch (e) {
       document.getElementById("loading").innerHTML =
         '<span style="color:#c0392b">Failed to load. Make sure the backend is running.</span>';
