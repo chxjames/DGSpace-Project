@@ -82,7 +82,13 @@ class PrintService:
             )
             
             request_id = db.execute_query(query, values)
-            
+
+            if request_id is None:
+                return {
+                    'success': False,
+                    'message': 'Failed to create print request (DB error — check Railway logs)'
+                }
+
             # Add to history
             history_query = """
                 INSERT INTO print_request_history (request_id, new_status, changed_by)
@@ -123,7 +129,9 @@ class PrintService:
                            priority, status, admin_notes, reviewed_by, reviewed_at,
                            created_at, updated_at, completed_at, deadline_date,
                            slicer_time_minutes, slicer_material_g,
-                           ufp_print_time_minutes, ufp_material_g
+                           ufp_print_time_minutes, ufp_material_g,
+                           stl_file_path, stl_original_name,
+                           service_type, laser_options
                     FROM print_requests 
                     WHERE student_email = %s AND status = %s
                     ORDER BY created_at DESC
@@ -136,7 +144,9 @@ class PrintService:
                            priority, status, admin_notes, reviewed_by, reviewed_at,
                            created_at, updated_at, completed_at, deadline_date,
                            slicer_time_minutes, slicer_material_g,
-                           ufp_print_time_minutes, ufp_material_g
+                           ufp_print_time_minutes, ufp_material_g,
+                           stl_file_path, stl_original_name,
+                           service_type, laser_options
                     FROM print_requests 
                     WHERE student_email = %s
                     ORDER BY created_at DESC
@@ -168,6 +178,10 @@ class PrintService:
                         'slicer_material_g': float(row['slicer_material_g']) if row['slicer_material_g'] else None,
                         'ufp_print_time_minutes': float(row['ufp_print_time_minutes']) if row['ufp_print_time_minutes'] else None,
                         'ufp_material_g': float(row['ufp_material_g']) if row['ufp_material_g'] else None,
+                        'stl_file_path': row['stl_file_path'],
+                        'stl_original_name': row['stl_original_name'],
+                        'service_type': row['service_type'] or '3dprint',
+                        'laser_options': row['laser_options'],
                     })
             
             return {
