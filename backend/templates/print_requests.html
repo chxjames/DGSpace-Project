@@ -208,8 +208,10 @@
 
       document.getElementById("no-data").style.display = "none";
     } catch (e) {
-      document.getElementById("loading").innerHTML =
-        '<span style="color:#c0392b">Failed to load. Make sure the backend is running.</span>';
+      document.getElementById("loading").style.display = "none";
+      document.getElementById("alert-box").innerHTML =
+        `<div class="alert alert-error">Failed to load requests: ${e.message || e}. Check browser console for details.</div>`;
+      console.error("loadRequests error:", e);
     }
   }
 
