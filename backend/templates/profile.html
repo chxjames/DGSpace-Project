@@ -503,15 +503,40 @@ block content %}
             Scan with your App
           </div>
           <div class="twofa-qr"><img id="qr-img" src="" alt="QR Code" /></div>
+
+          <!-- Mobile deep-link button (shown on touch devices) -->
+          <a id="totp-deeplink" href="#" target="_blank"
+            style="display:none;margin:0 auto 10px;padding:8px 16px;background:#007bff;color:#fff;border-radius:8px;font-size:0.85rem;font-weight:600;text-decoration:none;text-align:center;width:fit-content">
+            📱 Open in Authenticator App
+          </a>
+
           <ol class="twofa-steps">
             <li>
               Open <strong>DUO</strong>, <strong>Google Authenticator</strong>,
               or any TOTP app
             </li>
             <li>Tap <strong>Add Account → Scan QR code</strong></li>
-            <li>Scan the code above</li>
+            <li>Scan the code above, or tap the button above on mobile</li>
             <li>Enter the 6-digit code shown in the app below</li>
           </ol>
+
+          <!-- Manual key fallback -->
+          <div style="margin-bottom:12px">
+            <button type="button" onclick="toggleManualKey()"
+              style="background:none;border:none;color:#888;font-size:0.8rem;cursor:pointer;text-decoration:underline;padding:0">
+              Can't scan? Enter key manually ▾
+            </button>
+            <div id="manual-key-box" style="display:none;margin-top:8px;padding:10px;background:#f8f9fa;border:1px solid #ddd;border-radius:8px;text-align:left">
+              <div style="font-size:0.78rem;color:#666;margin-bottom:4px">Account: <span id="manual-key-email" style="font-weight:600"></span></div>
+              <div style="font-size:0.78rem;color:#666;margin-bottom:6px">Type: <strong>Time-based (TOTP)</strong></div>
+              <div style="font-size:0.78rem;color:#666;margin-bottom:4px">Secret key:</div>
+              <div style="display:flex;gap:6px;align-items:center">
+                <code id="manual-key-text" style="font-size:0.85rem;letter-spacing:2px;background:#fff;border:1px solid #ccc;border-radius:4px;padding:4px 8px;flex:1;word-break:break-all"></code>
+                <button type="button" onclick="copyManualKey()"
+                  style="padding:4px 10px;font-size:0.78rem;border:1px solid #ccc;border-radius:4px;background:#fff;cursor:pointer">Copy</button>
+              </div>
+            </div>
+          </div>
           <input
             class="code-input"
             id="confirm-code-input"
@@ -810,6 +835,15 @@ block content %}
           return;
         }
         document.getElementById("qr-img").src = d.qr_code_base64;
+        // Store secret and deep-link for manual entry / mobile
+        document.getElementById("manual-key-text").textContent = d.secret || "";
+        document.getElementById("manual-key-email").textContent = getUser()?.email || "";
+        const deeplink = document.getElementById("totp-deeplink");
+        if (d.otpauth_uri) {
+          deeplink.href = d.otpauth_uri;
+          // Only show deep-link button on touch/mobile devices
+          if (navigator.maxTouchPoints > 0) deeplink.style.display = "flex";
+        }
         document.getElementById("twofa-disabled").style.display = "none";
         document.getElementById("twofa-setup").style.display = "block";
         document.getElementById("confirm-code-input").value = "";
@@ -825,6 +859,22 @@ block content %}
     window.cancelSetup = function () {
       document.getElementById("twofa-setup").style.display = "none";
       document.getElementById("twofa-disabled").style.display = "block";
+      document.getElementById("manual-key-box").style.display = "none";
+      document.getElementById("totp-deeplink").style.display = "none";
+    };
+
+    window.toggleManualKey = function () {
+      const box = document.getElementById("manual-key-box");
+      box.style.display = box.style.display === "none" ? "block" : "none";
+    };
+
+    window.copyManualKey = function () {
+      const key = document.getElementById("manual-key-text").textContent;
+      navigator.clipboard.writeText(key).then(() => {
+        const btn = event.target;
+        btn.textContent = "Copied!";
+        setTimeout(() => { btn.textContent = "Copy"; }, 2000);
+      });
     };
 
     window.confirm2FA = async function () {
