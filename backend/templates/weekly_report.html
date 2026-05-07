@@ -100,13 +100,16 @@ function refreshCost(){
   if(!allReqs.length){tb.innerHTML='<tr><td colspan="10" style="padding:20px;text-align:center;color:#aaa">No requests in this period.</td></tr>';}
   else{tb.innerHTML=allReqs.map(function(r){
     var b=STATUS_BADGE[r.status]||'background:#e2e3e5;color:#41464b';
-    var g=r.slicer_material_g!=null?parseFloat(r.slicer_material_g):null;
+    var g_raw=r.ufp_material_g!=null?r.ufp_material_g:r.slicer_material_g;
+    var t_raw=r.ufp_print_time_minutes!=null?r.ufp_print_time_minutes:r.slicer_time_minutes;
+    var g=g_raw!=null?parseFloat(g_raw):null;
+    var t=t_raw!=null?parseFloat(t_raw):null;
     return '<tr>'
       +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;color:#888;font-size:0.8rem">'+r.request_id+'</td>'
       +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0"><div style="font-weight:500">'+esc(r.student_name)+'</div><div style="font-size:0.78rem;color:#888">'+esc(r.student_email)+'</div></td>'
       +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="'+esc(r.project_name)+'">'+esc(r.project_name)+'</td>'
       +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0">'+esc(r.material_type)+'</td>'
-      +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;text-align:right">'+(r.slicer_time_minutes!=null?Math.round(r.slicer_time_minutes):'-')+'</td>'
+      +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;text-align:right">'+(t!=null?Math.round(t):'-')+'</td>'
       +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;text-align:right">'+(g!=null?g.toFixed(1):'-')+'</td>'
       +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;text-align:right;color:#20c997;font-weight:600">'+(g!=null?fmtCost(g):'-')+'</td>'
       +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0"><span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:0.78rem;font-weight:600;white-space:nowrap;'+b+'">'+r.status.replace(/_/g,' ')+'</span></td>'
@@ -168,9 +171,12 @@ function exportCSV(){
   var h=['#','Student Email','Student Name','Project','Material','Print Min','Material (g)','Est. Cost ($)','Status','Submitted'];
   var rows=[h];
   reqs.forEach(function(r){
-    var g=r.slicer_material_g!=null?parseFloat(r.slicer_material_g):null;
+    var g_raw=r.ufp_material_g!=null?r.ufp_material_g:r.slicer_material_g;
+    var t_raw=r.ufp_print_time_minutes!=null?r.ufp_print_time_minutes:r.slicer_time_minutes;
+    var g=g_raw!=null?parseFloat(g_raw):null;
+    var t=t_raw!=null?parseFloat(t_raw):null;
     rows.push([r.request_id,r.student_email,r.student_name,r.project_name,r.material_type,
-      r.slicer_time_minutes!=null?r.slicer_time_minutes:'',
+      t!=null?Math.round(t):'',
       g!=null?g.toFixed(1):'',
       g!=null?(g*rate).toFixed(2):'',
       r.status,(r.created_at||'').slice(0,10)]);
