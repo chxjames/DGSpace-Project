@@ -5,6 +5,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{% block title %}DG Space{% endblock %}</title>
+    <link rel="icon" type="image/png" href="/static/logo.png" />
     <style>
       * {
         box-sizing: border-box;
@@ -603,7 +604,21 @@
 
   <body>
     <nav>
-      <a class="brand" href="/">🖨 DGSpace</a>
+      <a class="brand" href="/"
+        ><img
+          src="/static/logo.png"
+          alt="DGSpace logo"
+          style="
+            height: 32px;
+            width: 32px;
+            object-fit: contain;
+            vertical-align: middle;
+            margin-right: 6px;
+            border-radius: 4px;
+          "
+        />
+        DGSpace</a
+      >
       <div class="nav-links">
         <span id="nav-username" style="display: none"></span>
         <a href="/print-requests/" id="nav-print" style="display: none"
