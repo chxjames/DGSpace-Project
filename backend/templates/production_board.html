@@ -983,7 +983,7 @@
           <span>⏱ ${timeStr}</span>
           <span>👤 ${escHtml(j.student_name || j.student_email)}</span>
           ${dl}
-          ${j.estimated_start ? `<span>🕐 Est. start: ${fmtDt(j.estimated_start)}</span>` : ""}
+          ${j.estimated_start ? `<span class="job-countdown countdown-ok" id="es-${j.job_id}" data-start="${j.estimated_start}">🕐 …</span>` : ""}
           ${approverLabel}
           ${assignerLabel}
         </div>
@@ -1515,6 +1515,29 @@
         el.classList.add("countdown-ok");
       }
       el.textContent = label;
+    });
+
+    // ── Estimated-start countdowns for queued / file_transferred jobs ──
+    document.querySelectorAll('[id^="es-"]').forEach((el) => {
+      const startStr = el.dataset.start;
+      if (!startStr || startStr === "null" || startStr === "None") {
+        el.textContent = "🕐 —";
+        return;
+      }
+      const startMs = parseUtcString(startStr);
+      if (!startMs || isNaN(startMs)) { el.textContent = "🕐 —"; return; }
+      const diffSec = Math.round((startMs - Date.now()) / 1000);
+      el.className = "job-countdown";
+      if (diffSec <= 0) {
+        el.classList.add("countdown-urgent");
+        el.textContent = "🕐 Ready to start";
+      } else if (diffSec <= 1800) {
+        el.classList.add("countdown-warn");
+        el.textContent = `🕐 Starts in ${fmtCountdown(diffSec)}`;
+      } else {
+        el.classList.add("countdown-ok");
+        el.textContent = `🕐 Starts in ${fmtCountdown(diffSec)}`;
+      }
     });
   }
 
