@@ -245,7 +245,7 @@ def get_production_board():
               AND pj.status NOT IN ('completed', 'cancelled', 'failed')
             ORDER BY pj.queue_position ASC
         """, (p['printer_id'],)) or []
-        p['queue'] = jobs
+        p['jobs'] = jobs
 
     return jsonify({
         'success': True,
