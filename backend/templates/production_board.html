@@ -1215,7 +1215,10 @@
     sel.onchange = () => updateModalTimes(parseInt(sel.value));
 
     // Pre-fill estimated times for default selection
-    updateModalTimes(parseInt(sel.value) || (compatPrinters[0] && compatPrinters[0].printer_id));
+    updateModalTimes(
+      parseInt(sel.value) ||
+        (compatPrinters[0] && compatPrinters[0].printer_id),
+    );
 
     document.getElementById("modal-notes").value = "";
     document.getElementById("assign-modal-bg").classList.add("open");
@@ -1230,8 +1233,11 @@
     const printer = _printers.find((p) => p.printer_id === printerId);
     let startTime = calcPrinterQueueEnd(printer);
     startTime = new Date(Math.ceil(startTime.getTime() / 300000) * 300000);
-    const end = new Date(startTime.getTime() + _selectedRts.ufp_print_time_minutes * 60000);
-    document.getElementById("modal-est-start").value = toDatetimeLocal(startTime);
+    const end = new Date(
+      startTime.getTime() + _selectedRts.ufp_print_time_minutes * 60000,
+    );
+    document.getElementById("modal-est-start").value =
+      toDatetimeLocal(startTime);
     document.getElementById("modal-est-end").value = toDatetimeLocal(end);
   }
 
@@ -1346,7 +1352,11 @@
         } else {
           showAlert(`Job updated: ${newStatus}`, "success");
         }
-        loadBoard();
+        // After board reloads, re-chain times if a job started or ended
+        await loadBoard();
+        if (["printing", "completed", "failed"].includes(newStatus)) {
+          await rescheduleAfterRemoval();
+        }
       } else {
         showAlert(data.message || "Failed to update job.");
       }
