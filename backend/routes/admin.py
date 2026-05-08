@@ -836,7 +836,7 @@ def admin_list_printers():
         return jsonify({'success': False, 'message': 'Admin access required'}), 403
 
     printers = db.fetch_all(
-        "SELECT printer_id, printer_name, model, location, status, notes, accepted_file_formats, created_at FROM printers ORDER BY printer_name"
+        "SELECT printer_id, printer_name, model, location, status, notes, accepted_file_formats, created_at, COALESCE(device_type, '3dprint') AS device_type FROM printers ORDER BY printer_name"
     ) or []
     return jsonify({'success': True, 'printers': printers}), 200
 

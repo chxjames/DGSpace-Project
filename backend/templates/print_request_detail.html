@@ -2245,6 +2245,8 @@
       adminShowAlert("Network error during upload.");
     }
   }
+
+  async function handleUfpUpload(file) {
     if (!file) return;
     const nameLow = file.name.toLowerCase();
     const isUfp = nameLow.endsWith(".ufp");
