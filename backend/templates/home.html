@@ -1401,18 +1401,26 @@ content %}
           <div class="printer-meta">${escHtml(p.model || "")}${p.location ? " · " + escHtml(p.location) : ""}</div>
           ${(() => {
             const isLaser = (p.device_type || "3dprint") === "laser";
-            let fmts = (p.accepted_file_formats || "").split(",").map(s => s.trim()).filter(Boolean);
-            const has3d = fmts.every(f => ["ufp","3mf","stl"].includes(f.toLowerCase()));
-            if (isLaser && (fmts.length === 0 || has3d)) fmts = ["svg","dxf","pdf"];
+            let fmts = (p.accepted_file_formats || "")
+              .split(",")
+              .map((s) => s.trim())
+              .filter(Boolean);
+            const has3d = fmts.every((f) =>
+              ["ufp", "3mf", "stl"].includes(f.toLowerCase()),
+            );
+            if (isLaser && (fmts.length === 0 || has3d))
+              fmts = ["svg", "dxf", "pdf"];
             else if (!isLaser && fmts.length === 0) fmts = ["ufp"];
-            return fmts.map(f => {
-              const style = isLaser
-                ? "background:#fce4ec;color:#c62828;border:1px solid #f48fb1"
-                : f === "3mf"
-                  ? "background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7"
-                  : "background:#e8f0fe;color:#1a73e8;border:1px solid #90caf9";
-              return `<span style="${style};font-size:0.68rem;font-weight:600;padding:1px 6px;border-radius:4px">.${f}</span>`;
-            }).join(" ");
+            return fmts
+              .map((f) => {
+                const style = isLaser
+                  ? "background:#fce4ec;color:#c62828;border:1px solid #f48fb1"
+                  : f === "3mf"
+                    ? "background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7"
+                    : "background:#e8f0fe;color:#1a73e8;border:1px solid #90caf9";
+                return `<span style="${style};font-size:0.68rem;font-weight:600;padding:1px 6px;border-radius:4px">.${f}</span>`;
+              })
+              .join(" ");
           })()}
         </div>
         <span class="printer-status-badge ${sbClass}">${sbLabel}</span>
@@ -1603,19 +1611,26 @@ content %}
       event.currentTarget.classList.add("dragging");
       document.addEventListener("dragover", _startAutoScroll);
       const req = _rts.find((r) => r.id === requestId);
-      const reqFmt =
-        req && req.ufp_original_name
-          ? req.ufp_original_name.toLowerCase().endsWith(".3mf")
-            ? "3mf"
-            : "ufp"
-          : null;
+      const isLaserReq = req && (req.service_type || "3dprint") === "laser";
+      // For 3D print requests, derive the file format for format-level compatibility check
+      const reqFmt = (!isLaserReq && req && req.ufp_original_name)
+        ? req.ufp_original_name.toLowerCase().endsWith(".3mf") ? "3mf" : "ufp"
+        : null;
       _printers
         .filter((p) => p.status === "active")
         .forEach((p) => {
-          const pFmts = (p.accepted_file_formats || "ufp")
-            .split(",")
-            .map((s) => s.trim());
-          const compatible = !reqFmt || pFmts.includes(reqFmt);
+          const isLaserPrinter = (p.device_type || "3dprint") === "laser";
+          let compatible;
+          if (isLaserReq) {
+            // Laser request → only laser printers
+            compatible = isLaserPrinter;
+          } else {
+            // 3D print request → only non-laser printers, check file format
+            const pFmts = (p.accepted_file_formats || "ufp")
+              .split(",")
+              .map((s) => s.trim().toLowerCase());
+            compatible = !isLaserPrinter && (!reqFmt || pFmts.includes(reqFmt));
+          }
           ["", "-ss"].forEach((sfx) => {
             const dz = document.getElementById(`dz${sfx}-${p.printer_id}`);
             if (dz)
