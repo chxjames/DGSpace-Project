@@ -819,11 +819,20 @@
     const queue = p.queue || [];
     const hasJobs = queue.length > 0;
 
-    const fmts = (p.accepted_file_formats || "ufp").split(",");
     const isLaserPrinter = (p.device_type || "3dprint") === "laser";
-    const fmtBadges = fmts
-      .map((f) => {
-        const s = f.trim();
+
+    // If printer is laser but DB still has old 3D-print formats (ufp/3mf),
+    // override with correct laser formats so the card always looks right.
+    let rawFormats = (p.accepted_file_formats || "").split(",").map(f => f.trim()).filter(Boolean);
+    const has3dFormats = rawFormats.every(f => ["ufp", "3mf", "stl"].includes(f.toLowerCase()));
+    if (isLaserPrinter && (rawFormats.length === 0 || has3dFormats)) {
+      rawFormats = ["svg", "dxf", "pdf"];
+    } else if (!isLaserPrinter && rawFormats.length === 0) {
+      rawFormats = ["ufp"];
+    }
+
+    const fmtBadges = rawFormats
+      .map((s) => {
         const style = isLaserPrinter
           ? "background:#fce4ec;color:#c62828;border:1px solid #f48fb1"
           : s === "3mf"

@@ -735,44 +735,24 @@ def preview_design(request_id):
             except Exception:
                 pass
 
-            def _make_frontend(be):
-                return Frontend(ctx, be, config=config) if config else Frontend(ctx, be)
+            backend = SVGBackend()
+            frontend = Frontend(ctx, backend, config=config) if config else Frontend(ctx, backend)
 
-            svg_string = None
+            # draw_layout() returns a Page object in ezdxf ≥ 1.1,
+            # or None in older versions — handle both.
+            page = frontend.draw_layout(msp)
 
-            # ── Attempt A: ezdxf ≥ 1.1 ─────────────────────────────────────
-            # draw_layout(finalize=True) returns a Page object;
-            # SVGBackend.get_string(page) takes that page.
-            try:
-                backend_a = SVGBackend()
-                fe_a = _make_frontend(backend_a)
-                page = fe_a.draw_layout(msp, finalize=True)
-                if page is not None:
-                    svg_string = backend_a.get_string(page)
-            except TypeError:
-                pass  # finalize kwarg not supported → fall through
-            except Exception:
-                pass
-
-            # ── Attempt B: ezdxf 1.0.x ──────────────────────────────────────
-            # draw_layout() returns None; SVGBackend exposes get_xml_root()
-            if not svg_string:
+            if page is not None:
+                # ezdxf ≥ 1.1: pass page to get_string()
+                svg_string = backend.get_string(page)
+            else:
+                # ezdxf 1.0.x: use get_xml_root()
                 try:
                     import xml.etree.ElementTree as ET
-                    backend_b = SVGBackend()
-                    fe_b = _make_frontend(backend_b)
-                    fe_b.draw_layout(msp)
-                    xml_root = backend_b.get_xml_root()
-                    svg_string = ET.tostring(xml_root, encoding='unicode')
-                except (AttributeError, TypeError):
-                    pass
-
-            # ── Attempt C: last-resort get_string() with no args ────────────
-            if not svg_string:
-                backend_c = SVGBackend()
-                fe_c = _make_frontend(backend_c)
-                fe_c.draw_layout(msp)
-                svg_string = backend_c.get_string()  # type: ignore[call-arg]
+                    xml_string = ET.tostring(backend.get_xml_root(), encoding='unicode')
+                    svg_string = xml_string
+                except AttributeError:
+                    svg_string = backend.get_string()  # type: ignore[call-arg]
 
             return Response(svg_string, mimetype='image/svg+xml')
         except Exception as exc:

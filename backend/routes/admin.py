@@ -205,6 +205,19 @@ def get_production_board():
         "SELECT printer_id, printer_name, model, location, status, notes, accepted_file_formats, COALESCE(device_type, '3dprint') AS device_type FROM printers ORDER BY printer_name"
     ) or []
 
+    # Fix stale DB data: laser printers that still have 3D-print formats
+    _3d_only = {'ufp', '3mf', 'stl'}
+    for p in printers:
+        if p.get('device_type') == 'laser':
+            fmts = [f.strip().lower() for f in (p.get('accepted_file_formats') or '').split(',') if f.strip()]
+            if not fmts or all(f in _3d_only for f in fmts):
+                p['accepted_file_formats'] = 'svg,dxf,pdf'
+                # also fix in DB silently so next load is clean
+                db.execute_update(
+                    "UPDATE printers SET accepted_file_formats = 'svg,dxf,pdf' WHERE printer_id = %s",
+                    (p['printer_id'],)
+                )
+
     for p in printers:
         jobs = db.fetch_all("""
             SELECT
