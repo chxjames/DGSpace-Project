@@ -2811,9 +2811,9 @@
   // ── Design File Preview ────────────────────────────────────────────────────
   function openDesignPreview(reqId, storedFile, originalName) {
     const modal = document.getElementById("design-preview-modal");
-    const container = document.getElementById("design-preview-container");
+    const stage = document.getElementById("design-preview-stage");
     const title = document.getElementById("design-preview-title");
-    if (!modal) return;
+    if (!modal || !stage) return;
 
     const ext = (originalName || storedFile || "")
       .split(".")
@@ -2821,12 +2821,30 @@
       .toLowerCase();
     title.textContent = originalName || storedFile || "Design File";
     modal.style.display = "flex";
-    container.innerHTML =
-      '<div style="color:#999;text-align:center;padding:40px">⏳ Loading preview…</div>';
+
+    const isPdf = ext === "pdf";
+    if (window._previewResetState) window._previewResetState(isPdf);
+
+    stage.innerHTML =
+      '<div style="color:#aaa;text-align:center;padding:40px">⏳ Loading preview…</div>';
 
     const token = window.getToken
       ? window.getToken()
       : localStorage.getItem("dg_token");
+
+    function _injectSvg(svgText) {
+      stage.innerHTML = svgText;
+      const svgEl = stage.querySelector("svg");
+      if (svgEl) {
+        // Let the SVG use its natural viewBox size; zoom/pan handles the rest
+        svgEl.removeAttribute("width");
+        svgEl.removeAttribute("height");
+        svgEl.style.display = "block";
+        svgEl.style.maxWidth = "760px";
+        svgEl.style.width = "100%";
+        svgEl.style.height = "auto";
+      }
+    }
 
     if (ext === "svg") {
       // Fetch SVG text and inject (avoids CORS and auth issues with img src)
@@ -2834,21 +2852,10 @@
         headers: { Authorization: `Bearer ${token}` },
       })
         .then((r) => r.text())
-        .then((svg) => {
-          container.innerHTML = svg;
-          const svgEl = container.querySelector("svg");
-          if (svgEl) {
-            svgEl.style.maxWidth = "100%";
-            svgEl.style.maxHeight = "72vh";
-            svgEl.removeAttribute("width");
-            svgEl.removeAttribute("height");
-            svgEl.style.display = "block";
-            svgEl.style.margin = "0 auto";
-          }
-        })
+        .then(_injectSvg)
         .catch(() => {
-          container.innerHTML =
-            '<div style="color:#c00;text-align:center">Failed to load SVG.</div>';
+          stage.innerHTML =
+            '<div style="color:#f88;text-align:center">Failed to load SVG.</div>';
         });
     } else if (ext === "dxf") {
       fetch(`/api/print-requests/${reqId}/preview-design`, {
@@ -2858,34 +2865,25 @@
           if (!r.ok) return r.json().then((d) => Promise.reject(d.message));
           return r.text();
         })
-        .then((svg) => {
-          container.innerHTML = svg;
-          const svgEl = container.querySelector("svg");
-          if (svgEl) {
-            svgEl.style.maxWidth = "100%";
-            svgEl.style.maxHeight = "72vh";
-            svgEl.removeAttribute("width");
-            svgEl.removeAttribute("height");
-            svgEl.style.display = "block";
-            svgEl.style.margin = "0 auto";
-          }
-        })
+        .then(_injectSvg)
         .catch((msg) => {
-          container.innerHTML = `<div style="color:#c00;text-align:center">Preview failed: ${msg || "unknown error"}</div>`;
+          stage.innerHTML = `<div style="color:#f88;text-align:center">Preview failed: ${msg || "unknown error"}</div>`;
         });
-    } else if (ext === "pdf") {
-      container.innerHTML = `<embed src="/api/uploads/${storedFile}"
+    } else if (isPdf) {
+      stage.innerHTML = `<embed src="/api/uploads/${storedFile}"
         type="application/pdf"
-        style="width:100%;height:72vh;border:none">`;
+        style="width:780px;height:72vh;border:none;display:block">`;
     } else {
-      container.innerHTML =
-        '<div style="color:#888;text-align:center">Preview not available for this file type.</div>';
+      stage.innerHTML =
+        '<div style="color:#aaa;text-align:center">Preview not available for this file type.</div>';
     }
   }
 
   function closeDesignPreview() {
     const modal = document.getElementById("design-preview-modal");
     if (modal) modal.style.display = "none";
+    const stage = document.getElementById("design-preview-stage");
+    if (stage) stage.innerHTML = "";
   }
 
   loadDetail();
@@ -2933,34 +2931,295 @@
       <span style="font-weight: 600; font-size: 0.95rem; color: #333">
         👁 Preview — <span id="design-preview-title"></span>
       </span>
-      <button
-        onclick="closeDesignPreview()"
-        style="
-          background: none;
-          border: none;
-          font-size: 1.3rem;
-          cursor: pointer;
-          color: #888;
-          line-height: 1;
-        "
-      >
-        ✕
-      </button>
+      <div style="display: flex; align-items: center; gap: 6px">
+        <!-- Zoom controls (hidden for PDF) -->
+        <div
+          id="design-zoom-controls"
+          style="display: flex; align-items: center; gap: 4px"
+        >
+          <button
+            onclick="_previewZoom(-0.2)"
+            title="Zoom out"
+            style="
+              background: #f0f0f0;
+              border: 1px solid #ddd;
+              border-radius: 6px;
+              width: 28px;
+              height: 28px;
+              font-size: 1rem;
+              cursor: pointer;
+              line-height: 1;
+            "
+          >
+            −
+          </button>
+          <span
+            id="design-zoom-label"
+            style="
+              font-size: 0.78rem;
+              color: #555;
+              min-width: 38px;
+              text-align: center;
+            "
+            >100%</span
+          >
+          <button
+            onclick="_previewZoom(0.2)"
+            title="Zoom in"
+            style="
+              background: #f0f0f0;
+              border: 1px solid #ddd;
+              border-radius: 6px;
+              width: 28px;
+              height: 28px;
+              font-size: 1rem;
+              cursor: pointer;
+              line-height: 1;
+            "
+          >
+            +
+          </button>
+          <button
+            onclick="_previewZoomReset()"
+            title="Reset zoom"
+            style="
+              background: #f0f0f0;
+              border: 1px solid #ddd;
+              border-radius: 6px;
+              padding: 0 8px;
+              height: 28px;
+              font-size: 0.75rem;
+              cursor: pointer;
+            "
+          >
+            ↺ Reset
+          </button>
+        </div>
+        <button
+          onclick="closeDesignPreview()"
+          style="
+            background: none;
+            border: none;
+            font-size: 1.3rem;
+            cursor: pointer;
+            color: #888;
+            line-height: 1;
+            margin-left: 4px;
+          "
+        >
+          ✕
+        </button>
+      </div>
     </div>
-    <!-- Modal body -->
+    <!-- Modal body — outer scroll container -->
     <div
       id="design-preview-container"
       style="
-        overflow: auto;
-        padding: 20px;
+        overflow: hidden;
         flex: 1;
-        background: #f9f9f9;
-        display: flex;
-        align-items: flex-start;
-        justify-content: center;
+        background: #1a1a2e;
+        position: relative;
+        cursor: grab;
+        user-select: none;
       "
-    ></div>
+    >
+      <!-- Inner pan/zoom stage -->
+      <div
+        id="design-preview-stage"
+        style="
+          position: absolute;
+          top: 0;
+          left: 0;
+          transform-origin: 0 0;
+          display: flex;
+          align-items: flex-start;
+          justify-content: center;
+          padding: 24px;
+          min-width: 100%;
+          min-height: 100%;
+          box-sizing: border-box;
+        "
+      ></div>
+    </div>
   </div>
 </div>
+
+<script>
+  (function () {
+    // ── Pan / Zoom state ────────────────────────────────────────
+    let _scale = 1;
+    let _tx = 0,
+      _ty = 0; // translate (px)
+    let _dragging = false;
+    let _lastX = 0,
+      _lastY = 0;
+    let _isPdf = false;
+
+    function _getStage() {
+      return document.getElementById("design-preview-stage");
+    }
+    function _getBox() {
+      return document.getElementById("design-preview-container");
+    }
+
+    function _applyTransform() {
+      const s = _getStage();
+      if (s)
+        s.style.transform = `translate(${_tx}px, ${_ty}px) scale(${_scale})`;
+      const lbl = document.getElementById("design-zoom-label");
+      if (lbl) lbl.textContent = Math.round(_scale * 100) + "%";
+    }
+
+    function _resetTransform() {
+      _scale = 1;
+      _tx = 0;
+      _ty = 0;
+      _applyTransform();
+    }
+
+    window._previewZoom = function (delta) {
+      if (_isPdf) return;
+      const box = _getBox();
+      if (!box) return;
+      const cx = box.clientWidth / 2;
+      const cy = box.clientHeight / 2;
+      const newScale = Math.min(Math.max(_scale + delta, 0.2), 8);
+      // Zoom toward center of viewport
+      _tx = cx - (cx - _tx) * (newScale / _scale);
+      _ty = cy - (cy - _ty) * (newScale / _scale);
+      _scale = newScale;
+      _applyTransform();
+    };
+
+    window._previewZoomReset = function () {
+      if (_isPdf) return;
+      _resetTransform();
+    };
+
+    // Wheel zoom
+    document.addEventListener(
+      "wheel",
+      function (e) {
+        const box = _getBox();
+        if (!box || _isPdf) return;
+        if (!box.contains(e.target)) return;
+        e.preventDefault();
+        const rect = box.getBoundingClientRect();
+        const mx = e.clientX - rect.left;
+        const my = e.clientY - rect.top;
+        const delta = e.deltaY < 0 ? 0.15 : -0.15;
+        const newScale = Math.min(Math.max(_scale + delta, 0.2), 8);
+        _tx = mx - (mx - _tx) * (newScale / _scale);
+        _ty = my - (my - _ty) * (newScale / _scale);
+        _scale = newScale;
+        _applyTransform();
+      },
+      { passive: false },
+    );
+
+    // Mouse drag pan
+    document.addEventListener("mousedown", function (e) {
+      const box = _getBox();
+      if (!box || _isPdf || !box.contains(e.target)) return;
+      _dragging = true;
+      _lastX = e.clientX;
+      _lastY = e.clientY;
+      box.style.cursor = "grabbing";
+    });
+    document.addEventListener("mousemove", function (e) {
+      if (!_dragging) return;
+      _tx += e.clientX - _lastX;
+      _ty += e.clientY - _lastY;
+      _lastX = e.clientX;
+      _lastY = e.clientY;
+      _applyTransform();
+    });
+    document.addEventListener("mouseup", function () {
+      _dragging = false;
+      const box = _getBox();
+      if (box) box.style.cursor = "grab";
+    });
+
+    // Touch pinch-to-zoom + drag pan
+    let _touches = [];
+    let _initPinchDist = null;
+    let _initScaleAtPinch = 1;
+
+    document.addEventListener(
+      "touchstart",
+      function (e) {
+        const box = _getBox();
+        if (!box || _isPdf || !box.contains(e.target)) return;
+        _touches = Array.from(e.touches);
+        if (_touches.length === 2) {
+          _initPinchDist = Math.hypot(
+            _touches[1].clientX - _touches[0].clientX,
+            _touches[1].clientY - _touches[0].clientY,
+          );
+          _initScaleAtPinch = _scale;
+        } else if (_touches.length === 1) {
+          _lastX = _touches[0].clientX;
+          _lastY = _touches[0].clientY;
+        }
+      },
+      { passive: true },
+    );
+
+    document.addEventListener(
+      "touchmove",
+      function (e) {
+        const box = _getBox();
+        if (!box || _isPdf || !box.contains(e.target)) return;
+        const tArr = Array.from(e.touches);
+        if (tArr.length === 2 && _initPinchDist) {
+          e.preventDefault();
+          const dist = Math.hypot(
+            tArr[1].clientX - tArr[0].clientX,
+            tArr[1].clientY - tArr[0].clientY,
+          );
+          const cx =
+            (tArr[0].clientX + tArr[1].clientX) / 2 -
+            box.getBoundingClientRect().left;
+          const cy =
+            (tArr[0].clientY + tArr[1].clientY) / 2 -
+            box.getBoundingClientRect().top;
+          const newScale = Math.min(
+            Math.max(_initScaleAtPinch * (dist / _initPinchDist), 0.2),
+            8,
+          );
+          _tx = cx - (cx - _tx) * (newScale / _scale);
+          _ty = cy - (cy - _ty) * (newScale / _scale);
+          _scale = newScale;
+          _applyTransform();
+        } else if (tArr.length === 1) {
+          _tx += tArr[0].clientX - _lastX;
+          _ty += tArr[0].clientY - _lastY;
+          _lastX = tArr[0].clientX;
+          _lastY = tArr[0].clientY;
+          _applyTransform();
+        }
+      },
+      { passive: false },
+    );
+
+    document.addEventListener("touchend", function () {
+      _initPinchDist = null;
+    });
+
+    // Expose reset for openDesignPreview to call on each open
+    window._previewResetState = function (isPdf) {
+      _isPdf = isPdf;
+      _resetTransform();
+      const zc = document.getElementById("design-zoom-controls");
+      if (zc) zc.style.display = isPdf ? "none" : "flex";
+      const box = _getBox();
+      if (box) {
+        box.style.cursor = isPdf ? "default" : "grab";
+        box.style.overflow = isPdf ? "hidden" : "hidden";
+        box.style.background = isPdf ? "#fff" : "#1a1a2e";
+      }
+    };
+  })();
+</script>
 
 {% endblock %}

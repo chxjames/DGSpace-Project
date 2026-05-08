@@ -170,6 +170,7 @@ class EmailService:
         """Send print completion notification email via Gmail API"""
         try:
             pickup_link = f"https://dgspace-project-production.up.railway.app/print-requests/{request_id}/"
+            accent = '#e53935' if service_type == 'laser' else '#28a745'
             html_body = f"""
             <!DOCTYPE html>
             <html>
@@ -177,11 +178,11 @@ class EmailService:
                 <style>
                     body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
                     .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
-                    .header {{ background-color: #28a745; color: white; padding: 20px; text-align: center; border-radius: 6px 6px 0 0; }}
+                    .header {{ background-color: {accent}; color: white; padding: 20px; text-align: center; border-radius: 6px 6px 0 0; }}
                     .content {{ background-color: #f9f9f9; padding: 30px; border: 1px solid #e0e0e0; }}
                     .project {{ font-size: 1.1rem; font-weight: bold; color: #1a1a2e; background: #fff;
-                                border-left: 4px solid #28a745; padding: 12px 16px; margin: 16px 0; }}
-                    .button {{ display: inline-block; padding: 12px 30px; background-color: #28a745;
+                                border-left: 4px solid {accent}; padding: 12px 16px; margin: 16px 0; }}
+                    .button {{ display: inline-block; padding: 12px 30px; background-color: {accent};
                                color: white; text-decoration: none; border-radius: 5px; margin: 20px 0; font-weight: bold; }}
                     .footer {{ text-align: center; padding: 20px; font-size: 12px; color: #666; }}
                 </style>
