@@ -1371,7 +1371,12 @@ content %}
       const queue = p.queue || [];
       const hasJobs = queue.length > 0;
       const jobsHtml = hasJobs
-        ? queue.map((j, idx) => renderJobCard(j, idx + 1)).join("")
+        ? (() => {
+            const nextUpIdx = queue.findIndex(
+              (j) => j.job_status === "queued" || j.job_status === "file_transferred"
+            );
+            return queue.map((j, idx) => renderJobCard(j, idx + 1, idx === nextUpIdx)).join("");
+          })()
         : '<div class="pb-empty" style="padding:14px 0">— Queue empty —</div>';
       const dzId = `dz${sfx}-${p.printer_id}`;
       const queueSection = isActive
@@ -1410,7 +1415,7 @@ content %}
     </div>`;
     }
 
-    function renderJobCard(j, pos) {
+    function renderJobCard(j, pos, isNextUp) {
       const mins = j.ufp_print_time_minutes;
       const timeStr = mins ? formatMinutes(mins) : "—";
       const jsCls = j.job_status;
@@ -1505,7 +1510,18 @@ content %}
           <span>⏱ ${timeStr}</span>
           <span>👤 ${escHtml(j.student_name || j.student_email)}</span>
           ${dl}
-          ${j.estimated_start ? `<span class="job-countdown countdown-ok" id="es-${j.job_id}" data-start="${j.estimated_start}">🕐 …</span>` : ""}
+          ${j.estimated_start ? (() => {
+            if (isNextUp) {
+              return `<span class="job-countdown countdown-ok" id="es-${j.job_id}" data-start="${j.estimated_start}">🕐 …</span>`;
+            } else {
+              const st = new Date(j.estimated_start.endsWith('Z') ? j.estimated_start : j.estimated_start + 'Z');
+              const hh = st.getHours().toString().padStart(2,'0');
+              const mm = st.getMinutes().toString().padStart(2,'0');
+              const mo = (st.getMonth()+1).toString().padStart(2,'0');
+              const dd = st.getDate().toString().padStart(2,'0');
+              return `<span class="job-countdown countdown-ok">🕐 ${mo}/${dd} ${hh}:${mm}</span>`;
+            }
+          })() : ""}
           ${approverLabel}
           ${assignerLabel}
         </div>
