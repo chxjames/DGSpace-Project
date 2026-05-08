@@ -271,9 +271,17 @@ def get_printer_status():
 
     now = datetime.datetime.utcnow()
 
-    printers = db.fetch_all(
-        "SELECT printer_id, printer_name, model, location, status, accepted_file_formats, COALESCE(device_type, '3dprint') AS device_type FROM printers ORDER BY printer_name"
-    ) or []
+    # Try to fetch device_type; fall back gracefully if the column doesn't exist yet
+    try:
+        printers = db.fetch_all(
+            "SELECT printer_id, printer_name, model, location, status, accepted_file_formats, COALESCE(device_type, '3dprint') AS device_type FROM printers ORDER BY printer_name"
+        ) or []
+    except Exception:
+        printers = db.fetch_all(
+            "SELECT printer_id, printer_name, model, location, status, accepted_file_formats FROM printers ORDER BY printer_name"
+        ) or []
+        for p in printers:
+            p['device_type'] = '3dprint'
 
     result = []
     for p in printers:
