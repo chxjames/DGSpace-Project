@@ -1230,7 +1230,7 @@
       document.getElementById("modal-printer-select").value,
     );
     if (!printerId) {
-      alert("Please select a printer.");
+      showAlert("Please select a printer.", "error");
       return;
     }
 
@@ -1525,7 +1525,10 @@
         return;
       }
       const startMs = parseUtcString(startStr);
-      if (!startMs || isNaN(startMs)) { el.textContent = "🕐 —"; return; }
+      if (!startMs || isNaN(startMs)) {
+        el.textContent = "🕐 —";
+        return;
+      }
       const diffSec = Math.round((startMs - Date.now()) / 1000);
       el.className = "job-countdown";
       if (diffSec <= 0) {
