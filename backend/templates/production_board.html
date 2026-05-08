@@ -1202,12 +1202,33 @@
       sel.innerHTML = `<option value="">— No compatible active printers${reqFmt ? " for ." + reqFmt : ""} —</option>`;
     }
 
-    // Pre-fill estimated times if UFP time is known
+    // Pre-fill estimated times:
+    // If the selected printer already has jobs, start after the last job's estimated_end.
+    // Otherwise default to now (rounded to nearest 15 min).
     if (r.ufp_print_time_minutes) {
-      const now = new Date();
-      now.setMinutes(Math.ceil(now.getMinutes() / 15) * 15, 0, 0);
-      const end = new Date(now.getTime() + r.ufp_print_time_minutes * 60000);
-      document.getElementById("modal-est-start").value = toDatetimeLocal(now);
+      const selectedPrinterId = parseInt(sel.value) || (compatPrinters[0] && compatPrinters[0].printer_id);
+      let startTime = new Date();
+      startTime.setMinutes(Math.ceil(startTime.getMinutes() / 15) * 15, 0, 0);
+
+      if (selectedPrinterId) {
+        const printer = _printers.find(p => p.printer_id === selectedPrinterId);
+        const queue = (printer && printer.jobs) ? printer.jobs : [];
+        // Find the latest estimated_end among all queued/file_transferred jobs
+        let latestEnd = null;
+        queue.forEach(function(j) {
+          if (j.job_status === 'queued' || j.job_status === 'file_transferred') {
+            const endStr = j.estimated_end;
+            if (endStr && endStr !== 'null' && endStr !== 'None') {
+              const t = new Date(endStr.endsWith('Z') ? endStr : endStr + 'Z');
+              if (!latestEnd || t > latestEnd) latestEnd = t;
+            }
+          }
+        });
+        if (latestEnd && latestEnd > startTime) startTime = latestEnd;
+      }
+
+      const end = new Date(startTime.getTime() + r.ufp_print_time_minutes * 60000);
+      document.getElementById("modal-est-start").value = toDatetimeLocal(startTime);
       document.getElementById("modal-est-end").value = toDatetimeLocal(end);
     } else {
       document.getElementById("modal-est-start").value = "";
@@ -1344,11 +1365,58 @@
       const data = await res.json();
       if (data.success) {
         showAlert("Job removed.", "success");
-        loadBoard();
+        // Reload board then reschedule remaining queued jobs on affected printer
+        await loadBoard();
+        await rescheduleAfterRemoval(jobId);
       } else showAlert(data.message || "Failed to remove job.");
     } catch (e) {
       showAlert("Network error.");
     }
+  }
+
+  async function rescheduleAfterRemoval() {
+    // For each printer, rechain estimated times of queued/file_transferred jobs in order
+    for (const printer of _printers) {
+      const queue = (printer.jobs || []).filter(
+        j => j.job_status === 'queued' || j.job_status === 'file_transferred'
+      ).sort((a, b) => (a.queue_position || 0) - (b.queue_position || 0));
+
+      if (!queue.length) continue;
+
+      // Find the earliest possible start: after any printing job's expected end, or now
+      let cursor = new Date();
+      const printing = (printer.jobs || []).find(j => j.job_status === 'printing');
+      if (printing) {
+        const endStr = printing.print_end_expected;
+        if (endStr && endStr !== 'null' && endStr !== 'None') {
+          const t = new Date(endStr.endsWith('Z') ? endStr : endStr + 'Z');
+          if (t > cursor) cursor = t;
+        }
+      }
+      // Round up to nearest 5 min
+      cursor = new Date(Math.ceil(cursor.getTime() / 300000) * 300000);
+
+      const updates = [];
+      for (const j of queue) {
+        const mins = j.ufp_print_time_minutes || 0;
+        if (!mins) continue; // skip jobs without duration info
+        const end = new Date(cursor.getTime() + mins * 60000);
+        updates.push({
+          job_id: j.job_id,
+          estimated_start: cursor.toISOString(),
+          estimated_end: end.toISOString(),
+        });
+        cursor = end;
+      }
+
+      if (updates.length) {
+        await apiFetch('/api/admin/jobs/reschedule', {
+          method: 'POST',
+          body: JSON.stringify({ jobs: updates }),
+        }).catch(() => {});
+      }
+    }
+    loadBoard(); // re-render with new times
   }
 
   // ── Helpers ───────────────────────────────────────────────

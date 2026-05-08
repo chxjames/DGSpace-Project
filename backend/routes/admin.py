@@ -456,6 +456,28 @@ def move_job_to_printer(job_id):
     }), 200
 
 
+@admin_bp.route('/api/admin/jobs/reschedule', methods=['POST'])
+def reschedule_printer_jobs():
+    """
+    Batch-update estimated_start / estimated_end for queued jobs on a printer.
+    Body: { jobs: [{ job_id, estimated_start, estimated_end }, ...] }
+    """
+    auth_header = request.headers.get('Authorization', '')
+    if not auth_header.startswith('Bearer '):
+        return jsonify({'success': False, 'message': 'No token provided'}), 401
+    payload = AuthService.verify_jwt_token(auth_header.split(' ')[1])
+    if not payload or payload.get('user_type') not in ('admin', 'student_staff'):
+        return jsonify({'success': False, 'message': 'Admin access required'}), 403
+
+    jobs = (request.json or {}).get('jobs', [])
+    for j in jobs:
+        db.execute_query(
+            "UPDATE print_jobs SET estimated_start = %s, estimated_end = %s WHERE job_id = %s",
+            (j.get('estimated_start'), j.get('estimated_end'), j['job_id'])
+        )
+    return jsonify({'success': True, 'updated': len(jobs)}), 200
+
+
 @admin_bp.route('/api/admin/jobs/<int:job_id>/status', methods=['PATCH'])
 def update_job_status(job_id):
     """
