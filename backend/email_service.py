@@ -166,7 +166,7 @@ class EmailService:
             return {'success': False, 'message': str(e)}
 
     @staticmethod
-    def send_print_completed_email(to_email, full_name, project_name, request_id):
+    def send_print_completed_email(to_email, full_name, project_name, request_id, service_type='3dprint'):
         """Send print completion notification email via Gmail API"""
         try:
             pickup_link = f"https://dgspace-project-production.up.railway.app/print-requests/{request_id}/"
@@ -189,13 +189,13 @@ class EmailService:
             <body>
                 <div class="container">
                     <div class="header">
-                        <h1>&#x1F5A8;&#xFE0F; Your Print is Ready!</h1>
+                        <h1>{'&#x2702;&#xFE0F; Your Cut is Ready!' if service_type == 'laser' else '&#x1F5A8;&#xFE0F; Your Print is Ready!'}</h1>
                     </div>
                     <div class="content">
                         <h2>Hi {full_name},</h2>
-                        <p>Great news! Your 3D print request has been completed and is ready for pickup.</p>
+                        <p>{'Great news! Your laser cutting request has been completed and is ready for pickup.' if service_type == 'laser' else 'Great news! Your 3D print request has been completed and is ready for pickup.'}</p>
                         <div class="project">&#x1F4E6; {project_name}</div>
-                        <p>Please come to the DGSpace lab to pick up your print. If you have any questions, feel free to contact the lab staff.(Do not reply to this email)</p>
+                        <p>Please come to the DGSpace lab to pick up your {'cut' if service_type == 'laser' else 'print'}. If you have any questions, feel free to contact the lab staff.(Do not reply to this email)</p>
                         <p style="text-align:center">
                             <a href="{pickup_link}" class="button">View Request Details</a>
                         </p>
@@ -209,7 +209,7 @@ class EmailService:
             """
             msg_id = _send_via_gmail_api(
                 to_email,
-                f"Your 3D Print is Ready - {project_name}",
+                f"{'Your Laser Cut is Ready' if service_type == 'laser' else 'Your 3D Print is Ready'} - {project_name}",
                 html_body,
             )
             print(f"[EMAIL] Print completed email sent to {to_email}, id={msg_id}")

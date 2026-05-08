@@ -510,7 +510,7 @@ class PrintService:
                 db.execute_query(complete_query, (request_id,))
                 # Fetch student info to send notification email
                 student_row = db.fetch_one(
-                    """SELECT pr.student_email, pr.project_name, s.full_name
+                    """SELECT pr.student_email, pr.project_name, pr.service_type, s.full_name
                        FROM print_requests pr
                        LEFT JOIN students s ON pr.student_email = s.email
                        WHERE pr.request_id = %s""",
@@ -522,6 +522,7 @@ class PrintService:
                         full_name=student_row.get('full_name') or student_row['student_email'],
                         project_name=student_row.get('project_name') or 'Your project',
                         request_id=request_id,
+                        service_type=student_row.get('service_type') or '3dprint',
                     )
             
             return {
