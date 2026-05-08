@@ -220,15 +220,21 @@ let _filter   = 'all'; // 'all' | '3dprint' | 'laser'
 
 async function loadStatus() {
   try {
-    const res  = await apiFetch('/api/printers/status');
-    const data = await res.json();
-    if (!data.success) { showAlert('Failed to load printer status.', 'error'); return; }
+    const res = await apiFetch('/api/printers/status');
+    let data;
+    try {
+      data = await res.json();
+    } catch (_) {
+      showAlert(`Server error (HTTP ${res.status}) — check Railway logs.`, 'error');
+      return;
+    }
+    if (!data.success) { showAlert('Failed to load: ' + (data.message || 'unknown error'), 'error'); return; }
     _printers = data.printers || [];
     renderGrid();
     document.getElementById('ps-updated').textContent =
       'Last updated: ' + new Date().toLocaleTimeString();
   } catch (e) {
-    showAlert('Network error — could not reach server.', 'error');
+    showAlert('Network error — could not reach server. (' + e.message + ')', 'error');
   }
 }
 
