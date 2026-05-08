@@ -1091,12 +1091,16 @@
 
       const body = {
         printer_id: targetPrinterId,
-        estimated_start: null,
-        estimated_end: (() => {
-          if (!req.ufp_print_time_minutes) return null;
-          return new Date(
-            Date.now() + req.ufp_print_time_minutes * 60000,
-          ).toISOString();
+        ...(() => {
+          if (!req.ufp_print_time_minutes) return { estimated_start: null, estimated_end: null };
+          const printer = _printers.find((p) => p.printer_id === targetPrinterId);
+          let start = calcPrinterQueueEnd(printer);
+          start = new Date(Math.ceil(start.getTime() / 300000) * 300000);
+          const end = new Date(start.getTime() + req.ufp_print_time_minutes * 60000);
+          return {
+            estimated_start: start.toISOString(),
+            estimated_end: end.toISOString(),
+          };
         })(),
         notes: null,
       };
@@ -1209,49 +1213,11 @@
       const selectedPrinterId =
         parseInt(sel.value) ||
         (compatPrinters[0] && compatPrinters[0].printer_id);
-      let startTime = new Date();
-      startTime.setMinutes(Math.ceil(startTime.getMinutes() / 15) * 15, 0, 0);
 
-      if (selectedPrinterId) {
-        const printer = _printers.find(
-          (p) => p.printer_id === selectedPrinterId,
-        );
-        const allJobs = printer && printer.jobs ? printer.jobs : [];
-
-        // Helper: resolve a job's end time from estimated_end, or estimated_start+duration, or print_end_expected
-        function resolveJobEnd(j) {
-          const endFields = [j.estimated_end, j.print_end_expected];
-          for (const s of endFields) {
-            if (s && s !== "null" && s !== "None" && s !== "undefined") {
-              const t = new Date(s.endsWith("Z") ? s : s + "Z");
-              if (!isNaN(t)) return t;
-            }
-          }
-          // Fallback: estimated_start + print duration
-          const startStr = j.estimated_start;
-          const mins = parseFloat(j.ufp_print_time_minutes || 0);
-          if (startStr && startStr !== "null" && mins > 0) {
-            const st = new Date(
-              startStr.endsWith("Z") ? startStr : startStr + "Z",
-            );
-            if (!isNaN(st)) return new Date(st.getTime() + mins * 60000);
-          }
-          return null;
-        }
-
-        let latestEnd = null;
-        allJobs.forEach(function (j) {
-          if (
-            j.job_status === "queued" ||
-            j.job_status === "file_transferred" ||
-            j.job_status === "printing"
-          ) {
-            const t = resolveJobEnd(j);
-            if (t && (!latestEnd || t > latestEnd)) latestEnd = t;
-          }
-        });
-        if (latestEnd && latestEnd > startTime) startTime = latestEnd;
-      }
+      const printer = _printers.find((p) => p.printer_id === selectedPrinterId);
+      let startTime = calcPrinterQueueEnd(printer);
+      // Round up to nearest 5 min
+      startTime = new Date(Math.ceil(startTime.getTime() / 300000) * 300000);
 
       const end = new Date(
         startTime.getTime() + r.ufp_print_time_minutes * 60000,
@@ -1462,6 +1428,48 @@
   }
 
   // ── Helpers ───────────────────────────────────────────────
+
+  /**
+   * Given a printer object from _printers, return the earliest time a new job
+   * can start — i.e. the latest end time across all active/queued jobs on that
+   * printer, or "now" if the queue is empty.
+   * Considers: printing (print_end_expected), queued/file_transferred
+   * (estimated_end, or estimated_start + ufp_print_time_minutes).
+   */
+  function calcPrinterQueueEnd(printer) {
+    let floor = new Date();
+    const jobs = (printer && printer.jobs) || [];
+    jobs.forEach(function (j) {
+      if (
+        j.job_status !== "queued" &&
+        j.job_status !== "file_transferred" &&
+        j.job_status !== "printing"
+      )
+        return;
+
+      // Try each end-time source in priority order
+      const candidates = [j.estimated_end, j.print_end_expected];
+      let end = null;
+      for (const s of candidates) {
+        if (s && s !== "null" && s !== "None" && s !== "undefined") {
+          const t = new Date(s.endsWith("Z") ? s : s + "Z");
+          if (!isNaN(t)) { end = t; break; }
+        }
+      }
+      // Fallback: estimated_start + duration
+      if (!end) {
+        const ss = j.estimated_start;
+        const mins = parseFloat(j.ufp_print_time_minutes || 0);
+        if (ss && ss !== "null" && mins > 0) {
+          const st = new Date(ss.endsWith("Z") ? ss : ss + "Z");
+          if (!isNaN(st)) end = new Date(st.getTime() + mins * 60000);
+        }
+      }
+      if (end && end > floor) floor = end;
+    });
+    return floor;
+  }
+
   function formatMinutes(m) {
     const h = Math.floor(m / 60),
       min = Math.round(m % 60);
