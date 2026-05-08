@@ -346,6 +346,77 @@ def delete_uploaded_3mf(filename: str):
         return jsonify({'success': False, 'message': 'Failed to delete file'}), 500
 
 
+# ==================== GCODE UPLOAD (Laser) ====================
+
+@print_bp.route('/api/print-requests/upload-gcode', methods=['POST'])
+def upload_gcode():
+    """Upload a .gcode file for a laser cutter job."""
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({'success': False, 'message': 'No token provided'}), 401
+
+    token = auth_header.split(' ')[1]
+    payload = AuthService.verify_jwt_token(token)
+    if not payload or payload.get('user_type') not in ('student', 'admin', 'student_staff'):
+        return jsonify({'success': False, 'message': 'Invalid token'}), 401
+
+    if 'file' not in request.files:
+        return jsonify({'success': False, 'message': 'No file provided'}), 400
+
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'success': False, 'message': 'No file selected'}), 400
+
+    original_name = file.filename
+    if not original_name.lower().endswith('.gcode'):
+        return jsonify({'success': False, 'message': 'Only .gcode files are allowed'}), 400
+
+    # Size limit: 50 MB
+    file.seek(0, 2)
+    size = file.tell()
+    file.seek(0)
+    if size > 50 * 1024 * 1024:
+        return jsonify({'success': False, 'message': 'File exceeds 50 MB limit'}), 400
+
+    saved_name = f"{uuid.uuid4().hex}.gcode"
+    save_path = os.path.join(current_app.config['UPLOAD_FOLDER'], saved_name)
+    file.save(save_path)
+
+    return jsonify({
+        'success': True,
+        'filename': saved_name,
+        'original_name': original_name,
+    }), 201
+
+
+@print_bp.route('/api/print-requests/upload-gcode/<filename>', methods=['DELETE'])
+def delete_uploaded_gcode(filename: str):
+    """Delete a previously uploaded G-code file."""
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({'success': False, 'message': 'No token provided'}), 401
+
+    token = auth_header.split(' ')[1]
+    payload = AuthService.verify_jwt_token(token)
+    if not payload or payload.get('user_type') not in ('student', 'admin', 'student_staff'):
+        return jsonify({'success': False, 'message': 'Invalid token'}), 401
+
+    safe_name      = os.path.basename(filename)
+    abs_upload_dir = os.path.abspath(current_app.config['UPLOAD_FOLDER'])
+    abs_file_path  = os.path.abspath(os.path.join(abs_upload_dir, safe_name))
+    if not abs_file_path.startswith(abs_upload_dir + os.sep):
+        return jsonify({'success': False, 'message': 'Invalid filename'}), 400
+
+    if not os.path.exists(abs_file_path):
+        return jsonify({'success': True, 'message': 'File already deleted'}), 200
+
+    try:
+        os.remove(abs_file_path)
+        return jsonify({'success': True, 'message': 'File deleted'}), 200
+    except OSError:
+        return jsonify({'success': False, 'message': 'Failed to delete file'}), 500
+
+
 @print_bp.route('/api/print-requests', methods=['POST'])
 def create_print_request():
     """Create a new 3D print request (Student / Student Staff)"""

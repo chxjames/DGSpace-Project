@@ -1280,6 +1280,80 @@ def admin_approve_with_ufp(request_id):
         return jsonify({'success': False, 'message': f'Database error: {str(e)}'}), 500
 
 
+@admin_bp.route('/api/admin/print-requests/<int:request_id>/approve-with-gcode', methods=['POST'])
+def admin_approve_with_gcode(request_id):
+    """Approve a laser cutter request and attach the G-code file (Admin only)."""
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({'success': False, 'message': 'No token provided'}), 401
+
+    token = auth_header.split(' ')[1]
+    payload = AuthService.verify_jwt_token(token)
+    if not payload or payload.get('user_type') not in ('admin', 'student_staff'):
+        return jsonify({'success': False, 'message': 'Admin access required'}), 403
+
+    data = request.json or {}
+    gcode_filename    = data.get('gcode_filename', '').strip()
+    gcode_original    = data.get('gcode_original_name', '').strip()
+    admin_notes       = data.get('admin_notes', '').strip()
+
+    if not gcode_filename:
+        return jsonify({'success': False, 'message': 'gcode_filename is required'}), 400
+
+    try:
+        rows = db.fetch_all(
+            "SELECT status FROM print_requests WHERE request_id = %s",
+            (request_id,)
+        )
+        if not rows:
+            return jsonify({'success': False, 'message': 'Print request not found'}), 404
+
+        current_status = rows[0]['status']
+        if current_status not in ('pending', 'revision_requested'):
+            return jsonify({
+                'success': False,
+                'message': f'Request cannot be approved from status: {current_status}'
+            }), 400
+
+        reviewer_email = payload['email'] if payload.get('user_type') == 'admin' else None
+
+        db.execute_query(
+            """UPDATE print_requests
+               SET status       = 'approved',
+                   ufp_file_path     = %s,
+                   ufp_original_name = %s,
+                   admin_notes       = %s,
+                   reviewed_by       = %s,
+                   reviewed_at       = NOW()
+               WHERE request_id = %s""",
+            (
+                gcode_filename,
+                gcode_original or None,
+                admin_notes or None,
+                reviewer_email,
+                request_id
+            )
+        )
+
+        db.execute_query(
+            """INSERT INTO print_request_history
+               (request_id, old_status, new_status, changed_by, change_reason)
+               VALUES (%s, %s, 'approved', %s, %s)""",
+            (
+                request_id,
+                current_status,
+                payload['email'],
+                f'Approved with G-code: {gcode_original or gcode_filename}'
+                + (f' | Notes: {admin_notes}' if admin_notes else '')
+            )
+        )
+
+        return jsonify({'success': True, 'message': 'Laser request approved with G-code'}), 200
+
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Database error: {str(e)}'}), 500
+
+
 @admin_bp.route('/api/admin/print-requests/statistics', methods=['GET'])
 def admin_get_statistics():
     """Get print request statistics (Admin / Student Staff)"""

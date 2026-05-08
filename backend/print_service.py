@@ -375,7 +375,8 @@ class PrintService:
                        pr.description, pr.material_type, pr.priority, pr.status,
                        pr.created_at, pr.reviewed_by, pr.reviewed_at, pr.deadline_date,
                        pr.slicer_time_minutes, pr.slicer_material_g,
-                       pr.ufp_print_time_minutes, pr.ufp_material_g
+                       pr.ufp_print_time_minutes, pr.ufp_material_g,
+                       pr.service_type
                 FROM print_requests pr
                 LEFT JOIN students s ON pr.student_email = s.email
                 LEFT JOIN admins a ON pr.student_email = a.email
@@ -429,6 +430,7 @@ class PrintService:
                         'slicer_material_g': float(row['slicer_material_g']) if row['slicer_material_g'] else None,
                         'ufp_print_time_minutes': float(row['ufp_print_time_minutes']) if row['ufp_print_time_minutes'] else None,
                         'ufp_material_g': float(row['ufp_material_g']) if row['ufp_material_g'] else None,
+                        'service_type': row['service_type'] or '3dprint',
                     })
             
             return {

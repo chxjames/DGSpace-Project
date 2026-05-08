@@ -637,6 +637,141 @@
             </div>
           </div>
 
+          <!-- Step 2 (Laser): Upload G-code file -->
+          <div
+            id="admin-laser-review-step2"
+            style="
+              display: flex;
+              align-items: flex-start;
+              gap: 12px;
+              margin-bottom: 16px;
+            "
+          >
+            <div
+              style="
+                width: 26px;
+                height: 26px;
+                background: #c62828;
+                color: #fff;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-weight: 700;
+                font-size: 0.85rem;
+                flex: 0 0 26px;
+              "
+            >
+              2
+            </div>
+            <div style="flex: 1">
+              <div
+                style="
+                  font-weight: 600;
+                  font-size: 0.9rem;
+                  color: #333;
+                  margin-bottom: 4px;
+                "
+              >
+                Upload the G-code file
+                <span style="font-weight: 400; color: #888; font-size: 0.82rem"
+                  >(.gcode)</span
+                >
+              </div>
+              <div style="font-size: 0.85rem; color: #666; margin-bottom: 8px">
+                If the design is ready to cut, upload the G-code file to
+                approve. Otherwise skip this step and send feedback below.
+              </div>
+
+              <!-- Drop zone -->
+              <div
+                id="gcode-dropzone"
+                style="
+                  border: 2px dashed #f48fb1;
+                  border-radius: 8px;
+                  padding: 24px;
+                  text-align: center;
+                  cursor: pointer;
+                  transition:
+                    border-color 0.2s,
+                    background 0.2s;
+                  background: #fff9f9;
+                "
+                ondragover="
+                  event.preventDefault();
+                  this.style.borderColor = '#c62828';
+                  this.style.background = '#fce4ec';
+                "
+                ondragleave="
+                  this.style.borderColor = '#f48fb1';
+                  this.style.background = '#fff9f9';
+                "
+                ondrop="
+                  event.preventDefault();
+                  this.style.borderColor = '#f48fb1';
+                  this.style.background = '#fff9f9';
+                  handleGcodeUpload(event.dataTransfer.files[0]);
+                "
+                onclick="document.getElementById('gcode-file-input').click()"
+              >
+                <div style="font-size: 1.5rem; margin-bottom: 6px">✂️</div>
+                <div style="font-size: 0.9rem; color: #555">
+                  Drop <strong>.gcode</strong> here or click to browse
+                </div>
+                <div style="font-size: 0.78rem; color: #999; margin-top: 4px">
+                  Max 50 MB
+                </div>
+              </div>
+              <input
+                id="gcode-file-input"
+                type="file"
+                accept=".gcode"
+                style="display: none"
+                onchange="handleGcodeUpload(this.files[0])"
+              />
+
+              <!-- Uploading indicator -->
+              <div
+                id="gcode-uploading"
+                style="
+                  display: none;
+                  margin-top: 10px;
+                  font-size: 0.88rem;
+                  color: #c62828;
+                  text-align: center;
+                "
+              >
+                ⏳ Uploading G-code…
+              </div>
+
+              <!-- Loaded card -->
+              <div
+                id="gcode-loaded-card"
+                style="
+                  display: none;
+                  margin-top: 10px;
+                  background: #fce4ec;
+                  border: 1px solid #f48fb1;
+                  border-radius: 8px;
+                  padding: 12px;
+                  font-size: 0.88rem;
+                  color: #333;
+                "
+              >
+                ✅ <strong id="gcode-loaded-name"></strong> ready
+                <a
+                  href="#"
+                  onclick="
+                    cancelGcodeUpload();
+                    return false;
+                  "
+                  style="margin-left: 12px; color: #c62828; font-size: 0.78rem"
+                  >✕ Remove</a
+                >
+              </div>
+            </div>
+          </div>
+
           <!-- Parsed data card (hidden until upload succeeds) -->
           <div id="ufp-parsed-card" style="display: none; margin-bottom: 16px">
             <div style="display: flex; align-items: flex-start; gap: 12px">
@@ -1583,12 +1718,14 @@
 
       if (r.status === "pending" || r.status === "revision_requested") {
         reviewPanel.style.display = "block";
-        fbBuildChips(); // render template chips for send-back
+        fbBuildChips(isLaser); // render template chips for send-back
 
         if (isLaser) {
-          // Laser review: just show a download link for the design file; hide 3D steps
+          // Laser review: show laser design download + gcode upload steps; hide 3D steps
           document.getElementById("admin-review-step1").style.display = "none";
           document.getElementById("admin-review-step2").style.display = "none";
+          const laserStep2 = document.getElementById("admin-laser-review-step2");
+          if (laserStep2) laserStep2.style.display = "flex";
           const laserReviewStep = document.getElementById(
             "admin-laser-review-step",
           );
@@ -1611,6 +1748,8 @@
           if (document.getElementById("admin-laser-review-step"))
             document.getElementById("admin-laser-review-step").style.display =
               "none";
+          const laserStep2 = document.getElementById("admin-laser-review-step2");
+          if (laserStep2) laserStep2.style.display = "none";
           document.getElementById("admin-review-step1").style.display = "";
           document.getElementById("admin-review-step2").style.display = "";
           const stlLink = document.getElementById("ufp-stl-link");
@@ -1783,6 +1922,8 @@
   window.adminSetStatus = adminSetStatus;
   window.adminSendBack = adminSendBack;
   window.handleUfpUpload = handleUfpUpload;
+  window.handleGcodeUpload = handleGcodeUpload;
+  window.cancelGcodeUpload = cancelGcodeUpload;
   window.adminApproveWithUfp = adminApproveWithUfp;
   window.cancelUfpUpload = cancelUfpUpload;
   window.fbToggleChip = fbToggleChip;
@@ -1846,16 +1987,66 @@
     },
   ];
 
+  const FB_TEMPLATES_LASER = [
+    {
+      id: "file-format",
+      icon: "📄",
+      label: "Unsupported file format",
+      text: "Unsupported file format — please re-upload as SVG, DXF, or PDF.",
+      fields: ["stl"],
+    },
+    {
+      id: "too-large",
+      icon: "📐",
+      label: "Design too large for bed",
+      text: "Design exceeds the laser cutter bed size — please scale down or split the design.",
+      fields: ["stl"],
+    },
+    {
+      id: "missing-dims",
+      icon: "📏",
+      label: "Missing dimensions / material info",
+      text: "Missing dimensions or material/thickness information — please add details to the description.",
+      fields: ["description"],
+    },
+    {
+      id: "complex-path",
+      icon: "⚠️",
+      label: "Path too complex / too detailed",
+      text: "Path is too complex or contains too much fine detail for laser cutting — please simplify and re-upload.",
+      fields: ["stl"],
+    },
+    {
+      id: "material-unavail",
+      icon: "🎨",
+      label: "Material/thickness unavailable",
+      text: "Requested material or thickness is currently unavailable — please choose an alternative.",
+      fields: ["material"],
+    },
+    {
+      id: "file-error",
+      icon: "🛠",
+      label: "File error / unreadable",
+      text: "The uploaded file could not be read or contains errors — please re-export and re-upload.",
+      fields: ["stl"],
+    },
+  ];
+
   // Active chip IDs set
   const _fbActive = new Set();
   // All fields that are currently unlocked for student
   let _fbUnlockedFields = new Set();
+  // Currently active template list (set by fbBuildChips)
+  let _activeTemplates = FB_TEMPLATES;
 
-  function fbBuildChips() {
+  function fbBuildChips(isLaser) {
     const container = document.getElementById("fb-chips");
     if (!container) return;
     container.innerHTML = "";
-    FB_TEMPLATES.forEach((t) => {
+    _fbActive.clear();
+    const templates = isLaser ? FB_TEMPLATES_LASER : FB_TEMPLATES;
+    _activeTemplates = templates;
+    templates.forEach((t) => {
       const btn = document.createElement("button");
       btn.type = "button";
       btn.id = `chip-${t.id}`;
@@ -1868,7 +2059,7 @@
   }
 
   function fbToggleChip(id) {
-    const t = FB_TEMPLATES.find((x) => x.id === id);
+    const t = _activeTemplates.find((x) => x.id === id);
     if (!t) return;
 
     if (_fbActive.has(id)) {
@@ -1887,7 +2078,7 @@
         btn.style.fontWeight = "600";
       }
     });
-    FB_TEMPLATES.forEach((x) => {
+    _activeTemplates.forEach((x) => {
       if (!_fbActive.has(x.id)) {
         const btn = document.getElementById(`chip-${x.id}`);
         if (btn) {
@@ -1904,9 +2095,9 @@
   }
 
   function fbRebuildTextarea() {
-    const lines = FB_TEMPLATES.filter((t) => _fbActive.has(t.id)).map(
-      (t) => `• ${t.text}`,
-    );
+    const lines = _activeTemplates
+      .filter((t) => _fbActive.has(t.id))
+      .map((t) => `• ${t.text}`);
     document.getElementById("admin-notes-input").value = lines.join("\n");
   }
 
@@ -1914,12 +2105,13 @@
   function fbSyncChipsFromTextarea() {
     // Only deactivate if the text no longer matches all active templates
     const current = document.getElementById("admin-notes-input").value;
-    const expected = FB_TEMPLATES.filter((t) => _fbActive.has(t.id))
+    const expected = _activeTemplates
+      .filter((t) => _fbActive.has(t.id))
       .map((t) => `• ${t.text}`)
       .join("\n");
     if (current !== expected) {
       _fbActive.clear();
-      FB_TEMPLATES.forEach((t) => {
+      _activeTemplates.forEach((t) => {
         const btn = document.getElementById(`chip-${t.id}`);
         if (btn) {
           btn.style.background = "#f8f9fa";
@@ -1935,7 +2127,7 @@
   function fbGetUnlockedFields() {
     const fields = new Set();
     _fbActive.forEach((id) => {
-      const t = FB_TEMPLATES.find((x) => x.id === id);
+      const t = _activeTemplates.find((x) => x.id === id);
       if (t) t.fields.forEach((f) => fields.add(f));
     });
     return fields;
@@ -1978,7 +2170,81 @@
     btn.style.cursor = "not-allowed";
   }
 
-  async function handleUfpUpload(file) {
+  // ── G-code upload (laser) ──────────────────────────────────
+  let _gcodeUploadResult = null;
+
+  function cancelGcodeUpload() {
+    _gcodeUploadResult = null;
+    document.getElementById("gcode-loaded-card").style.display = "none";
+    document.getElementById("gcode-dropzone").style.display = "block";
+    document.getElementById("gcode-file-input").value = "";
+    const btn = document.getElementById("btn-confirm-approve");
+    if (btn) {
+      btn.disabled = true;
+      btn.style.opacity = "0.55";
+      btn.style.cursor = "not-allowed";
+    }
+  }
+
+  async function handleGcodeUpload(file) {
+    if (!file) return;
+    if (!file.name.toLowerCase().endsWith(".gcode")) {
+      adminShowAlert("Please upload a <strong>.gcode</strong> file.");
+      return;
+    }
+
+    document.getElementById("gcode-uploading").style.display = "block";
+    document.getElementById("gcode-dropzone").style.display = "none";
+    document.getElementById("admin-alert-box").innerHTML = "";
+    document.getElementById("sendback-section").style.display = "none";
+    document.getElementById("approve-notes-section").style.display = "block";
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const token = window.getToken
+        ? window.getToken()
+        : localStorage.getItem("dg_token");
+      const res = await fetch("/api/print-requests/upload-gcode", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+      const data = await res.json();
+
+      document.getElementById("gcode-uploading").style.display = "none";
+
+      if (!data.success) {
+        document.getElementById("gcode-dropzone").style.display = "block";
+        document.getElementById("sendback-section").style.display = "block";
+        document.getElementById("approve-notes-section").style.display = "none";
+        adminShowAlert(data.message || "Failed to upload G-code file.");
+        return;
+      }
+
+      _gcodeUploadResult = {
+        filename: data.filename,
+        original_name: data.original_name,
+      };
+
+      document.getElementById("gcode-loaded-name").textContent =
+        data.original_name;
+      document.getElementById("gcode-loaded-card").style.display = "block";
+
+      const btn = document.getElementById("btn-confirm-approve");
+      if (btn) {
+        btn.disabled = false;
+        btn.style.opacity = "1";
+        btn.style.cursor = "pointer";
+      }
+    } catch (e) {
+      document.getElementById("gcode-uploading").style.display = "none";
+      document.getElementById("gcode-dropzone").style.display = "block";
+      document.getElementById("sendback-section").style.display = "block";
+      document.getElementById("approve-notes-section").style.display = "none";
+      adminShowAlert("Network error during upload.");
+    }
+  }
     if (!file) return;
     const nameLow = file.name.toLowerCase();
     const isUfp = nameLow.endsWith(".ufp");
@@ -2062,6 +2328,45 @@
   }
 
   async function adminApproveWithUfp() {
+    const isLaser = window._currentRequest && window._currentRequest.service_type === "laser";
+
+    // Laser path: use gcode upload result
+    if (isLaser) {
+      if (!_gcodeUploadResult) {
+        adminShowAlert("Please upload a G-code file first.");
+        return;
+      }
+      const btn = document.getElementById("btn-confirm-approve");
+      btn.disabled = true;
+      btn.textContent = "Approving…";
+      const body = {
+        gcode_filename: _gcodeUploadResult.filename,
+        gcode_original_name: _gcodeUploadResult.original_name,
+        admin_notes: document.getElementById("approve-notes-input").value.trim(),
+      };
+      try {
+        const res = await window.apiFetch(
+          `/api/admin/print-requests/${window._currentRequestId}/approve-with-gcode`,
+          { method: "POST", body: JSON.stringify(body) },
+        );
+        const data = await res.json();
+        if (data.success) {
+          adminShowAlert("✅ Laser request approved. Reloading…", "success");
+          setTimeout(() => location.reload(), 1200);
+        } else {
+          adminShowAlert(data.message || "Approval failed.");
+          btn.disabled = false;
+          btn.textContent = "✅ Confirm Approval";
+        }
+      } catch (e) {
+        adminShowAlert("Network error. Make sure the backend is running.");
+        btn.disabled = false;
+        btn.textContent = "✅ Confirm Approval";
+      }
+      return;
+    }
+
+    // 3D print path
     if (!_ufpUploadResult) {
       adminShowAlert("Please upload a UFP file first.");
       return;
