@@ -857,12 +857,20 @@ def admin_add_printer():
     if not name:
         return jsonify({'success': False, 'message': 'Printer name is required'}), 400
 
-    # Validate accepted_file_formats (at least one of: ufp, 3mf)
-    raw_formats = data.get('accepted_file_formats') or 'ufp'
-    valid_formats = {'ufp', '3mf'}
+    # Validate accepted_file_formats based on device type
+    dev_type = (data.get('device_type') or '3dprint').strip().lower()
+    if dev_type not in ('3dprint', 'laser'):
+        dev_type = '3dprint'
+    raw_formats = data.get('accepted_file_formats') or ''
+    if dev_type == 'laser':
+        valid_formats = {'svg', 'dxf', 'pdf'}
+        default_fmt = 'svg,dxf,pdf'
+    else:
+        valid_formats = {'ufp', '3mf'}
+        default_fmt = 'ufp'
     formats = [f.strip().lower() for f in str(raw_formats).split(',') if f.strip().lower() in valid_formats]
     if not formats:
-        return jsonify({'success': False, 'message': 'At least one file format (ufp or 3mf) must be selected'}), 400
+        formats = list(valid_formats) if dev_type == 'laser' else ['ufp']
     accepted_file_formats = ','.join(formats)
 
     existing = db.fetch_one("SELECT printer_id FROM printers WHERE printer_name = %s", (name,))
@@ -870,12 +878,13 @@ def admin_add_printer():
         return jsonify({'success': False, 'message': 'A printer with that name already exists'}), 409
 
     result = db.execute_query(
-        "INSERT INTO printers (printer_name, model, location, status, notes, accepted_file_formats) VALUES (%s, %s, %s, %s, %s, %s)",
+        "INSERT INTO printers (printer_name, model, location, status, notes, accepted_file_formats, device_type) VALUES (%s, %s, %s, %s, %s, %s, %s)",
         (name, (data.get('model') or '').strip() or None,
          (data.get('location') or '').strip() or None,
          data.get('status', 'active'),
          (data.get('notes') or '').strip() or None,
-         accepted_file_formats)
+         accepted_file_formats,
+         dev_type)
     )
     if result is not None:
         return jsonify({'success': True, 'message': 'Printer added', 'printer_id': result}), 201
@@ -903,15 +912,30 @@ def admin_update_printer(printer_id):
         if field in data:
             sets.append(f"{field} = %s")
             vals.append((data[field] or '').strip() or None)
-    # Handle accepted_file_formats separately (needs validation)
+    # Handle accepted_file_formats separately (needs validation based on device_type)
     if 'accepted_file_formats' in data:
-        valid_formats = {'ufp', '3mf'}
-        raw_formats = data.get('accepted_file_formats') or 'ufp'
+        # Determine device type — prefer explicit field, else look up from DB
+        req_dev_type = (data.get('device_type') or '').strip().lower()
+        if req_dev_type not in ('3dprint', 'laser'):
+            row = db.fetch_one("SELECT device_type FROM printers WHERE printer_id = %s", (printer_id,))
+            req_dev_type = ((row or {}).get('device_type') or '3dprint').lower() if row else '3dprint'
+        if req_dev_type == 'laser':
+            valid_formats = {'svg', 'dxf', 'pdf'}
+        else:
+            valid_formats = {'ufp', '3mf'}
+        raw_formats = data.get('accepted_file_formats') or ''
         formats = [f.strip().lower() for f in str(raw_formats).split(',') if f.strip().lower() in valid_formats]
         if not formats:
-            return jsonify({'success': False, 'message': 'At least one file format (ufp or 3mf) must be selected'}), 400
+            formats = ['svg', 'dxf', 'pdf'] if req_dev_type == 'laser' else ['ufp']
         sets.append("accepted_file_formats = %s")
         vals.append(','.join(formats))
+    # Handle device_type update
+    if 'device_type' in data:
+        dt = (data.get('device_type') or '3dprint').strip().lower()
+        if dt not in ('3dprint', 'laser'):
+            dt = '3dprint'
+        sets.append("device_type = %s")
+        vals.append(dt)
     if not sets:
         return jsonify({'success': False, 'message': 'Nothing to update'}), 400
 
