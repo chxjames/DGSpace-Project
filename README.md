@@ -128,9 +128,6 @@ All pages and API endpoints are served from the same Flask process on the same d
 | `student`       | Submit print/laser requests, track status                                |
 | `student_staff` | Student with lab staff access (can manage production board)              |
 | `admin`         | Review, approve, schedule, manage requests; full production board access |
-| `professor`     | View weekly reports                                                      |
-| `manager`       | View weekly reports + broader access                                     |
-| `super_admin`   | Full access, can manage other admins                                     |
 
 ---
 
