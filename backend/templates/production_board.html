@@ -1211,32 +1211,28 @@
       sel.innerHTML = `<option value="">— No compatible active printers${reqFmt ? " for ." + reqFmt : ""} —</option>`;
     }
 
-    // Pre-fill estimated times:
-    // If the selected printer already has jobs, start after the last job's estimated_end.
-    // Otherwise default to now (rounded to nearest 15 min).
-    if (r.ufp_print_time_minutes) {
-      const selectedPrinterId =
-        parseInt(sel.value) ||
-        (compatPrinters[0] && compatPrinters[0].printer_id);
+    // Update times when printer selection changes
+    sel.onchange = () => updateModalTimes(parseInt(sel.value));
 
-      const printer = _printers.find((p) => p.printer_id === selectedPrinterId);
-      let startTime = calcPrinterQueueEnd(printer);
-      // Round up to nearest 5 min
-      startTime = new Date(Math.ceil(startTime.getTime() / 300000) * 300000);
+    // Pre-fill estimated times for default selection
+    updateModalTimes(parseInt(sel.value) || (compatPrinters[0] && compatPrinters[0].printer_id));
 
-      const end = new Date(
-        startTime.getTime() + r.ufp_print_time_minutes * 60000,
-      );
-      document.getElementById("modal-est-start").value =
-        toDatetimeLocal(startTime);
-      document.getElementById("modal-est-end").value = toDatetimeLocal(end);
-    } else {
+    document.getElementById("modal-notes").value = "";
+    document.getElementById("assign-modal-bg").classList.add("open");
+  }
+
+  function updateModalTimes(printerId) {
+    if (!_selectedRts || !_selectedRts.ufp_print_time_minutes) {
       document.getElementById("modal-est-start").value = "";
       document.getElementById("modal-est-end").value = "";
+      return;
     }
-    document.getElementById("modal-notes").value = "";
-
-    document.getElementById("assign-modal-bg").classList.add("open");
+    const printer = _printers.find((p) => p.printer_id === printerId);
+    let startTime = calcPrinterQueueEnd(printer);
+    startTime = new Date(Math.ceil(startTime.getTime() / 300000) * 300000);
+    const end = new Date(startTime.getTime() + _selectedRts.ufp_print_time_minutes * 60000);
+    document.getElementById("modal-est-start").value = toDatetimeLocal(startTime);
+    document.getElementById("modal-est-end").value = toDatetimeLocal(end);
   }
 
   function closeModal() {
