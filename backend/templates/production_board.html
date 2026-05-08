@@ -1023,10 +1023,28 @@
   }
 
   // ── RTS card drag events ──────────────────────────────────
+  // ── Auto-scroll while dragging ────────────────────────────
+  let _autoScrollRaf = null;
+  function _startAutoScroll(e) {
+    const ZONE = 120, SPEED = 18;
+    const y = e.clientY, h = window.innerHeight;
+    if (_autoScrollRaf) cancelAnimationFrame(_autoScrollRaf);
+    function step() {
+      if (y < ZONE) window.scrollBy(0, -SPEED * (1 - y / ZONE));
+      else if (y > h - ZONE) window.scrollBy(0, SPEED * (1 - (h - y) / ZONE));
+      _autoScrollRaf = requestAnimationFrame(step);
+    }
+    _autoScrollRaf = requestAnimationFrame(step);
+  }
+  function _stopAutoScroll() {
+    if (_autoScrollRaf) { cancelAnimationFrame(_autoScrollRaf); _autoScrollRaf = null; }
+  }
+
   function rtsCardDragStart(event, requestId) {
     event.dataTransfer.setData("rts_id", String(requestId));
     event.dataTransfer.effectAllowed = "move";
     event.currentTarget.classList.add("dragging");
+    document.addEventListener("dragover", _startAutoScroll);
     // Determine file format of this request
     const req = _rts.find((r) => r.id === requestId);
     const fmt = req ? getReqFileFmt(req) : null;
@@ -1046,6 +1064,8 @@
 
   function rtsCardDragEnd(event) {
     event.currentTarget.classList.remove("dragging");
+    document.removeEventListener("dragover", _startAutoScroll);
+    _stopAutoScroll();
     document.querySelectorAll(".queue-drop-zone").forEach((dz) => {
       dz.classList.remove(
         "drag-over",
