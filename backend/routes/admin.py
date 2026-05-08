@@ -272,7 +272,7 @@ def get_printer_status():
     now = datetime.datetime.utcnow()
 
     printers = db.fetch_all(
-        "SELECT printer_id, printer_name, model, location, status, accepted_file_formats FROM printers ORDER BY printer_name"
+        "SELECT printer_id, printer_name, model, location, status, accepted_file_formats, COALESCE(device_type, '3dprint') AS device_type FROM printers ORDER BY printer_name"
     ) or []
 
     result = []
@@ -325,6 +325,7 @@ def get_printer_status():
             'model':              p['model'] or '',
             'location':           p['location'] or '',
             'hw_status':          printer_hw_status,
+            'device_type':        p['device_type'],
             'display_state':      display_state,      # 'printing'|'busy'|'idle'|'offline'
             'queued_count':       queued_count,
             'minutes_remaining':  minutes_remaining,  # None if not printing

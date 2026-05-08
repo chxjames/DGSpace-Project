@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Printer Status — DGSpace{% endblock %}
+{% block title %}Equipment Status — DGSpace{% endblock %}
 
 {% block content %}
 <style>
@@ -135,7 +135,39 @@
   50%       { opacity: 0.5; }
 }
 
-/* ── Empty / error state ──────────────────────────────── */
+/* ── Tab switcher ─────────────────────────────────────── */
+.ps-tabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.ps-tab {
+  padding: 6px 16px;
+  border-radius: 99px;
+  font-size: 0.83rem;
+  font-weight: 600;
+  border: 2px solid #e0e0e0;
+  background: #fff;
+  color: #555;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.ps-tab:hover { border-color: #aaa; color: #222; }
+.ps-tab.active { border-color: #1a1a2e; background: #1a1a2e; color: #fff; }
+
+/* ── Device badge ─────────────────────────────────────── */
+.ps-device-badge {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 99px;
+  margin-bottom: 8px;
+  background: #f0f4ff;
+  color: #3a3aaa;
+}
+.ps-device-badge.laser { background: #fff3e0; color: #e65100; }
+
 .ps-empty {
   text-align: center;
   color: #aaa;
@@ -146,12 +178,20 @@
 </style>
 
 <div class="ps-header">
-  <h1>🖨 Printer Status</h1>
+  <h1>🖨 Equipment Status</h1>
   <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
     <a href="/" style="font-size:0.85rem;color:#888;text-decoration:none;display:flex;align-items:center;gap:4px">
       ← Home
     </a>
     <span class="ps-last-updated" id="ps-updated">Loading…</span>
+  </div>
+</div>
+
+<div style="margin-bottom:18px">
+  <div class="ps-tabs">
+    <button class="ps-tab active" data-filter="all" onclick="setFilter('all')">All</button>
+    <button class="ps-tab" data-filter="3dprint" onclick="setFilter('3dprint')">🖨️ 3D Printers</button>
+    <button class="ps-tab" data-filter="laser" onclick="setFilter('laser')">✂️ Laser Cutters</button>
   </div>
 </div>
 
@@ -176,6 +216,7 @@
 
 // ── Data ─────────────────────────────────────────────────
 let _printers = [];   // current snapshot from API
+let _filter   = 'all'; // 'all' | '3dprint' | 'laser'
 
 async function loadStatus() {
   try {
@@ -191,14 +232,27 @@ async function loadStatus() {
   }
 }
 
+// ── Filter ───────────────────────────────────────────────
+function setFilter(f) {
+  _filter = f;
+  document.querySelectorAll('.ps-tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.filter === f);
+  });
+  renderGrid();
+}
+
 // ── Rendering ─────────────────────────────────────────────
 function renderGrid() {
   const grid = document.getElementById('ps-grid');
-  if (!_printers.length) {
-    grid.innerHTML = '<div class="ps-empty">No printers found.</div>';
+  let list = _printers;
+  if (_filter !== 'all') {
+    list = _printers.filter(p => (p.device_type || '3dprint') === _filter);
+  }
+  if (!list.length) {
+    grid.innerHTML = '<div class="ps-empty">No equipment found.</div>';
     return;
   }
-  grid.innerHTML = _printers.map(renderCard).join('');
+  grid.innerHTML = list.map(renderCard).join('');
 }
 
 function renderCard(p) {
@@ -206,14 +260,14 @@ function renderCard(p) {
 
   // Status pill
   const pillMeta = {
-    printing: { cls: 'pill-printing', icon: '🔵', label: 'Printing' },
+    printing: { cls: 'pill-printing', icon: '🔵', label: isLaser ? 'Cutting' : 'Printing' },
     busy:     { cls: 'pill-busy',     icon: '🟡', label: 'Busy — jobs queued' },
     idle:     { cls: 'pill-idle',     icon: '🟢', label: 'Idle' },
     offline:  { cls: 'pill-offline',  icon: '⚫', label: offlineLabel(p.hw_status) },
   };
   const pill = pillMeta[state] || pillMeta.offline;
 
-  // Countdown row — only when printing and we have an end time
+  // Countdown row — only when printing/cutting and we have an end time
   let countdownHtml = '';
   if (state === 'printing' && p.print_end_expected) {
     const endUtc = p.print_end_expected.includes('Z') || p.print_end_expected.includes('+')
@@ -225,7 +279,7 @@ function renderCard(p) {
         <span class="ps-countdown-val" id="psc-${p.printer_id}" data-end="${endUtc}">…</span>
       </div>`;
   } else if (state === 'printing') {
-    // Printing but no end time available
+    // Active but no end time available
     countdownHtml = `
       <div class="ps-countdown-row">
         <span>⏱ Est. remaining:</span>
@@ -234,19 +288,26 @@ function renderCard(p) {
   }
 
   // Queued jobs row
+  const jobWord = isLaser ? 'job' : 'job';
   let queueHtml = '';
   if (state === 'printing' && p.queued_count > 0) {
     queueHtml = `<div class="ps-queue-row">
-      + <span class="ps-queue-num">${p.queued_count}</span> job${p.queued_count > 1 ? 's' : ''} queued after this
+      + <span class="ps-queue-num">${p.queued_count}</span> ${jobWord}${p.queued_count > 1 ? 's' : ''} queued after this
     </div>`;
   } else if (state === 'busy') {
     queueHtml = `<div class="ps-queue-row">
-      <span class="ps-queue-num">${p.queued_count}</span> job${p.queued_count > 1 ? 's' : ''} waiting to print
+      <span class="ps-queue-num">${p.queued_count}</span> ${jobWord}${p.queued_count > 1 ? 's' : ''} waiting
     </div>`;
   }
 
+  const isLaser = (p.device_type || '3dprint') === 'laser';
+  const deviceBadge = isLaser
+    ? '<span class="ps-device-badge laser">✂️ Laser Cutter</span>'
+    : '<span class="ps-device-badge">🖨️ 3D Printer</span>';
+
   return `
     <div class="ps-card state-${state}">
+      ${deviceBadge}
       <div class="ps-card-name">${escHtml(p.printer_name)}</div>
       ${p.model ? `<div class="ps-card-model">${escHtml(p.model)}</div>` : ''}
       ${p.location ? `<div class="ps-card-location">${escHtml(p.location)}</div>` : ''}
