@@ -1271,7 +1271,10 @@
   function closeModal() {
     document.getElementById("assign-modal-bg").classList.remove("open");
     const btn = document.getElementById("modal-assign-btn");
-    if (btn) { btn.disabled = false; btn.textContent = "✅ Assign"; }
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = "✅ Assign";
+    }
     _selectedRts = null;
     renderRts();
   }
@@ -1311,6 +1314,9 @@
       );
       const data = await res.json();
       if (data.success) {
+        // Immediately remove from local list so it can't be re-assigned before loadBoard()
+        const assignedId = _selectedRts.id;
+        _rts = _rts.filter((r) => r.id !== assignedId);
         closeModal();
         showAlert(
           `✅ Assigned to printer — queue position #${data.queue_position}`,
