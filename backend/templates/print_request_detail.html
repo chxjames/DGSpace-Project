@@ -330,6 +330,29 @@
           >
             ⬇ Download Design File
           </a>
+          <button
+            id="laser-file-preview-btn"
+            onclick="openDesignPreview(
+              window._currentRequest && window._currentRequest.request_id,
+              window._currentRequest && window._currentRequest.stl_file_path,
+              window._currentRequest && (window._currentRequest.stl_original_name || window._currentRequest.stl_file_path)
+            )"
+            style="
+              display: inline-flex;
+              align-items: center;
+              gap: 6px;
+              font-size: 0.88rem;
+              color: #fff;
+              background: #e94560;
+              border: none;
+              padding: 6px 16px;
+              border-radius: 6px;
+              cursor: pointer;
+              margin-top: 6px;
+            "
+          >
+            👁 Preview
+          </button>
         </div>
       </div>
     </div>
@@ -450,6 +473,29 @@
               >
                 ⬇ Download Design File
               </a>
+              <button
+                id="laser-review-preview-btn"
+                onclick="openDesignPreview(
+                  window._currentRequest && window._currentRequest.request_id,
+                  window._currentRequest && window._currentRequest.stl_file_path,
+                  window._currentRequest && (window._currentRequest.stl_original_name || window._currentRequest.stl_file_path)
+                )"
+                style="
+                  display: inline-flex;
+                  align-items: center;
+                  gap: 5px;
+                  font-size: 0.85rem;
+                  color: #fff;
+                  background: #e94560;
+                  border: none;
+                  padding: 5px 12px;
+                  border-radius: 6px;
+                  cursor: pointer;
+                  margin-left: 6px;
+                "
+              >
+                👁 Preview
+              </button>
               <span
                 id="laser-review-no-file"
                 style="display: none; font-size: 0.85rem; color: #dc3545"
@@ -768,6 +814,22 @@
                   style="margin-left: 12px; color: #c62828; font-size: 0.78rem"
                   >✕ Remove</a
                 >
+                <!-- Estimated cut time (shown when G-code has a time comment) -->
+                <div
+                  id="gcode-estimated-time"
+                  style="
+                    display: none;
+                    margin-top: 8px;
+                    font-size: 0.83rem;
+                    color: #b71c1c;
+                    background: #fff3e0;
+                    border: 1px solid #ffcc02;
+                    border-radius: 6px;
+                    padding: 5px 10px;
+                  "
+                >
+                  ⏱ Estimated cut time: <strong id="gcode-time-value"></strong>
+                </div>
               </div>
             </div>
           </div>
@@ -1724,7 +1786,9 @@
           // Laser review: show laser design download + gcode upload steps; hide 3D steps
           document.getElementById("admin-review-step1").style.display = "none";
           document.getElementById("admin-review-step2").style.display = "none";
-          const laserStep2 = document.getElementById("admin-laser-review-step2");
+          const laserStep2 = document.getElementById(
+            "admin-laser-review-step2",
+          );
           if (laserStep2) laserStep2.style.display = "flex";
           const laserReviewStep = document.getElementById(
             "admin-laser-review-step",
@@ -1748,7 +1812,9 @@
           if (document.getElementById("admin-laser-review-step"))
             document.getElementById("admin-laser-review-step").style.display =
               "none";
-          const laserStep2 = document.getElementById("admin-laser-review-step2");
+          const laserStep2 = document.getElementById(
+            "admin-laser-review-step2",
+          );
           if (laserStep2) laserStep2.style.display = "none";
           document.getElementById("admin-review-step1").style.display = "";
           document.getElementById("admin-review-step2").style.display = "";
@@ -2231,6 +2297,18 @@
         data.original_name;
       document.getElementById("gcode-loaded-card").style.display = "block";
 
+      // Show estimated cut time if the G-code had a time comment
+      const etDiv = document.getElementById("gcode-estimated-time");
+      const etVal = document.getElementById("gcode-time-value");
+      if (etDiv && etVal) {
+        if (data.estimated_time) {
+          etVal.textContent = data.estimated_time;
+          etDiv.style.display = "block";
+        } else {
+          etDiv.style.display = "none";
+        }
+      }
+
       const btn = document.getElementById("btn-confirm-approve");
       if (btn) {
         btn.disabled = false;
@@ -2330,7 +2408,8 @@
   }
 
   async function adminApproveWithUfp() {
-    const isLaser = window._currentRequest && window._currentRequest.service_type === "laser";
+    const isLaser =
+      window._currentRequest && window._currentRequest.service_type === "laser";
 
     // Laser path: use gcode upload result
     if (isLaser) {
@@ -2344,7 +2423,9 @@
       const body = {
         gcode_filename: _gcodeUploadResult.filename,
         gcode_original_name: _gcodeUploadResult.original_name,
-        admin_notes: document.getElementById("approve-notes-input").value.trim(),
+        admin_notes: document
+          .getElementById("approve-notes-input")
+          .value.trim(),
       };
       try {
         const res = await window.apiFetch(
@@ -2709,6 +2790,154 @@
     }
   }
 
+  // ── Design File Preview ────────────────────────────────────────────────────
+  function openDesignPreview(reqId, storedFile, originalName) {
+    const modal = document.getElementById("design-preview-modal");
+    const container = document.getElementById("design-preview-container");
+    const title = document.getElementById("design-preview-title");
+    if (!modal) return;
+
+    const ext = (originalName || storedFile || "").split(".").pop().toLowerCase();
+    title.textContent = originalName || storedFile || "Design File";
+    modal.style.display = "flex";
+    container.innerHTML =
+      '<div style="color:#999;text-align:center;padding:40px">⏳ Loading preview…</div>';
+
+    const token = window.getToken
+      ? window.getToken()
+      : localStorage.getItem("dg_token");
+
+    if (ext === "svg") {
+      // Fetch SVG text and inject (avoids CORS and auth issues with img src)
+      fetch(`/api/uploads/${storedFile}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+        .then((r) => r.text())
+        .then((svg) => {
+          container.innerHTML = svg;
+          const svgEl = container.querySelector("svg");
+          if (svgEl) {
+            svgEl.style.maxWidth = "100%";
+            svgEl.style.maxHeight = "72vh";
+            svgEl.removeAttribute("width");
+            svgEl.removeAttribute("height");
+            svgEl.style.display = "block";
+            svgEl.style.margin = "0 auto";
+          }
+        })
+        .catch(() => {
+          container.innerHTML =
+            '<div style="color:#c00;text-align:center">Failed to load SVG.</div>';
+        });
+    } else if (ext === "dxf") {
+      fetch(`/api/print-requests/${reqId}/preview-design`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+        .then((r) => {
+          if (!r.ok) return r.json().then((d) => Promise.reject(d.message));
+          return r.text();
+        })
+        .then((svg) => {
+          container.innerHTML = svg;
+          const svgEl = container.querySelector("svg");
+          if (svgEl) {
+            svgEl.style.maxWidth = "100%";
+            svgEl.style.maxHeight = "72vh";
+            svgEl.removeAttribute("width");
+            svgEl.removeAttribute("height");
+            svgEl.style.display = "block";
+            svgEl.style.margin = "0 auto";
+          }
+        })
+        .catch((msg) => {
+          container.innerHTML = `<div style="color:#c00;text-align:center">Preview failed: ${msg || "unknown error"}</div>`;
+        });
+    } else if (ext === "pdf") {
+      container.innerHTML = `<embed src="/api/uploads/${storedFile}"
+        type="application/pdf"
+        style="width:100%;height:72vh;border:none">`;
+    } else {
+      container.innerHTML =
+        '<div style="color:#888;text-align:center">Preview not available for this file type.</div>';
+    }
+  }
+
+  function closeDesignPreview() {
+    const modal = document.getElementById("design-preview-modal");
+    if (modal) modal.style.display = "none";
+  }
+
   loadDetail();
 </script>
+
+<!-- ── Design File Preview Modal ──────────────────────────────────────────── -->
+<div
+  id="design-preview-modal"
+  style="
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.55);
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  "
+  onclick="if(event.target===this) closeDesignPreview()"
+>
+  <div
+    style="
+      background: #fff;
+      border-radius: 12px;
+      width: 100%;
+      max-width: 820px;
+      max-height: 90vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.25);
+    "
+  >
+    <!-- Modal header -->
+    <div
+      style="
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 18px;
+        border-bottom: 1px solid #eee;
+        flex-shrink: 0;
+      "
+    >
+      <span style="font-weight: 600; font-size: 0.95rem; color: #333">
+        👁 Preview — <span id="design-preview-title"></span>
+      </span>
+      <button
+        onclick="closeDesignPreview()"
+        style="
+          background: none;
+          border: none;
+          font-size: 1.3rem;
+          cursor: pointer;
+          color: #888;
+          line-height: 1;
+        "
+      >✕</button>
+    </div>
+    <!-- Modal body -->
+    <div
+      id="design-preview-container"
+      style="
+        overflow: auto;
+        padding: 20px;
+        flex: 1;
+        background: #f9f9f9;
+        display: flex;
+        align-items: flex-start;
+        justify-content: center;
+      "
+    ></div>
+  </div>
+</div>
+
 {% endblock %}

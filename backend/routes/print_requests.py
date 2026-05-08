@@ -1,6 +1,7 @@
 import os
+import re
 import uuid
-from flask import Blueprint, request, jsonify, send_from_directory, current_app
+from flask import Blueprint, request, jsonify, send_from_directory, current_app, Response
 from database import db
 from auth_service import AuthService
 from print_service import PrintService
@@ -8,6 +9,32 @@ from ufp_analysis import analyze_ufp
 from threemf_analysis import analyze_3mf
 
 print_bp = Blueprint('print_requests', __name__)
+
+
+# ── G-code estimated time parser ──────────────────────────────────────────────
+_GCODE_TIME_PATTERNS = [
+    re.compile(r';\s*Total estimated time[:\s]+(.+)', re.IGNORECASE),
+    re.compile(r';\s*estimated job time[:\s]+(.+)', re.IGNORECASE),
+    re.compile(r';\s*Estimated cutting time[:\s]+(.+)', re.IGNORECASE),
+    re.compile(r';\s*Job time[:\s]+(.+)', re.IGNORECASE),
+    re.compile(r';\s*Time[:\s]+(\d[\d:]+)', re.IGNORECASE),
+]
+
+def _parse_gcode_time(file_path: str):
+    """Scan the first 300 lines of a G-code file for LightBurn estimated-time comments."""
+    try:
+        with open(file_path, 'r', errors='ignore') as f:
+            for i, line in enumerate(f):
+                if i > 300:
+                    break
+                stripped = line.strip()
+                for pat in _GCODE_TIME_PATTERNS:
+                    m = pat.match(stripped)
+                    if m:
+                        return m.group(1).strip()
+    except Exception:
+        pass
+    return None
 
 
 # ==================== 3D PRINT REQUEST ENDPOINTS ====================
@@ -382,10 +409,13 @@ def upload_gcode():
     save_path = os.path.join(current_app.config['UPLOAD_FOLDER'], saved_name)
     file.save(save_path)
 
+    estimated_time = _parse_gcode_time(save_path)
+
     return jsonify({
         'success': True,
         'filename': saved_name,
         'original_name': original_name,
+        'estimated_time': estimated_time,
     }), 201
 
 
@@ -601,9 +631,80 @@ def get_request_history(request_id):
         if request_result['request']['student_email'] != payload['email']:
             return jsonify({'success': False, 'message': 'Unauthorized'}), 403
 
+
     result = PrintService.get_request_history(request_id)
 
     if result['success']:
         return jsonify(result), 200
     else:
         return jsonify(result), 400
+
+
+# ==================== DESIGN FILE PREVIEW ====================
+
+@print_bp.route('/api/print-requests/<int:request_id>/preview-design', methods=['GET'])
+def preview_design(request_id):
+    """Convert and return the design file as SVG/inline for preview.
+    - SVG  → served directly
+    - DXF  → converted to SVG via ezdxf
+    - PDF  → served as application/pdf (browser renders inline)
+    """
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({'success': False, 'message': 'No token provided'}), 401
+
+    token = auth_header.split(' ')[1]
+    payload = AuthService.verify_jwt_token(token)
+    if not payload:
+        return jsonify({'success': False, 'message': 'Invalid token'}), 401
+
+    row = db.fetch_one(
+        "SELECT stl_file_path, stl_original_name FROM print_requests WHERE request_id = %s",
+        (request_id,)
+    )
+    if not row or not row.get('stl_file_path'):
+        return jsonify({'success': False, 'message': 'No design file found'}), 404
+
+    stored_name   = row['stl_file_path']
+    original_name = row.get('stl_original_name') or stored_name
+    ext = original_name.rsplit('.', 1)[-1].lower() if '.' in original_name else ''
+
+    upload_dir = current_app.config['UPLOAD_FOLDER']
+    file_path  = os.path.join(upload_dir, stored_name)
+
+    if not os.path.exists(file_path):
+        return jsonify({'success': False, 'message': 'File not found on server'}), 404
+
+    if ext == 'svg':
+        return send_from_directory(upload_dir, stored_name, mimetype='image/svg+xml')
+
+    elif ext == 'pdf':
+        return send_from_directory(upload_dir, stored_name, mimetype='application/pdf')
+
+    elif ext == 'dxf':
+        try:
+            import ezdxf
+            from ezdxf.addons.drawing import RenderContext, Frontend
+            from ezdxf.addons.drawing.svg import SVGBackend
+
+            doc = ezdxf.readfile(file_path)
+            msp = doc.modelspace()
+            backend = SVGBackend()
+            ctx = RenderContext(doc)
+            frontend = Frontend(ctx, backend)
+            frontend.draw_layout(msp)
+
+            # ezdxf ≥ 1.0: get_xml_root() returns an ElementTree Element
+            try:
+                import xml.etree.ElementTree as ET
+                xml_root = backend.get_xml_root()
+                svg_string = ET.tostring(xml_root, encoding='unicode')
+            except AttributeError:
+                svg_string = backend.get_string()  # older API
+
+            return Response(svg_string, mimetype='image/svg+xml')
+        except Exception as exc:
+            return jsonify({'success': False, 'message': f'DXF preview failed: {exc}'}), 500
+
+    else:
+        return jsonify({'success': False, 'message': f'Preview not supported for .{ext} files'}), 415
