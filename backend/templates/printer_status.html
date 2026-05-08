@@ -1,197 +1,263 @@
-{% extends "base.html" %}
-{% block title %}Equipment Status — DGSpace{% endblock %}
-
-{% block content %}
+{% extends "base.html" %} {% block title %}Equipment Status — DGSpace{% endblock
+%} {% block content %}
 <style>
-/* ── Page header ──────────────────────────────────────── */
-.ps-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 24px;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-.ps-header h1 {
-  font-size: 1.4rem;
-  font-weight: 700;
-  color: #1a1a2e;
-  margin: 0;
-}
-.ps-last-updated {
-  font-size: 0.8rem;
-  color: #888;
-}
+  /* ── Page header ──────────────────────────────────────── */
+  .ps-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .ps-header h1 {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #1a1a2e;
+    margin: 0;
+  }
+  .ps-last-updated {
+    font-size: 0.8rem;
+    color: #888;
+  }
 
-/* ── Grid ─────────────────────────────────────────────── */
-.ps-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 18px;
-}
+  /* ── Grid ─────────────────────────────────────────────── */
+  .ps-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 18px;
+  }
 
-/* ── Printer card ─────────────────────────────────────── */
-.ps-card {
-  background: #fff;
-  border: 2px solid #e0e0e0;
-  border-radius: 14px;
-  padding: 20px 22px;
-  transition: box-shadow 0.15s, border-color 0.15s;
-  position: relative;
-  overflow: hidden;
-}
-.ps-card::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 4px;
-  border-radius: 14px 14px 0 0;
-}
-.ps-card.state-printing  { border-color: #b39ddb; }
-.ps-card.state-printing::before  { background: #7c4dff; }
-.ps-card.state-busy      { border-color: #ffe082; }
-.ps-card.state-busy::before      { background: #ffc107; }
-.ps-card.state-idle      { border-color: #a5d6a7; }
-.ps-card.state-idle::before      { background: #28a745; }
-.ps-card.state-offline   { border-color: #e0e0e0; opacity: 0.65; }
-.ps-card.state-offline::before   { background: #9e9e9e; }
+  /* ── Printer card ─────────────────────────────────────── */
+  .ps-card {
+    background: #fff;
+    border: 2px solid #e0e0e0;
+    border-radius: 14px;
+    padding: 20px 22px;
+    transition:
+      box-shadow 0.15s,
+      border-color 0.15s;
+    position: relative;
+    overflow: hidden;
+  }
+  .ps-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    border-radius: 14px 14px 0 0;
+  }
+  .ps-card.state-printing {
+    border-color: #b39ddb;
+  }
+  .ps-card.state-printing::before {
+    background: #7c4dff;
+  }
+  .ps-card.state-busy {
+    border-color: #ffe082;
+  }
+  .ps-card.state-busy::before {
+    background: #ffc107;
+  }
+  .ps-card.state-idle {
+    border-color: #a5d6a7;
+  }
+  .ps-card.state-idle::before {
+    background: #28a745;
+  }
+  .ps-card.state-offline {
+    border-color: #e0e0e0;
+    opacity: 0.65;
+  }
+  .ps-card.state-offline::before {
+    background: #9e9e9e;
+  }
 
-.ps-card:hover:not(.state-offline) {
-  box-shadow: 0 6px 20px rgba(0,0,0,0.10);
-}
+  .ps-card:hover:not(.state-offline) {
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+  }
 
-/* ── Card inner ───────────────────────────────────────── */
-.ps-card-name {
-  font-size: 1.05rem;
-  font-weight: 700;
-  color: #1a1a2e;
-  margin-bottom: 3px;
-}
-.ps-card-model {
-  font-size: 0.78rem;
-  color: #999;
-  margin-bottom: 12px;
-}
-.ps-card-location {
-  font-size: 0.78rem;
-  color: #777;
-  margin-bottom: 14px;
-}
-.ps-card-location::before { content: '📍 '; }
+  /* ── Card inner ───────────────────────────────────────── */
+  .ps-card-name {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #1a1a2e;
+    margin-bottom: 3px;
+  }
+  .ps-card-model {
+    font-size: 0.78rem;
+    color: #999;
+    margin-bottom: 12px;
+  }
+  .ps-card-location {
+    font-size: 0.78rem;
+    color: #777;
+    margin-bottom: 14px;
+  }
+  .ps-card-location::before {
+    content: "📍 ";
+  }
 
-/* ── Status pill ──────────────────────────────────────── */
-.ps-status-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 14px;
-  border-radius: 99px;
-  font-size: 0.82rem;
-  font-weight: 700;
-  margin-bottom: 14px;
-}
-.pill-printing { background: #ede7f6; color: #512da8; }
-.pill-busy     { background: #fff8e1; color: #e65100; }
-.pill-idle     { background: #e8f5e9; color: #1b5e20; }
-.pill-offline  { background: #f5f5f5; color: #757575; }
+  /* ── Status pill ──────────────────────────────────────── */
+  .ps-status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 14px;
+    border-radius: 99px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    margin-bottom: 14px;
+  }
+  .pill-printing {
+    background: #ede7f6;
+    color: #512da8;
+  }
+  .pill-busy {
+    background: #fff8e1;
+    color: #e65100;
+  }
+  .pill-idle {
+    background: #e8f5e9;
+    color: #1b5e20;
+  }
+  .pill-offline {
+    background: #f5f5f5;
+    color: #757575;
+  }
 
-/* ── Countdown ────────────────────────────────────────── */
-.ps-countdown-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.85rem;
-  color: #555;
-  margin-bottom: 10px;
-}
-.ps-countdown-val {
-  font-size: 1.15rem;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  color: #7c4dff;
-  min-width: 68px;
-}
-.ps-countdown-val.overdue { color: #e94560; }
+  /* ── Countdown ────────────────────────────────────────── */
+  .ps-countdown-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85rem;
+    color: #555;
+    margin-bottom: 10px;
+  }
+  .ps-countdown-val {
+    font-size: 1.15rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: #7c4dff;
+    min-width: 68px;
+  }
+  .ps-countdown-val.overdue {
+    color: #e94560;
+  }
 
-/* ── Queue badge ──────────────────────────────────────── */
-.ps-queue-row {
-  font-size: 0.82rem;
-  color: #888;
-}
-.ps-queue-num {
-  font-weight: 700;
-  color: #e65100;
-}
+  /* ── Queue badge ──────────────────────────────────────── */
+  .ps-queue-row {
+    font-size: 0.82rem;
+    color: #888;
+  }
+  .ps-queue-num {
+    font-weight: 700;
+    color: #e65100;
+  }
 
-/* ── Skeleton loading ─────────────────────────────────── */
-.ps-skeleton {
-  background: #f0f0f0;
-  border-radius: 14px;
-  height: 160px;
-  animation: skeletonPulse 1.2s ease-in-out infinite;
-}
-@keyframes skeletonPulse {
-  0%, 100% { opacity: 1; }
-  50%       { opacity: 0.5; }
-}
+  /* ── Skeleton loading ─────────────────────────────────── */
+  .ps-skeleton {
+    background: #f0f0f0;
+    border-radius: 14px;
+    height: 160px;
+    animation: skeletonPulse 1.2s ease-in-out infinite;
+  }
+  @keyframes skeletonPulse {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
+  }
 
-/* ── Tab switcher ─────────────────────────────────────── */
-.ps-tabs {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-.ps-tab {
-  padding: 6px 16px;
-  border-radius: 99px;
-  font-size: 0.83rem;
-  font-weight: 600;
-  border: 2px solid #e0e0e0;
-  background: #fff;
-  color: #555;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-.ps-tab:hover { border-color: #aaa; color: #222; }
-.ps-tab.active { border-color: #1a1a2e; background: #1a1a2e; color: #fff; }
+  /* ── Tab switcher ─────────────────────────────────────── */
+  .ps-tabs {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .ps-tab {
+    padding: 6px 16px;
+    border-radius: 99px;
+    font-size: 0.83rem;
+    font-weight: 600;
+    border: 2px solid #e0e0e0;
+    background: #fff;
+    color: #555;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .ps-tab:hover {
+    border-color: #aaa;
+    color: #222;
+  }
+  .ps-tab.active {
+    border-color: #1a1a2e;
+    background: #1a1a2e;
+    color: #fff;
+  }
 
-/* ── Device badge ─────────────────────────────────────── */
-.ps-device-badge {
-  display: inline-block;
-  font-size: 0.72rem;
-  font-weight: 600;
-  padding: 2px 8px;
-  border-radius: 99px;
-  margin-bottom: 8px;
-  background: #f0f4ff;
-  color: #3a3aaa;
-}
-.ps-device-badge.laser { background: #fff3e0; color: #e65100; }
+  /* ── Device badge ─────────────────────────────────────── */
+  .ps-device-badge {
+    display: inline-block;
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 99px;
+    margin-bottom: 8px;
+    background: #f0f4ff;
+    color: #3a3aaa;
+  }
+  .ps-device-badge.laser {
+    background: #fff3e0;
+    color: #e65100;
+  }
 
-.ps-empty {
-  text-align: center;
-  color: #aaa;
-  padding: 60px 20px;
-  font-size: 0.95rem;
-  grid-column: 1 / -1;
-}
+  .ps-empty {
+    text-align: center;
+    color: #aaa;
+    padding: 60px 20px;
+    font-size: 0.95rem;
+    grid-column: 1 / -1;
+  }
 </style>
 
 <div class="ps-header">
   <h1>🖨 Equipment Status</h1>
-  <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
-    <a href="/" style="font-size:0.85rem;color:#888;text-decoration:none;display:flex;align-items:center;gap:4px">
+  <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap">
+    <a
+      href="/"
+      style="
+        font-size: 0.85rem;
+        color: #888;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      "
+    >
       ← Home
     </a>
     <span class="ps-last-updated" id="ps-updated">Loading…</span>
   </div>
 </div>
 
-<div style="margin-bottom:18px">
+<div style="margin-bottom: 18px">
   <div class="ps-tabs">
-    <button class="ps-tab active" data-filter="all" onclick="setFilter('all')">All</button>
-    <button class="ps-tab" data-filter="3dprint" onclick="setFilter('3dprint')">🖨️ 3D Printers</button>
-    <button class="ps-tab" data-filter="laser" onclick="setFilter('laser')">✂️ Laser Cutters</button>
+    <button class="ps-tab active" data-filter="all" onclick="setFilter('all')">
+      All
+    </button>
+    <button class="ps-tab" data-filter="3dprint" onclick="setFilter('3dprint')">
+      🖨️ 3D Printers
+    </button>
+    <button class="ps-tab" data-filter="laser" onclick="setFilter('laser')">
+      ✂️ Laser Cutters
+    </button>
   </div>
 </div>
 
@@ -205,167 +271,201 @@
 </div>
 
 <script>
-(function init() {
-  const user = getUser();
-  if (!user) { location.href = '/login'; return; }
-
-  loadStatus();
-  setInterval(loadStatus, 30000);   // refresh every 30 s
-  setInterval(tickCountdowns, 1000); // update countdowns every second
-})();
-
-// ── Data ─────────────────────────────────────────────────
-let _printers = [];   // current snapshot from API
-let _filter   = 'all'; // 'all' | '3dprint' | 'laser'
-
-async function loadStatus() {
-  try {
-    const res = await apiFetch('/api/printers/status');
-    let data;
-    try {
-      data = await res.json();
-    } catch (_) {
-      showAlert(`Server error (HTTP ${res.status}) — check Railway logs.`, 'error');
+  (function init() {
+    const user = getUser();
+    if (!user) {
+      location.href = "/login";
       return;
     }
-    if (!data.success) { showAlert('Failed to load: ' + (data.message || 'unknown error'), 'error'); return; }
-    _printers = data.printers || [];
+
+    loadStatus();
+    setInterval(loadStatus, 30000); // refresh every 30 s
+    setInterval(tickCountdowns, 1000); // update countdowns every second
+  })();
+
+  // ── Data ─────────────────────────────────────────────────
+  let _printers = []; // current snapshot from API
+  let _filter = "all"; // 'all' | '3dprint' | 'laser'
+
+  async function loadStatus() {
+    try {
+      const res = await apiFetch("/api/printers/status");
+      let data;
+      try {
+        data = await res.json();
+      } catch (_) {
+        showAlert(
+          `Server error (HTTP ${res.status}) — check Railway logs.`,
+          "error",
+        );
+        return;
+      }
+      if (!data.success) {
+        showAlert(
+          "Failed to load: " + (data.message || "unknown error"),
+          "error",
+        );
+        return;
+      }
+      _printers = data.printers || [];
+      renderGrid();
+      document.getElementById("ps-updated").textContent =
+        "Last updated: " + new Date().toLocaleTimeString();
+    } catch (e) {
+      showAlert(
+        "Network error — could not reach server. (" + e.message + ")",
+        "error",
+      );
+    }
+  }
+
+  // ── Filter ───────────────────────────────────────────────
+  function setFilter(f) {
+    _filter = f;
+    document.querySelectorAll(".ps-tab").forEach((t) => {
+      t.classList.toggle("active", t.dataset.filter === f);
+    });
     renderGrid();
-    document.getElementById('ps-updated').textContent =
-      'Last updated: ' + new Date().toLocaleTimeString();
-  } catch (e) {
-    showAlert('Network error — could not reach server. (' + e.message + ')', 'error');
   }
-}
 
-// ── Filter ───────────────────────────────────────────────
-function setFilter(f) {
-  _filter = f;
-  document.querySelectorAll('.ps-tab').forEach(t => {
-    t.classList.toggle('active', t.dataset.filter === f);
-  });
-  renderGrid();
-}
-
-// ── Rendering ─────────────────────────────────────────────
-function renderGrid() {
-  const grid = document.getElementById('ps-grid');
-  let list = _printers;
-  if (_filter !== 'all') {
-    list = _printers.filter(p => (p.device_type || '3dprint') === _filter);
+  // ── Rendering ─────────────────────────────────────────────
+  function renderGrid() {
+    const grid = document.getElementById("ps-grid");
+    let list = _printers;
+    if (_filter !== "all") {
+      list = _printers.filter((p) => (p.device_type || "3dprint") === _filter);
+    }
+    if (!list.length) {
+      grid.innerHTML = '<div class="ps-empty">No equipment found.</div>';
+      return;
+    }
+    grid.innerHTML = list.map(renderCard).join("");
   }
-  if (!list.length) {
-    grid.innerHTML = '<div class="ps-empty">No equipment found.</div>';
-    return;
-  }
-  grid.innerHTML = list.map(renderCard).join('');
-}
 
-function renderCard(p) {
-  const state = p.display_state;   // 'printing'|'busy'|'idle'|'offline'
+  function renderCard(p) {
+    const state = p.display_state; // 'printing'|'busy'|'idle'|'offline'
+    const isLaser = (p.device_type || "3dprint") === "laser";
 
-  // Status pill
-  const pillMeta = {
-    printing: { cls: 'pill-printing', icon: '🔵', label: isLaser ? 'Cutting' : 'Printing' },
-    busy:     { cls: 'pill-busy',     icon: '🟡', label: 'Busy — jobs queued' },
-    idle:     { cls: 'pill-idle',     icon: '🟢', label: 'Idle' },
-    offline:  { cls: 'pill-offline',  icon: '⚫', label: offlineLabel(p.hw_status) },
-  };
-  const pill = pillMeta[state] || pillMeta.offline;
+    // Status pill
+    const pillMeta = {
+      printing: {
+        cls: "pill-printing",
+        icon: "🔵",
+        label: isLaser ? "Cutting" : "Printing",
+      },
+      busy: { cls: "pill-busy", icon: "🟡", label: "Busy — jobs queued" },
+      idle: { cls: "pill-idle", icon: "🟢", label: "Idle" },
+      offline: {
+        cls: "pill-offline",
+        icon: "⚫",
+        label: offlineLabel(p.hw_status),
+      },
+    };
+    const pill = pillMeta[state] || pillMeta.offline;
 
-  // Countdown row — only when printing/cutting and we have an end time
-  let countdownHtml = '';
-  if (state === 'printing' && p.print_end_expected) {
-    const endUtc = p.print_end_expected.includes('Z') || p.print_end_expected.includes('+')
-      ? p.print_end_expected
-      : p.print_end_expected.replace(' ', 'T') + 'Z';
-    countdownHtml = `
+    // Countdown row — only when printing/cutting and we have an end time
+    let countdownHtml = "";
+    if (state === "printing" && p.print_end_expected) {
+      const endUtc =
+        p.print_end_expected.includes("Z") || p.print_end_expected.includes("+")
+          ? p.print_end_expected
+          : p.print_end_expected.replace(" ", "T") + "Z";
+      countdownHtml = `
       <div class="ps-countdown-row">
         <span>⏱ Est. remaining:</span>
         <span class="ps-countdown-val" id="psc-${p.printer_id}" data-end="${endUtc}">…</span>
       </div>`;
-  } else if (state === 'printing') {
-    // Active but no end time available
-    countdownHtml = `
+    } else if (state === "printing") {
+      // Active but no end time available
+      countdownHtml = `
       <div class="ps-countdown-row">
         <span>⏱ Est. remaining:</span>
         <span class="ps-countdown-val">—</span>
       </div>`;
-  }
+    }
 
-  // Queued jobs row
-  const jobWord = isLaser ? 'job' : 'job';
-  let queueHtml = '';
-  if (state === 'printing' && p.queued_count > 0) {
-    queueHtml = `<div class="ps-queue-row">
-      + <span class="ps-queue-num">${p.queued_count}</span> ${jobWord}${p.queued_count > 1 ? 's' : ''} queued after this
+    // Queued jobs row
+    const jobWord = "job";
+    let queueHtml = "";
+    if (state === "printing" && p.queued_count > 0) {
+      queueHtml = `<div class="ps-queue-row">
+      + <span class="ps-queue-num">${p.queued_count}</span> ${jobWord}${p.queued_count > 1 ? "s" : ""} queued after this
     </div>`;
-  } else if (state === 'busy') {
-    queueHtml = `<div class="ps-queue-row">
-      <span class="ps-queue-num">${p.queued_count}</span> ${jobWord}${p.queued_count > 1 ? 's' : ''} waiting
+    } else if (state === "busy") {
+      queueHtml = `<div class="ps-queue-row">
+      <span class="ps-queue-num">${p.queued_count}</span> ${jobWord}${p.queued_count > 1 ? "s" : ""} waiting
     </div>`;
-  }
+    }
 
-  const isLaser = (p.device_type || '3dprint') === 'laser';
-  const deviceBadge = isLaser
-    ? '<span class="ps-device-badge laser">✂️ Laser Cutter</span>'
-    : '<span class="ps-device-badge">🖨️ 3D Printer</span>';
+    const deviceBadge = isLaser
+      ? '<span class="ps-device-badge laser">✂️ Laser Cutter</span>'
+      : '<span class="ps-device-badge">🖨️ 3D Printer</span>';
 
-  return `
+    return `
     <div class="ps-card state-${state}">
       ${deviceBadge}
       <div class="ps-card-name">${escHtml(p.printer_name)}</div>
-      ${p.model ? `<div class="ps-card-model">${escHtml(p.model)}</div>` : ''}
-      ${p.location ? `<div class="ps-card-location">${escHtml(p.location)}</div>` : ''}
+      ${p.model ? `<div class="ps-card-model">${escHtml(p.model)}</div>` : ""}
+      ${p.location ? `<div class="ps-card-location">${escHtml(p.location)}</div>` : ""}
       <div class="ps-status-pill ${pill.cls}">${pill.icon} ${pill.label}</div>
       ${countdownHtml}
       ${queueHtml}
     </div>`;
-}
+  }
 
-function offlineLabel(hwStatus) {
-  if (hwStatus === 'maintenance') return 'Maintenance';
-  return 'Offline';
-}
+  function offlineLabel(hwStatus) {
+    if (hwStatus === "maintenance") return "Maintenance";
+    return "Offline";
+  }
 
-// ── Live countdown ticker ────────────────────────────────
-function tickCountdowns() {
-  const now = Date.now();
-  document.querySelectorAll('[id^="psc-"]').forEach(el => {
-    const endMs = new Date(el.dataset.end).getTime();
-    if (isNaN(endMs)) { el.textContent = '—'; return; }
-    const diffSec = Math.round((endMs - now) / 1000);
-    if (diffSec <= 0) {
-      el.textContent = 'Done!';
-      el.classList.add('overdue');
-    } else {
-      el.classList.remove('overdue');
-      el.textContent = fmtTime(diffSec);
-    }
-  });
-}
+  // ── Live countdown ticker ────────────────────────────────
+  function tickCountdowns() {
+    const now = Date.now();
+    document.querySelectorAll('[id^="psc-"]').forEach((el) => {
+      const endMs = new Date(el.dataset.end).getTime();
+      if (isNaN(endMs)) {
+        el.textContent = "—";
+        return;
+      }
+      const diffSec = Math.round((endMs - now) / 1000);
+      if (diffSec <= 0) {
+        el.textContent = "Done!";
+        el.classList.add("overdue");
+      } else {
+        el.classList.remove("overdue");
+        el.textContent = fmtTime(diffSec);
+      }
+    });
+  }
 
-function fmtTime(totalSec) {
-  const h   = Math.floor(totalSec / 3600);
-  const m   = Math.floor((totalSec % 3600) / 60);
-  const s   = totalSec % 60;
-  const pad = n => String(n).padStart(2, '0');
-  return h > 0
-    ? `${h}h ${pad(m)}m`
-    : totalSec >= 60
-      ? `${m}m ${pad(s)}s`
-      : `${s}s`;
-}
+  function fmtTime(totalSec) {
+    const h = Math.floor(totalSec / 3600);
+    const m = Math.floor((totalSec % 3600) / 60);
+    const s = totalSec % 60;
+    const pad = (n) => String(n).padStart(2, "0");
+    return h > 0
+      ? `${h}h ${pad(m)}m`
+      : totalSec >= 60
+        ? `${m}m ${pad(s)}s`
+        : `${s}s`;
+  }
 
-// ── Helpers ──────────────────────────────────────────────
-function escHtml(s) {
-  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
+  // ── Helpers ──────────────────────────────────────────────
+  function escHtml(s) {
+    return String(s || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
 
-function showAlert(msg, type) {
-  const el = document.getElementById('ps-alert');
-  el.innerHTML = `<div class="alert alert-${type === 'success' ? 'success' : 'error'}">${msg}</div>`;
-  if (type === 'success') setTimeout(() => { el.innerHTML = ''; }, 4000);
-}
+  function showAlert(msg, type) {
+    const el = document.getElementById("ps-alert");
+    el.innerHTML = `<div class="alert alert-${type === "success" ? "success" : "error"}">${msg}</div>`;
+    if (type === "success")
+      setTimeout(() => {
+        el.innerHTML = "";
+      }, 4000);
+  }
 </script>
 {% endblock %}
