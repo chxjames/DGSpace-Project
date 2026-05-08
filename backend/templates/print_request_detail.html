@@ -771,16 +771,16 @@
               >
                 <div style="font-size: 1.5rem; margin-bottom: 6px">✂️</div>
                 <div style="font-size: 0.9rem; color: #555">
-                  Drop <strong>.gcode</strong> here or click to browse
+                  Drop <strong>.gcode</strong> or <strong>.nc</strong> here or click to browse
                 </div>
                 <div style="font-size: 0.78rem; color: #999; margin-top: 4px">
-                  Max 50 MB
+                  Supported: .gcode .nc .ngc .cnc .tap &nbsp;·&nbsp; Max 50 MB
                 </div>
               </div>
               <input
                 id="gcode-file-input"
                 type="file"
-                accept=".gcode"
+                accept=".gcode,.nc,.ngc,.cnc,.tap"
                 style="display: none"
                 onchange="handleGcodeUpload(this.files[0])"
               />
@@ -2265,8 +2265,12 @@
 
   async function handleGcodeUpload(file) {
     if (!file) return;
-    if (!file.name.toLowerCase().endsWith(".gcode")) {
-      adminShowAlert("Please upload a <strong>.gcode</strong> file.");
+    const _allowedCncExts = [".gcode", ".nc", ".ngc", ".cnc", ".tap"];
+    const _fileExt = file.name.toLowerCase().match(/\.[^.]+$/)?.[0] || "";
+    if (!_allowedCncExts.includes(_fileExt)) {
+      adminShowAlert(
+        "Please upload a CNC/G-code file: <strong>.gcode .nc .ngc .cnc .tap</strong>",
+      );
       return;
     }
 

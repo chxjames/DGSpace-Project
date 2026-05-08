@@ -11,21 +11,31 @@ from threemf_analysis import analyze_3mf
 print_bp = Blueprint('print_requests', __name__)
 
 
-# ── G-code estimated time parser ──────────────────────────────────────────────
+# ── G-code / NC estimated time parser ────────────────────────────────────────
 _GCODE_TIME_PATTERNS = [
-    re.compile(r';\s*Total estimated time[:\s]+(.+)', re.IGNORECASE),
-    re.compile(r';\s*estimated job time[:\s]+(.+)', re.IGNORECASE),
-    re.compile(r';\s*Estimated cutting time[:\s]+(.+)', re.IGNORECASE),
-    re.compile(r';\s*Job time[:\s]+(.+)', re.IGNORECASE),
-    re.compile(r';\s*Time[:\s]+(\d[\d:]+)', re.IGNORECASE),
+    # LightBurn
+    re.compile(r';\s*Total estimated time[:\s]+(.+)',    re.IGNORECASE),
+    re.compile(r';\s*estimated job time[:\s]+(.+)',      re.IGNORECASE),
+    re.compile(r';\s*Estimated cutting time[:\s]+(.+)',  re.IGNORECASE),
+    re.compile(r';\s*Job time[:\s]+(.+)',                re.IGNORECASE),
+    # LaserGRBL / generic
+    re.compile(r';\s*Time[:\s]+(\d[\d:hms ]+)',         re.IGNORECASE),
+    re.compile(r';\s*Cut time[:\s]+(.+)',                re.IGNORECASE),
+    # Fusion 360 / Mach3 NC  (parenthesis-style comments)
+    re.compile(r'\(\s*(?:estimated\s+)?(?:cutting\s+)?(?:machining\s+)?time[:\s]+([^)]+)\)', re.IGNORECASE),
+    re.compile(r'\(\s*cycle\s+time[:\s]+([^)]+)\)',     re.IGNORECASE),
+    # RDWorks NC export
+    re.compile(r'%\s*time[:\s]+(.+)',                   re.IGNORECASE),
 ]
 
+_ALLOWED_CNC_EXTS = {'.gcode', '.nc', '.ngc', '.cnc', '.tap'}
+
 def _parse_gcode_time(file_path: str):
-    """Scan the first 300 lines of a G-code file for LightBurn estimated-time comments."""
+    """Scan the first 400 lines of a G-code/.nc file for estimated-time comments."""
     try:
         with open(file_path, 'r', errors='ignore') as f:
             for i, line in enumerate(f):
-                if i > 300:
+                if i > 400:
                     break
                 stripped = line.strip()
                 for pat in _GCODE_TIME_PATTERNS:
@@ -395,8 +405,12 @@ def upload_gcode():
         return jsonify({'success': False, 'message': 'No file selected'}), 400
 
     original_name = file.filename
-    if not original_name.lower().endswith('.gcode'):
-        return jsonify({'success': False, 'message': 'Only .gcode files are allowed'}), 400
+    file_ext = os.path.splitext(original_name.lower())[1] if original_name else ''
+    if file_ext not in _ALLOWED_CNC_EXTS:
+        return jsonify({
+            'success': False,
+            'message': f'Only {", ".join(sorted(_ALLOWED_CNC_EXTS))} files are allowed'
+        }), 400
 
     # Size limit: 50 MB
     file.seek(0, 2)
@@ -405,7 +419,8 @@ def upload_gcode():
     if size > 50 * 1024 * 1024:
         return jsonify({'success': False, 'message': 'File exceeds 50 MB limit'}), 400
 
-    saved_name = f"{uuid.uuid4().hex}.gcode"
+    # Keep original extension when saving
+    saved_name = f"{uuid.uuid4().hex}{file_ext}"
     save_path = os.path.join(current_app.config['UPLOAD_FOLDER'], saved_name)
     file.save(save_path)
 
@@ -686,19 +701,30 @@ def preview_design(request_id):
             import ezdxf
             from ezdxf.addons.drawing import RenderContext, Frontend
             from ezdxf.addons.drawing.svg import SVGBackend
-            from ezdxf.addons.drawing.config import Configuration, TextPolicy
 
             doc = ezdxf.readfile(file_path)
             msp = doc.modelspace()
             backend = SVGBackend()
             ctx = RenderContext(doc)
 
-            # Use SUBSTITUTE so text is replaced with placeholder boxes instead
-            # of requiring system fonts (Railway has none)
-            config = Configuration.defaults().with_changes(
-                text_policy=TextPolicy.SUBSTITUTE
-            )
-            frontend = Frontend(ctx, backend, config=config)
+            # Try to configure text policy to avoid font dependency.
+            # Different ezdxf versions expose different policy names.
+            try:
+                from ezdxf.addons.drawing.config import Configuration, TextPolicy
+                # Try IGNORE first (skip text entirely — no fonts needed)
+                for policy_name in ('IGNORE', 'SUBSTITUTE', 'REPLACE', 'FILLING'):
+                    policy = getattr(TextPolicy, policy_name, None)
+                    if policy is not None:
+                        config = Configuration.defaults().with_changes(
+                            text_policy=policy
+                        )
+                        frontend = Frontend(ctx, backend, config=config)
+                        break
+                else:
+                    frontend = Frontend(ctx, backend)
+            except Exception:
+                frontend = Frontend(ctx, backend)
+
             frontend.draw_layout(msp)
 
             # ezdxf ≥ 1.0: get_xml_root() returns an ElementTree Element
