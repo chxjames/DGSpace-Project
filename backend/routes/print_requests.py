@@ -738,10 +738,22 @@ def preview_design(request_id):
             backend = SVGBackend()
             frontend = Frontend(ctx, backend, config=config) if config else Frontend(ctx, backend)
 
-            # ezdxf 1.3: draw_layout(finalize=True) returns a Page object
-            # which must be passed to get_string(page).
-            page = frontend.draw_layout(msp, finalize=True)
-            svg_string = backend.get_string(page)
+            # Draw without finalize first to let ezdxf collect extents
+            frontend.draw_layout(msp)
+
+            # Then finalize manually with an explicit A3-landscape page size
+            # so ezdxf never tries to read None dimensions from the layout.
+            try:
+                from ezdxf.addons.drawing.layout import Page, Settings
+                page = Page(420, 297, Settings(scale=1))
+                svg_string = backend.get_string(page)
+            except Exception:
+                # Older API: get_string with no args, or get_xml_root
+                try:
+                    svg_string = backend.get_string()   # type: ignore[call-arg]
+                except Exception:
+                    import xml.etree.ElementTree as ET
+                    svg_string = ET.tostring(backend.get_xml_root(), encoding='unicode')
 
             return Response(svg_string, mimetype='image/svg+xml')
         except Exception as exc:
