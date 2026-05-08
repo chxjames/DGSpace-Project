@@ -835,7 +835,8 @@
       ? (() => {
           // Find the index of the first queued/file_transferred job (next to start)
           const nextUpIdx = queue.findIndex(
-            (j) => j.job_status === "queued" || j.job_status === "file_transferred"
+            (j) =>
+              j.job_status === "queued" || j.job_status === "file_transferred",
           );
           return queue
             .map((j, idx) =>
@@ -990,20 +991,28 @@
           <span>⏱ ${timeStr}</span>
           <span>👤 ${escHtml(j.student_name || j.student_email)}</span>
           ${dl}
-          ${j.estimated_start ? (() => {
-            if (isNextUp) {
-              // First queued job: live countdown
-              return `<span class="job-countdown countdown-ok" id="es-${j.job_id}" data-start="${j.estimated_start}">🕐 …</span>`;
-            } else {
-              // Later jobs: static formatted start time
-              const st = new Date(j.estimated_start.endsWith('Z') ? j.estimated_start : j.estimated_start + 'Z');
-              const hh = st.getHours().toString().padStart(2,'0');
-              const mm = st.getMinutes().toString().padStart(2,'0');
-              const mo = (st.getMonth()+1).toString().padStart(2,'0');
-              const dd = st.getDate().toString().padStart(2,'0');
-              return `<span class="job-countdown countdown-ok">🕐 ${mo}/${dd} ${hh}:${mm}</span>`;
-            }
-          })() : ""}
+          ${
+            j.estimated_start && j.job_status !== "printing"
+              ? (() => {
+                  if (isNextUp) {
+                    // First queued job: live countdown
+                    return `<span class="job-countdown countdown-ok" id="es-${j.job_id}" data-start="${j.estimated_start}">🕐 …</span>`;
+                  } else {
+                    // Later jobs: static formatted start time
+                    const st = new Date(
+                      j.estimated_start.endsWith("Z")
+                        ? j.estimated_start
+                        : j.estimated_start + "Z",
+                    );
+                    const hh = st.getHours().toString().padStart(2, "0");
+                    const mm = st.getMinutes().toString().padStart(2, "0");
+                    const mo = (st.getMonth() + 1).toString().padStart(2, "0");
+                    const dd = st.getDate().toString().padStart(2, "0");
+                    return `<span class="job-countdown countdown-ok">🕐 ${mo}/${dd} ${hh}:${mm}</span>`;
+                  }
+                })()
+              : ""
+          }
           ${approverLabel}
           ${assignerLabel}
         </div>
