@@ -1137,6 +1137,35 @@ content %}
       return floor;
     }
 
+    /** Return true if printer has no active/queued/file_transferred jobs. */
+    function isPrinterQueueEmpty(printer) {
+      const jobs = (printer && (printer.queue || printer.jobs)) || [];
+      return !jobs.some((j) =>
+        ["queued", "file_transferred", "printing"].includes(j.job_status),
+      );
+    }
+
+    /** Return true if this printer can accept the given request (service_type + file format). */
+    function printerMatchesRequest(printer, req) {
+      const isLaserReq = (req.service_type || "3dprint") === "laser";
+      const isLaserPrinter = (printer.device_type || "3dprint") === "laser";
+      if (isLaserReq !== isLaserPrinter) return false;
+      if (isLaserReq) return true;
+      const origName = (req.ufp_original_name || "").toLowerCase();
+      const reqFmt = origName.endsWith(".3mf")
+        ? "3mf"
+        : origName.endsWith(".ufp")
+          ? "ufp"
+          : req.stl_file_path || origName.endsWith(".stl")
+            ? "stl"
+            : null;
+      if (!reqFmt || reqFmt === "stl") return true;
+      const pFmts = (printer.accepted_file_formats || "ufp")
+        .split(",")
+        .map((s) => s.trim().toLowerCase());
+      return pFmts.includes(reqFmt);
+    }
+
     function formatMinutes(m) {
       const h = Math.floor(m / 60),
         min = Math.round(m % 60);
@@ -1613,9 +1642,12 @@ content %}
       const req = _rts.find((r) => r.id === requestId);
       const isLaserReq = req && (req.service_type || "3dprint") === "laser";
       // For 3D print requests, derive the file format for format-level compatibility check
-      const reqFmt = (!isLaserReq && req && req.ufp_original_name)
-        ? req.ufp_original_name.toLowerCase().endsWith(".3mf") ? "3mf" : "ufp"
-        : null;
+      const reqFmt =
+        !isLaserReq && req && req.ufp_original_name
+          ? req.ufp_original_name.toLowerCase().endsWith(".3mf")
+            ? "3mf"
+            : "ufp"
+          : null;
       _printers
         .filter((p) => p.status === "active")
         .forEach((p) => {
@@ -1670,27 +1702,22 @@ content %}
           pbAlert("Cannot assign to a non-active printer.");
           return;
         }
-        // Format compatibility check
-        const reqFmt = req.ufp_original_name
-          ? req.ufp_original_name.toLowerCase().endsWith(".3mf")
-            ? "3mf"
-            : "ufp"
-          : null;
-        if (reqFmt) {
-          const pFmts = (printer.accepted_file_formats || "ufp")
-            .split(",")
-            .map((s) => s.trim());
-          if (!pFmts.includes(reqFmt)) {
-            pbAlert(
-              `❌ "${escHtml(printer.printer_name)}" does not accept .${reqFmt} files. It accepts: ${pFmts.map((f) => "." + f).join(", ")}`,
-            );
-            return;
-          }
+        // Check service_type + file format compatibility
+        if (!printerMatchesRequest(printer, req)) {
+          const isLaserReq = (req.service_type || "3dprint") === "laser";
+          const isLaserPrinter = (printer.device_type || "3dprint") === "laser";
+          const reason =
+            isLaserReq !== isLaserPrinter
+              ? `${isLaserReq ? "Laser requests" : "3D print requests"} cannot go to ${isLaserPrinter ? "laser cutters" : "3D printers"}.`
+              : `"${escHtml(printer.printer_name)}" does not accept this file format.`;
+          pbAlert(`❌ ${reason}`);
+          return;
         }
         const body = {
           printer_id: targetPrinterId,
           ...(() => {
-            if (!req.ufp_print_time_minutes)
+            // Empty queue → no countdown, start immediately
+            if (!req.ufp_print_time_minutes || isPrinterQueueEmpty(printer))
               return { estimated_start: null, estimated_end: null };
             const pr = _printers.find((p) => p.printer_id === targetPrinterId);
             let start = calcPrinterQueueEnd(pr);
@@ -1785,15 +1812,10 @@ content %}
     &nbsp;·&nbsp; ⏱ ${r.ufp_print_time_minutes ? formatMinutes(r.ufp_print_time_minutes) : "—"}
     &nbsp;·&nbsp; 🎨 ${escHtml(r.material_type || "—")}`;
 
-      // Only show active printers that are compatible with this file format
-      const compatPrinters = _printers.filter((p) => {
-        if (p.status !== "active") return false;
-        if (!reqFmt || reqFmt === "stl") return true; // STL accepted by all
-        const pFmts = (p.accepted_file_formats || "ufp")
-          .split(",")
-          .map((s) => s.trim().toLowerCase());
-        return pFmts.includes(reqFmt);
-      });
+      // Only show active printers compatible with this request (service_type + format)
+      const compatPrinters = _printers.filter(
+        (p) => p.status === "active" && printerMatchesRequest(p, r),
+      );
 
       const sel = document.getElementById("modal-printer-select");
       sel.innerHTML = compatPrinters
@@ -1803,7 +1825,8 @@ content %}
         )
         .join("");
       if (!sel.options.length) {
-        sel.innerHTML = `<option value="">— No compatible active printers${reqFmt ? " for ." + reqFmt : ""} —</option>`;
+        const isLaserReq = (r.service_type || "3dprint") === "laser";
+        sel.innerHTML = `<option value="">— No compatible active ${isLaserReq ? "laser cutters" : "3D printers"} —</option>`;
       }
 
       // Update times when printer selection changes
@@ -1820,20 +1843,27 @@ content %}
     }
 
     function updateModalTimes(printerId) {
+      const startEl = document.getElementById("modal-est-start");
+      const endEl = document.getElementById("modal-est-end");
       if (!_selectedRts || !_selectedRts.ufp_print_time_minutes) {
-        document.getElementById("modal-est-start").value = "";
-        document.getElementById("modal-est-end").value = "";
+        startEl.value = "";
+        endEl.value = "";
         return;
       }
       const printer = _printers.find((p) => p.printer_id === printerId);
+      // Empty queue → no countdown needed
+      if (!printer || isPrinterQueueEmpty(printer)) {
+        startEl.value = "";
+        endEl.value = "";
+        return;
+      }
       let startTime = calcPrinterQueueEnd(printer);
       startTime = new Date(Math.ceil(startTime.getTime() / 300000) * 300000);
       const end = new Date(
         startTime.getTime() + _selectedRts.ufp_print_time_minutes * 60000,
       );
-      document.getElementById("modal-est-start").value =
-        toDatetimeLocal(startTime);
-      document.getElementById("modal-est-end").value = toDatetimeLocal(end);
+      startEl.value = toDatetimeLocal(startTime);
+      endEl.value = toDatetimeLocal(end);
     }
     function closeModal() {
       document.getElementById("assign-modal-bg").classList.remove("open");

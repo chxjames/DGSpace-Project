@@ -823,8 +823,13 @@
 
     // If printer is laser but DB still has old 3D-print formats (ufp/3mf),
     // override with correct laser formats so the card always looks right.
-    let rawFormats = (p.accepted_file_formats || "").split(",").map(f => f.trim()).filter(Boolean);
-    const has3dFormats = rawFormats.every(f => ["ufp", "3mf", "stl"].includes(f.toLowerCase()));
+    let rawFormats = (p.accepted_file_formats || "")
+      .split(",")
+      .map((f) => f.trim())
+      .filter(Boolean);
+    const has3dFormats = rawFormats.every((f) =>
+      ["ufp", "3mf", "stl"].includes(f.toLowerCase()),
+    );
     if (isLaserPrinter && (rawFormats.length === 0 || has3dFormats)) {
       rawFormats = ["svg", "dxf", "pdf"];
     } else if (!isLaserPrinter && rawFormats.length === 0) {
@@ -1144,24 +1149,24 @@
         return;
       }
 
-      // Check file format compatibility
-      const fmt = getReqFileFmt(req);
-      if (!printerAcceptsFmt(printer, fmt)) {
-        const fmtLabel = fmt ? `".${fmt}"` : "this file type";
-        showAlert(
-          `❌ ${escHtml(printer.printer_name)} does not support ${fmtLabel} files. Please choose a compatible printer.`,
-        );
+      // Check service_type + file format compatibility
+      if (!printerMatchesRequest(printer, req)) {
+        const isLaserReq = (req.service_type || "3dprint") === "laser";
+        const isLaserPrinter = (printer.device_type || "3dprint") === "laser";
+        const reason =
+          isLaserReq !== isLaserPrinter
+            ? `${isLaserReq ? "Laser requests" : "3D print requests"} cannot go to ${isLaserPrinter ? "laser cutters" : "3D printers"}.`
+            : `${escHtml(printer.printer_name)} does not support this file format.`;
+        showAlert(`❌ ${reason}`);
         return;
       }
 
       const body = {
         printer_id: targetPrinterId,
         ...(() => {
-          if (!req.ufp_print_time_minutes)
+          // Empty queue → no countdown, start immediately
+          if (!req.ufp_print_time_minutes || isPrinterQueueEmpty(printer))
             return { estimated_start: null, estimated_end: null };
-          const printer = _printers.find(
-            (p) => p.printer_id === targetPrinterId,
-          );
           let start = calcPrinterQueueEnd(printer);
           start = new Date(Math.ceil(start.getTime() / 300000) * 300000);
           const end = new Date(
@@ -1260,9 +1265,9 @@
     &nbsp;·&nbsp; ⏱ ${r.ufp_print_time_minutes ? formatMinutes(r.ufp_print_time_minutes) : "—"}
     &nbsp;·&nbsp; 🎨 ${escHtml(r.material_type || "—")}`;
 
-    // Populate printer dropdown — only active printers that accept this file format
+    // Populate printer dropdown — only active printers compatible with this request
     const compatPrinters = _printers.filter(
-      (p) => p.status === "active" && printerAcceptsFmt(p, reqFmt),
+      (p) => p.status === "active" && printerMatchesRequest(p, r),
     );
     const sel = document.getElementById("modal-printer-select");
     sel.innerHTML = compatPrinters
@@ -1273,7 +1278,8 @@
       .join("");
 
     if (!sel.options.length) {
-      sel.innerHTML = `<option value="">— No compatible active printers${reqFmt ? " for ." + reqFmt : ""} —</option>`;
+      const isLaserReq = (r.service_type || "3dprint") === "laser";
+      sel.innerHTML = `<option value="">— No compatible active ${isLaserReq ? "laser cutters" : "3D printers"} —</option>`;
     }
 
     // Update times when printer selection changes
@@ -1290,20 +1296,27 @@
   }
 
   function updateModalTimes(printerId) {
+    const startEl = document.getElementById("modal-est-start");
+    const endEl = document.getElementById("modal-est-end");
     if (!_selectedRts || !_selectedRts.ufp_print_time_minutes) {
-      document.getElementById("modal-est-start").value = "";
-      document.getElementById("modal-est-end").value = "";
+      startEl.value = "";
+      endEl.value = "";
       return;
     }
     const printer = _printers.find((p) => p.printer_id === printerId);
+    // Empty queue → no countdown needed, leave times blank
+    if (!printer || isPrinterQueueEmpty(printer)) {
+      startEl.value = "";
+      endEl.value = "";
+      return;
+    }
     let startTime = calcPrinterQueueEnd(printer);
     startTime = new Date(Math.ceil(startTime.getTime() / 300000) * 300000);
     const end = new Date(
       startTime.getTime() + _selectedRts.ufp_print_time_minutes * 60000,
     );
-    document.getElementById("modal-est-start").value =
-      toDatetimeLocal(startTime);
-    document.getElementById("modal-est-end").value = toDatetimeLocal(end);
+    startEl.value = toDatetimeLocal(startTime);
+    endEl.value = toDatetimeLocal(end);
   }
 
   function closeModal() {
@@ -1552,6 +1565,23 @@
     const h = Math.floor(m / 60),
       min = Math.round(m % 60);
     return h > 0 ? `${h}h ${min}m` : `${min}m`;
+  }
+
+  /** Return true if a printer has no active/queued/file_transferred jobs (queue is empty). */
+  function isPrinterQueueEmpty(printer) {
+    const jobs = (printer && (printer.queue || printer.jobs)) || [];
+    return !jobs.some((j) =>
+      ["queued", "file_transferred", "printing"].includes(j.job_status),
+    );
+  }
+
+  /** Return true if this printer can accept the given request (service_type + file format). */
+  function printerMatchesRequest(printer, req) {
+    const isLaserReq = (req.service_type || "3dprint") === "laser";
+    const isLaserPrinter = (printer.device_type || "3dprint") === "laser";
+    if (isLaserReq !== isLaserPrinter) return false; // type mismatch
+    if (isLaserReq) return true; // both laser — format always ok
+    return printerAcceptsFmt(printer, getReqFileFmt(req));
   }
 
   /** Return the file format string from an RTS request object.
