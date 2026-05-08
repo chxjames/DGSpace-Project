@@ -1105,7 +1105,7 @@ content %}
 
     function calcPrinterQueueEnd(printer) {
       let floor = new Date();
-      const jobs = (printer && printer.jobs) || [];
+      const jobs = (printer && (printer.queue || printer.jobs)) || [];
       jobs.forEach(function (j) {
         if (
           j.job_status !== "queued" &&
@@ -1118,7 +1118,10 @@ content %}
         for (const s of candidates) {
           if (s && s !== "null" && s !== "None" && s !== "undefined") {
             const t = new Date(s.endsWith("Z") ? s : s + "Z");
-            if (!isNaN(t)) { end = t; break; }
+            if (!isNaN(t)) {
+              end = t;
+              break;
+            }
           }
         }
         if (!end) {
@@ -1616,12 +1619,18 @@ content %}
         const body = {
           printer_id: targetPrinterId,
           ...(() => {
-            if (!req.ufp_print_time_minutes) return { estimated_start: null, estimated_end: null };
+            if (!req.ufp_print_time_minutes)
+              return { estimated_start: null, estimated_end: null };
             const pr = _printers.find((p) => p.printer_id === targetPrinterId);
             let start = calcPrinterQueueEnd(pr);
             start = new Date(Math.ceil(start.getTime() / 300000) * 300000);
-            const end = new Date(start.getTime() + req.ufp_print_time_minutes * 60000);
-            return { estimated_start: start.toISOString(), estimated_end: end.toISOString() };
+            const end = new Date(
+              start.getTime() + req.ufp_print_time_minutes * 60000,
+            );
+            return {
+              estimated_start: start.toISOString(),
+              estimated_end: end.toISOString(),
+            };
           })(),
           notes: null,
         };
@@ -1731,7 +1740,9 @@ content %}
         const selectedPrinterId =
           parseInt(sel.value) ||
           (compatPrinters[0] && compatPrinters[0].printer_id);
-        const printer = _printers.find((p) => p.printer_id === selectedPrinterId);
+        const printer = _printers.find(
+          (p) => p.printer_id === selectedPrinterId,
+        );
         let startTime = calcPrinterQueueEnd(printer);
         startTime = new Date(Math.ceil(startTime.getTime() / 300000) * 300000);
 
@@ -1875,7 +1886,8 @@ content %}
 
     async function rescheduleAfterRemoval() {
       for (const printer of _printers) {
-        const queue = (printer.jobs || [])
+        const allJobs = printer.queue || printer.jobs || [];
+        const queue = allJobs
           .filter(
             (j) =>
               j.job_status === "queued" || j.job_status === "file_transferred",
@@ -1885,9 +1897,7 @@ content %}
         if (!queue.length) continue;
 
         let cursor = new Date();
-        const printing = (printer.jobs || []).find(
-          (j) => j.job_status === "printing",
-        );
+        const printing = allJobs.find((j) => j.job_status === "printing");
         if (printing) {
           const endStr = printing.print_end_expected;
           if (endStr && endStr !== "null" && endStr !== "None") {
