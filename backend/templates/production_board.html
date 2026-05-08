@@ -820,11 +820,13 @@
     const hasJobs = queue.length > 0;
 
     const fmts = (p.accepted_file_formats || "ufp").split(",");
+    const isLaserPrinter = (p.device_type || "3dprint") === "laser";
     const fmtBadges = fmts
       .map((f) => {
         const s = f.trim();
-        const style =
-          s === "3mf"
+        const style = isLaserPrinter
+          ? "background:#fce4ec;color:#c62828;border:1px solid #f48fb1"
+          : s === "3mf"
             ? "background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7"
             : "background:#e8f0fe;color:#1a73e8;border:1px solid #90caf9";
         return `<span style="${style};font-size:0.68rem;font-weight:600;padding:1px 6px;border-radius:4px">.${s}</span>`;
@@ -869,7 +871,7 @@
     <div class="printer-col">
       <div class="printer-header">
         <div>
-          <div class="printer-name">🖨 ${escHtml(p.printer_name)}</div>
+          <div class="printer-name">${isLaserPrinter ? "✂️" : "🖨"} ${escHtml(p.printer_name)}</div>
           <div class="printer-meta">${escHtml(p.model || "")}${p.location ? " · " + escHtml(p.location) : ""}</div>
           <div style="margin-top:4px;display:flex;gap:4px;flex-wrap:wrap">${fmtBadges}</div>
         </div>
@@ -1026,8 +1028,10 @@
   // ── Auto-scroll while dragging ────────────────────────────
   let _autoScrollRaf = null;
   function _startAutoScroll(e) {
-    const ZONE = 120, SPEED = 18;
-    const y = e.clientY, h = window.innerHeight;
+    const ZONE = 120,
+      SPEED = 18;
+    const y = e.clientY,
+      h = window.innerHeight;
     if (_autoScrollRaf) cancelAnimationFrame(_autoScrollRaf);
     function step() {
       if (y < ZONE) window.scrollBy(0, -SPEED * (1 - y / ZONE));
@@ -1037,7 +1041,10 @@
     _autoScrollRaf = requestAnimationFrame(step);
   }
   function _stopAutoScroll() {
-    if (_autoScrollRaf) { cancelAnimationFrame(_autoScrollRaf); _autoScrollRaf = null; }
+    if (_autoScrollRaf) {
+      cancelAnimationFrame(_autoScrollRaf);
+      _autoScrollRaf = null;
+    }
   }
 
   function rtsCardDragStart(event, requestId) {
