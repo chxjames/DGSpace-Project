@@ -182,7 +182,9 @@ def get_production_board():
             pr.ufp_file_path,
             pr.ufp_original_name,
             pr.status,
-            pr.created_at
+            pr.created_at,
+            COALESCE(pr.service_type, '3dprint') AS service_type,
+            pr.laser_options
         FROM print_requests pr
         LEFT JOIN students s ON s.email = pr.student_email
         WHERE pr.status = 'approved'
@@ -200,7 +202,7 @@ def get_production_board():
     """) or []
 
     printers = db.fetch_all(
-        "SELECT printer_id, printer_name, model, location, status, notes, accepted_file_formats FROM printers ORDER BY printer_name"
+        "SELECT printer_id, printer_name, model, location, status, notes, accepted_file_formats, COALESCE(device_type, '3dprint') AS device_type FROM printers ORDER BY printer_name"
     ) or []
 
     for p in printers:

@@ -220,6 +220,8 @@ class PrintService:
                        pr.stl_file_path, pr.stl_original_name, pr.deadline_date,
                        pr.revision_fields,
                        pr.ufp_material_g, pr.ufp_print_time_minutes,
+                       COALESCE(pr.service_type, '3dprint') AS service_type,
+                       pr.laser_options,
                        (SELECT pj.assigned_by FROM print_jobs pj
                         WHERE pj.request_id = pr.request_id
                           AND pj.status NOT IN ('cancelled','failed')
@@ -271,6 +273,8 @@ class PrintService:
                 'ufp_material_g': float(result['ufp_material_g']) if result['ufp_material_g'] else None,
                 'ufp_print_time_minutes': float(result['ufp_print_time_minutes']) if result['ufp_print_time_minutes'] else None,
                 'assigned_by': result['assigned_by'],
+                'service_type': result['service_type'] or '3dprint',
+                'laser_options': result['laser_options'],
             }
             
             return {
