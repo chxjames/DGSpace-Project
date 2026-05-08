@@ -332,11 +332,15 @@
           </a>
           <button
             id="laser-file-preview-btn"
-            onclick="openDesignPreview(
-              window._currentRequest && window._currentRequest.request_id,
-              window._currentRequest && window._currentRequest.stl_file_path,
-              window._currentRequest && (window._currentRequest.stl_original_name || window._currentRequest.stl_file_path)
-            )"
+            onclick="
+              openDesignPreview(
+                window._currentRequest && window._currentRequest.request_id,
+                window._currentRequest && window._currentRequest.stl_file_path,
+                window._currentRequest &&
+                  (window._currentRequest.stl_original_name ||
+                    window._currentRequest.stl_file_path),
+              )
+            "
             style="
               display: inline-flex;
               align-items: center;
@@ -475,11 +479,16 @@
               </a>
               <button
                 id="laser-review-preview-btn"
-                onclick="openDesignPreview(
-                  window._currentRequest && window._currentRequest.request_id,
-                  window._currentRequest && window._currentRequest.stl_file_path,
-                  window._currentRequest && (window._currentRequest.stl_original_name || window._currentRequest.stl_file_path)
-                )"
+                onclick="
+                  openDesignPreview(
+                    window._currentRequest && window._currentRequest.request_id,
+                    window._currentRequest &&
+                      window._currentRequest.stl_file_path,
+                    window._currentRequest &&
+                      (window._currentRequest.stl_original_name ||
+                        window._currentRequest.stl_file_path),
+                  )
+                "
                 style="
                   display: inline-flex;
                   align-items: center;
@@ -1996,6 +2005,8 @@
   window.fbSyncChipsFromTextarea = fbSyncChipsFromTextarea;
   window.adminCannotCompleteByDeadline = adminCannotCompleteByDeadline;
   window.adminSetPriority = adminSetPriority;
+  window.openDesignPreview = openDesignPreview;
+  window.closeDesignPreview = closeDesignPreview;
 
   // ── Student Resubmit functions (expose to global) ──────────
   window.rsRemoveCurrentStl = rsRemoveCurrentStl;
@@ -2797,7 +2808,10 @@
     const title = document.getElementById("design-preview-title");
     if (!modal) return;
 
-    const ext = (originalName || storedFile || "").split(".").pop().toLowerCase();
+    const ext = (originalName || storedFile || "")
+      .split(".")
+      .pop()
+      .toLowerCase();
     title.textContent = originalName || storedFile || "Design File";
     modal.style.display = "flex";
     container.innerHTML =
@@ -2877,13 +2891,13 @@
     display: none;
     position: fixed;
     inset: 0;
-    background: rgba(0,0,0,0.55);
+    background: rgba(0, 0, 0, 0.55);
     z-index: 9999;
     align-items: center;
     justify-content: center;
     padding: 20px;
   "
-  onclick="if(event.target===this) closeDesignPreview()"
+  onclick="if (event.target === this) closeDesignPreview();"
 >
   <div
     style="
@@ -2895,7 +2909,7 @@
       overflow: hidden;
       display: flex;
       flex-direction: column;
-      box-shadow: 0 8px 40px rgba(0,0,0,0.25);
+      box-shadow: 0 8px 40px rgba(0, 0, 0, 0.25);
     "
   >
     <!-- Modal header -->
@@ -2922,7 +2936,9 @@
           color: #888;
           line-height: 1;
         "
-      >✕</button>
+      >
+        ✕
+      </button>
     </div>
     <!-- Modal body -->
     <div
