@@ -13,31 +13,48 @@ print_bp = Blueprint('print_requests', __name__)
 
 # ── G-code / NC estimated time parser ────────────────────────────────────────
 _GCODE_TIME_PATTERNS = [
-    # LightBurn
+    # LightBurn: ; Total estimated time: 0:05:30
     re.compile(r';\s*Total estimated time[:\s]+(.+)',    re.IGNORECASE),
     re.compile(r';\s*estimated job time[:\s]+(.+)',      re.IGNORECASE),
     re.compile(r';\s*Estimated cutting time[:\s]+(.+)',  re.IGNORECASE),
     re.compile(r';\s*Job time[:\s]+(.+)',                re.IGNORECASE),
-    # LaserGRBL / generic
-    re.compile(r';\s*Time[:\s]+(\d[\d:hms ]+)',         re.IGNORECASE),
     re.compile(r';\s*Cut time[:\s]+(.+)',                re.IGNORECASE),
-    # Fusion 360 / Mach3 NC  (parenthesis-style comments)
+    re.compile(r';\s*Time[:\s]+(\d[\d:hms ]+)',         re.IGNORECASE),
+    # Fusion 360 / Mach3 NC parenthesis-style comments
     re.compile(r'\(\s*(?:estimated\s+)?(?:cutting\s+)?(?:machining\s+)?time[:\s]+([^)]+)\)', re.IGNORECASE),
     re.compile(r'\(\s*cycle\s+time[:\s]+([^)]+)\)',     re.IGNORECASE),
-    # RDWorks NC export
+    # RDWorks
     re.compile(r'%\s*time[:\s]+(.+)',                   re.IGNORECASE),
 ]
 
+# Snapmaker Luban NC header key (seconds)  ;estimated_time(s):1234
+_LUBAN_TIME_RE = re.compile(r';\s*estimated_time\(s\)\s*[=:]\s*(\d+)', re.IGNORECASE)
+
 _ALLOWED_CNC_EXTS = {'.gcode', '.nc', '.ngc', '.cnc', '.tap'}
 
+def _seconds_to_hms(seconds: int) -> str:
+    h, rem = divmod(seconds, 3600)
+    m, s   = divmod(rem, 60)
+    if h:
+        return f"{h}h {m:02d}m {s:02d}s"
+    elif m:
+        return f"{m}m {s:02d}s"
+    return f"{s}s"
+
 def _parse_gcode_time(file_path: str):
-    """Scan the first 400 lines of a G-code/.nc file for estimated-time comments."""
+    """Scan the first 400 lines of a G-code/.nc file for estimated-time comments.
+    Supports LightBurn, Snapmaker Luban, Fusion 360, Mach3, LaserGRBL."""
     try:
         with open(file_path, 'r', errors='ignore') as f:
             for i, line in enumerate(f):
                 if i > 400:
                     break
                 stripped = line.strip()
+                # Snapmaker Luban: ;estimated_time(s):1234
+                m = _LUBAN_TIME_RE.match(stripped)
+                if m:
+                    return _seconds_to_hms(int(m.group(1)))
+                # All other formats
                 for pat in _GCODE_TIME_PATTERNS:
                     m = pat.match(stripped)
                     if m:
@@ -704,36 +721,58 @@ def preview_design(request_id):
 
             doc = ezdxf.readfile(file_path)
             msp = doc.modelspace()
-            backend = SVGBackend()
             ctx = RenderContext(doc)
 
-            # Try to configure text policy to avoid font dependency.
-            # Different ezdxf versions expose different policy names.
+            # Build config that skips text (no system fonts on Railway)
+            config = None
             try:
                 from ezdxf.addons.drawing.config import Configuration, TextPolicy
-                # Try IGNORE first (skip text entirely — no fonts needed)
                 for policy_name in ('IGNORE', 'SUBSTITUTE', 'REPLACE', 'FILLING'):
                     policy = getattr(TextPolicy, policy_name, None)
                     if policy is not None:
-                        config = Configuration.defaults().with_changes(
-                            text_policy=policy
-                        )
-                        frontend = Frontend(ctx, backend, config=config)
+                        config = Configuration.defaults().with_changes(text_policy=policy)
                         break
-                else:
-                    frontend = Frontend(ctx, backend)
             except Exception:
-                frontend = Frontend(ctx, backend)
+                pass
 
-            frontend.draw_layout(msp)
+            def _make_frontend(be):
+                return Frontend(ctx, be, config=config) if config else Frontend(ctx, be)
 
-            # ezdxf ≥ 1.0: get_xml_root() returns an ElementTree Element
+            svg_string = None
+
+            # ── Attempt A: ezdxf ≥ 1.1 ─────────────────────────────────────
+            # draw_layout(finalize=True) returns a Page object;
+            # SVGBackend.get_string(page) takes that page.
             try:
-                import xml.etree.ElementTree as ET
-                xml_root = backend.get_xml_root()
-                svg_string = ET.tostring(xml_root, encoding='unicode')
-            except AttributeError:
-                svg_string = backend.get_string()  # older API
+                backend_a = SVGBackend()
+                fe_a = _make_frontend(backend_a)
+                page = fe_a.draw_layout(msp, finalize=True)
+                if page is not None:
+                    svg_string = backend_a.get_string(page)
+            except TypeError:
+                pass  # finalize kwarg not supported → fall through
+            except Exception:
+                pass
+
+            # ── Attempt B: ezdxf 1.0.x ──────────────────────────────────────
+            # draw_layout() returns None; SVGBackend exposes get_xml_root()
+            if not svg_string:
+                try:
+                    import xml.etree.ElementTree as ET
+                    backend_b = SVGBackend()
+                    fe_b = _make_frontend(backend_b)
+                    fe_b.draw_layout(msp)
+                    xml_root = backend_b.get_xml_root()
+                    svg_string = ET.tostring(xml_root, encoding='unicode')
+                except (AttributeError, TypeError):
+                    pass
+
+            # ── Attempt C: last-resort get_string() with no args ────────────
+            if not svg_string:
+                backend_c = SVGBackend()
+                fe_c = _make_frontend(backend_c)
+                fe_c.draw_layout(msp)
+                svg_string = backend_c.get_string()  # type: ignore[call-arg]
 
             return Response(svg_string, mimetype='image/svg+xml')
         except Exception as exc:
