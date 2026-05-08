@@ -1206,29 +1206,56 @@
     // If the selected printer already has jobs, start after the last job's estimated_end.
     // Otherwise default to now (rounded to nearest 15 min).
     if (r.ufp_print_time_minutes) {
-      const selectedPrinterId = parseInt(sel.value) || (compatPrinters[0] && compatPrinters[0].printer_id);
+      const selectedPrinterId =
+        parseInt(sel.value) ||
+        (compatPrinters[0] && compatPrinters[0].printer_id);
       let startTime = new Date();
       startTime.setMinutes(Math.ceil(startTime.getMinutes() / 15) * 15, 0, 0);
 
       if (selectedPrinterId) {
-        const printer = _printers.find(p => p.printer_id === selectedPrinterId);
-        const queue = (printer && printer.jobs) ? printer.jobs : [];
-        // Find the latest estimated_end among all queued/file_transferred jobs
-        let latestEnd = null;
-        queue.forEach(function(j) {
-          if (j.job_status === 'queued' || j.job_status === 'file_transferred') {
-            const endStr = j.estimated_end;
-            if (endStr && endStr !== 'null' && endStr !== 'None') {
-              const t = new Date(endStr.endsWith('Z') ? endStr : endStr + 'Z');
-              if (!latestEnd || t > latestEnd) latestEnd = t;
+        const printer = _printers.find(
+          (p) => p.printer_id === selectedPrinterId,
+        );
+        const allJobs = printer && printer.jobs ? printer.jobs : [];
+
+        // Helper: resolve a job's end time from estimated_end, or estimated_start+duration, or print_end_expected
+        function resolveJobEnd(j) {
+          const endFields = [j.estimated_end, j.print_end_expected];
+          for (const s of endFields) {
+            if (s && s !== "null" && s !== "None" && s !== "undefined") {
+              const t = new Date(s.endsWith("Z") ? s : s + "Z");
+              if (!isNaN(t)) return t;
             }
+          }
+          // Fallback: estimated_start + print duration
+          const startStr = j.estimated_start;
+          const mins = parseFloat(j.ufp_print_time_minutes || 0);
+          if (startStr && startStr !== "null" && mins > 0) {
+            const st = new Date(startStr.endsWith("Z") ? startStr : startStr + "Z");
+            if (!isNaN(st)) return new Date(st.getTime() + mins * 60000);
+          }
+          return null;
+        }
+
+        let latestEnd = null;
+        allJobs.forEach(function (j) {
+          if (
+            j.job_status === "queued" ||
+            j.job_status === "file_transferred" ||
+            j.job_status === "printing"
+          ) {
+            const t = resolveJobEnd(j);
+            if (t && (!latestEnd || t > latestEnd)) latestEnd = t;
           }
         });
         if (latestEnd && latestEnd > startTime) startTime = latestEnd;
       }
 
-      const end = new Date(startTime.getTime() + r.ufp_print_time_minutes * 60000);
-      document.getElementById("modal-est-start").value = toDatetimeLocal(startTime);
+      const end = new Date(
+        startTime.getTime() + r.ufp_print_time_minutes * 60000,
+      );
+      document.getElementById("modal-est-start").value =
+        toDatetimeLocal(startTime);
       document.getElementById("modal-est-end").value = toDatetimeLocal(end);
     } else {
       document.getElementById("modal-est-start").value = "";
@@ -1377,19 +1404,24 @@
   async function rescheduleAfterRemoval() {
     // For each printer, rechain estimated times of queued/file_transferred jobs in order
     for (const printer of _printers) {
-      const queue = (printer.jobs || []).filter(
-        j => j.job_status === 'queued' || j.job_status === 'file_transferred'
-      ).sort((a, b) => (a.queue_position || 0) - (b.queue_position || 0));
+      const queue = (printer.jobs || [])
+        .filter(
+          (j) =>
+            j.job_status === "queued" || j.job_status === "file_transferred",
+        )
+        .sort((a, b) => (a.queue_position || 0) - (b.queue_position || 0));
 
       if (!queue.length) continue;
 
       // Find the earliest possible start: after any printing job's expected end, or now
       let cursor = new Date();
-      const printing = (printer.jobs || []).find(j => j.job_status === 'printing');
+      const printing = (printer.jobs || []).find(
+        (j) => j.job_status === "printing",
+      );
       if (printing) {
         const endStr = printing.print_end_expected;
-        if (endStr && endStr !== 'null' && endStr !== 'None') {
-          const t = new Date(endStr.endsWith('Z') ? endStr : endStr + 'Z');
+        if (endStr && endStr !== "null" && endStr !== "None") {
+          const t = new Date(endStr.endsWith("Z") ? endStr : endStr + "Z");
           if (t > cursor) cursor = t;
         }
       }
@@ -1410,8 +1442,8 @@
       }
 
       if (updates.length) {
-        await apiFetch('/api/admin/jobs/reschedule', {
-          method: 'POST',
+        await apiFetch("/api/admin/jobs/reschedule", {
+          method: "POST",
           body: JSON.stringify({ jobs: updates }),
         }).catch(() => {});
       }
