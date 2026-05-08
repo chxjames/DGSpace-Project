@@ -1397,20 +1397,22 @@ content %}
     <div class="printer-col">
       <div class="printer-header">
         <div>
-          <div class="printer-name">🖨 ${escHtml(p.printer_name)}</div>
+          <div class="printer-name">${(p.device_type || "3dprint") === "laser" ? "✂️" : "🖨"} ${escHtml(p.printer_name)}</div>
           <div class="printer-meta">${escHtml(p.model || "")}${p.location ? " · " + escHtml(p.location) : ""}</div>
           ${(() => {
-            const fmts = (p.accepted_file_formats || "ufp")
-              .split(",")
-              .map((s) => s.trim())
-              .filter(Boolean);
-            return fmts
-              .map((f) =>
-                f === "3mf"
-                  ? `<code style="background:#e8f5e9;color:#2e7d32;border-radius:4px;padding:1px 5px;font-size:0.72rem">.3mf</code>`
-                  : `<code style="background:#e8f0fe;color:#1a73e8;border-radius:4px;padding:1px 5px;font-size:0.72rem">.ufp</code>`,
-              )
-              .join(" ");
+            const isLaser = (p.device_type || "3dprint") === "laser";
+            let fmts = (p.accepted_file_formats || "").split(",").map(s => s.trim()).filter(Boolean);
+            const has3d = fmts.every(f => ["ufp","3mf","stl"].includes(f.toLowerCase()));
+            if (isLaser && (fmts.length === 0 || has3d)) fmts = ["svg","dxf","pdf"];
+            else if (!isLaser && fmts.length === 0) fmts = ["ufp"];
+            return fmts.map(f => {
+              const style = isLaser
+                ? "background:#fce4ec;color:#c62828;border:1px solid #f48fb1"
+                : f === "3mf"
+                  ? "background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7"
+                  : "background:#e8f0fe;color:#1a73e8;border:1px solid #90caf9";
+              return `<span style="${style};font-size:0.68rem;font-weight:600;padding:1px 6px;border-radius:4px">.${f}</span>`;
+            }).join(" ");
           })()}
         </div>
         <span class="printer-status-badge ${sbClass}">${sbLabel}</span>
@@ -1511,7 +1513,8 @@ content %}
         <div class="job-title">${attemptBadge}${escHtml(j.project_name)}</div>
         <div class="job-meta">
           <span><span class="job-status-badge jsb-${jsCls}">${jsLabel}</span></span>
-          <span>⏱ ${timeStr}</span>
+          ${(j.service_type || "3dprint") === "laser" ? `<span style="background:#fce4ec;color:#c62828;border-radius:10px;padding:1px 7px;font-size:0.68rem;font-weight:700">✂️ Laser</span>` : ""}
+          <span>${(j.service_type || "3dprint") === "laser" ? "✂️" : "⏱"} ${timeStr}</span>
           <span>👤 ${escHtml(j.student_name || j.student_email)}</span>
           ${dl}
           ${
@@ -1575,8 +1578,10 @@ content %}
     // ── Auto-scroll while dragging ──────────────────────────
     let _autoScrollRaf = null;
     function _startAutoScroll(e) {
-      const ZONE = 120, SPEED = 18;
-      const y = e.clientY, h = window.innerHeight;
+      const ZONE = 120,
+        SPEED = 18;
+      const y = e.clientY,
+        h = window.innerHeight;
       if (_autoScrollRaf) cancelAnimationFrame(_autoScrollRaf);
       function step() {
         if (y < ZONE) window.scrollBy(0, -SPEED * (1 - y / ZONE));
@@ -1586,7 +1591,10 @@ content %}
       _autoScrollRaf = requestAnimationFrame(step);
     }
     function _stopAutoScroll() {
-      if (_autoScrollRaf) { cancelAnimationFrame(_autoScrollRaf); _autoScrollRaf = null; }
+      if (_autoScrollRaf) {
+        cancelAnimationFrame(_autoScrollRaf);
+        _autoScrollRaf = null;
+      }
     }
 
     function rtsCardDragStart(event, requestId) {

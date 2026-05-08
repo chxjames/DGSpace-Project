@@ -771,7 +771,8 @@
               >
                 <div style="font-size: 1.5rem; margin-bottom: 6px">✂️</div>
                 <div style="font-size: 0.9rem; color: #555">
-                  Drop <strong>.gcode</strong> or <strong>.nc</strong> here or click to browse
+                  Drop <strong>.gcode</strong> or <strong>.nc</strong> here or
+                  click to browse
                 </div>
                 <div style="font-size: 0.78rem; color: #999; margin-top: 4px">
                   Supported: .gcode .nc .ngc .cnc .tap &nbsp;·&nbsp; Max 50 MB
@@ -2306,6 +2307,7 @@
       _gcodeUploadResult = {
         filename: data.filename,
         original_name: data.original_name,
+        estimated_time: data.estimated_time || null,
       };
 
       document.getElementById("gcode-loaded-name").textContent =
@@ -2438,6 +2440,7 @@
       const body = {
         gcode_filename: _gcodeUploadResult.filename,
         gcode_original_name: _gcodeUploadResult.original_name,
+        estimated_time: _gcodeUploadResult.estimated_time || "",
         admin_notes: document
           .getElementById("approve-notes-input")
           .value.trim(),

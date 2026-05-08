@@ -723,7 +723,7 @@ def preview_design(request_id):
             msp = doc.modelspace()
             ctx = RenderContext(doc)
 
-            # Build config that skips text (no system fonts on Railway)
+            # Suppress font errors (no system fonts on Railway)
             config = None
             try:
                 from ezdxf.addons.drawing.config import Configuration, TextPolicy
@@ -738,21 +738,10 @@ def preview_design(request_id):
             backend = SVGBackend()
             frontend = Frontend(ctx, backend, config=config) if config else Frontend(ctx, backend)
 
-            # draw_layout() returns a Page object in ezdxf ≥ 1.1,
-            # or None in older versions — handle both.
-            page = frontend.draw_layout(msp)
-
-            if page is not None:
-                # ezdxf ≥ 1.1: pass page to get_string()
-                svg_string = backend.get_string(page)
-            else:
-                # ezdxf 1.0.x: use get_xml_root()
-                try:
-                    import xml.etree.ElementTree as ET
-                    xml_string = ET.tostring(backend.get_xml_root(), encoding='unicode')
-                    svg_string = xml_string
-                except AttributeError:
-                    svg_string = backend.get_string()  # type: ignore[call-arg]
+            # ezdxf 1.3: draw_layout(finalize=True) returns a Page object
+            # which must be passed to get_string(page).
+            page = frontend.draw_layout(msp, finalize=True)
+            svg_string = backend.get_string(page)
 
             return Response(svg_string, mimetype='image/svg+xml')
         except Exception as exc:

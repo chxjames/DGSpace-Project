@@ -1311,9 +1311,34 @@ def admin_approve_with_gcode(request_id):
     gcode_filename    = data.get('gcode_filename', '').strip()
     gcode_original    = data.get('gcode_original_name', '').strip()
     admin_notes       = data.get('admin_notes', '').strip()
+    estimated_time_str = data.get('estimated_time', '').strip()  # e.g. "9m 17s"
 
     if not gcode_filename:
         return jsonify({'success': False, 'message': 'gcode_filename is required'}), 400
+
+    # Convert human-readable time string to minutes for storage
+    def _parse_time_to_minutes(t):
+        """Parse strings like '9m 17s', '1h 02m 30s', '0:09:17' → float minutes."""
+        if not t:
+            return None
+        import re
+        # HH:MM:SS or MM:SS
+        m = re.match(r'^(?:(\d+):)?(\d+):(\d+)$', t.strip())
+        if m:
+            h = int(m.group(1) or 0)
+            mi = int(m.group(2))
+            s = int(m.group(3))
+            return round(h * 60 + mi + s / 60, 2)
+        # Xh Xm Xs
+        total = 0.0
+        for num, unit in re.findall(r'(\d+(?:\.\d+)?)\s*([hms])', t.lower()):
+            val = float(num)
+            if unit == 'h':   total += val * 60
+            elif unit == 'm': total += val
+            elif unit == 's': total += val / 60
+        return round(total, 2) if total > 0 else None
+
+    cut_time_minutes = _parse_time_to_minutes(estimated_time_str)
 
     try:
         rows = db.fetch_all(
@@ -1334,18 +1359,20 @@ def admin_approve_with_gcode(request_id):
 
         db.execute_query(
             """UPDATE print_requests
-               SET status       = 'approved',
-                   ufp_file_path     = %s,
-                   ufp_original_name = %s,
-                   admin_notes       = %s,
-                   reviewed_by       = %s,
-                   reviewed_at       = NOW()
+               SET status                 = 'approved',
+                   ufp_file_path          = %s,
+                   ufp_original_name      = %s,
+                   admin_notes            = %s,
+                   reviewed_by            = %s,
+                   reviewed_at            = NOW(),
+                   ufp_print_time_minutes = COALESCE(%s, ufp_print_time_minutes)
                WHERE request_id = %s""",
             (
                 gcode_filename,
                 gcode_original or None,
                 admin_notes or None,
                 reviewer_email,
+                cut_time_minutes,
                 request_id
             )
         )
