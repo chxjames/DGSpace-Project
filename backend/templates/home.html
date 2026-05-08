@@ -1722,7 +1722,9 @@ content %}
             const startStr = j.estimated_start;
             const mins = parseFloat(j.ufp_print_time_minutes || 0);
             if (startStr && startStr !== "null" && mins > 0) {
-              const st = new Date(startStr.endsWith("Z") ? startStr : startStr + "Z");
+              const st = new Date(
+                startStr.endsWith("Z") ? startStr : startStr + "Z",
+              );
               if (!isNaN(st)) return new Date(st.getTime() + mins * 60000);
             }
             return null;
@@ -1757,6 +1759,8 @@ content %}
     }
     function closeModal() {
       document.getElementById("assign-modal-bg").classList.remove("open");
+      const btn = document.getElementById("modal-assign-btn");
+      if (btn) { btn.disabled = false; btn.textContent = "✅ Assign"; }
       _selectedRts = null;
       renderRts();
     }
