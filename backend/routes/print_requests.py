@@ -686,12 +686,19 @@ def preview_design(request_id):
             import ezdxf
             from ezdxf.addons.drawing import RenderContext, Frontend
             from ezdxf.addons.drawing.svg import SVGBackend
+            from ezdxf.addons.drawing.config import Configuration, TextPolicy
 
             doc = ezdxf.readfile(file_path)
             msp = doc.modelspace()
             backend = SVGBackend()
             ctx = RenderContext(doc)
-            frontend = Frontend(ctx, backend)
+
+            # Use SUBSTITUTE so text is replaced with placeholder boxes instead
+            # of requiring system fonts (Railway has none)
+            config = Configuration.defaults().with_changes(
+                text_policy=TextPolicy.SUBSTITUTE
+            )
+            frontend = Frontend(ctx, backend, config=config)
             frontend.draw_layout(msp)
 
             # ezdxf ≥ 1.0: get_xml_root() returns an ElementTree Element
